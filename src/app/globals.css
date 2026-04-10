@@ -1,0 +1,24 @@
+@import "tailwindcss";
+
+@theme inline {
+  /* Brand */
+  --color-brand: hsl(221 65% 28%);
+  --color-brand-hover: hsl(221 65% 22%);
+  --color-brand-foreground: hsl(0 0% 100%);
+  --color-brand-muted: hsl(221 40% 94%);
+
+  /* Base */
+  --color-background: #ffffff;
+  --color-foreground: #0f172a;
+
+  /* Fonts */
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --font-display: var(--font-plus-jakarta);
+}
+
+body {
+  background: var(--color-background);
+  color: var(--color-foreground);
+  font-family: var(--font-sans);
+}
