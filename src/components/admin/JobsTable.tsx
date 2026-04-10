@@ -2,6 +2,7 @@
 
 import * as React from 'react'
 import Link from 'next/link'
+import { Search } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 
 type JobRecord = {
@@ -56,14 +57,33 @@ function formatService(serviceType: JobRecord['service_type']) {
 
 export function JobsTable({ jobs }: { jobs: any[] }) {
   const [activeFilter, setActiveFilter] = React.useState<Filter>('all')
+  const [query, setQuery] = React.useState('')
 
   const filteredJobs = React.useMemo(() => {
-    if (activeFilter === 'all') return jobs as JobRecord[]
-    return (jobs as JobRecord[]).filter((job) => job.status === activeFilter)
-  }, [activeFilter, jobs])
+    return (jobs as JobRecord[])
+      .filter((j) => activeFilter === 'all' || j.status === activeFilter)
+      .filter((j) => {
+        if (!query.trim()) return true
+        const q = query.toLowerCase()
+        return j.client_name?.toLowerCase().includes(q) || j.client_email?.toLowerCase().includes(q)
+      })
+  }, [activeFilter, jobs, query])
 
   return (
     <div>
+      <div className="mb-4">
+        <div className="relative max-w-sm">
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <input
+            type="text"
+            placeholder="Search by name or email…"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            className="w-full rounded-lg border border-slate-200 bg-white py-2 pl-9 pr-3 text-sm text-slate-900 placeholder:text-slate-400 transition-colors duration-200 hover:border-slate-300 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-(--color-brand) focus:ring-offset-0"
+          />
+        </div>
+      </div>
+
       <div className="mb-6 flex gap-6 border-b border-slate-200">
         {FILTERS.map((filter) => {
           const isActive = activeFilter === filter
@@ -73,7 +93,7 @@ export function JobsTable({ jobs }: { jobs: any[] }) {
               key={filter}
               type="button"
               onClick={() => setActiveFilter(filter)}
-              className={`pb-3 text-sm capitalize cursor-pointer ${
+              className={`cursor-pointer pb-3 text-sm capitalize ${
                 isActive
                   ? 'border-b-2 border-(--color-brand) font-medium text-(--color-brand)'
                   : 'text-slate-600 transition-colors duration-200 hover:text-slate-900'
@@ -125,7 +145,9 @@ export function JobsTable({ jobs }: { jobs: any[] }) {
                       </Badge>
                     </td>
                     <td className="px-4 py-3">{formatService(job.service_type)}</td>
-                    <td className="px-4 py-3">{formatAvailability(job.availability_start, job.availability_end, job.time_preference)}</td>
+                    <td className="px-4 py-3">
+                      {formatAvailability(job.availability_start, job.availability_end, job.time_preference)}
+                    </td>
                     <td className="px-4 py-3 font-mono text-sm tabular-nums">
                       {low === 0 && high === 0 ? 'Manual quote' : `$${low} – $${high}`}
                     </td>

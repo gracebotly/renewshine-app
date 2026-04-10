@@ -53,6 +53,12 @@ export function QuoteCard({ job }: { job: any }) {
   const [loadingCash, setLoadingCash] = React.useState(false)
   const [successMsg, setSuccessMsg] = React.useState('')
   const [errorMsg, setErrorMsg] = React.useState('')
+  const [loadingReview, setLoadingReview] = React.useState(false)
+  const [loadingDecline, setLoadingDecline] = React.useState(false)
+  const [showDeclineConfirm, setShowDeclineConfirm] = React.useState(false)
+  const [loadingResend, setLoadingResend] = React.useState(false)
+  const [overrideStatus, setOverrideStatus] = React.useState(job.status)
+  const [loadingOverride, setLoadingOverride] = React.useState(false)
 
   const canApprove = Boolean(confirmedDate && approvedPrice && Number(approvedPrice) > 0 && !job.deposit_paid)
 
@@ -111,12 +117,100 @@ export function QuoteCard({ job }: { job: any }) {
     setLoadingCash(false)
   }
 
+  const handleMarkUnderReview = async () => {
+    setLoadingReview(true)
+    setErrorMsg('')
+    setSuccessMsg('')
+    const res = await fetch('/api/admin/update-job-status', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ jobId: job.id, status: 'under_review' }),
+    })
+    if (res.ok) {
+      setSuccessMsg('Status updated to Under Review ✓')
+      setOverrideStatus('under_review')
+    } else {
+      setErrorMsg('Failed to update status.')
+    }
+    setLoadingReview(false)
+  }
+
+  const handleDecline = async () => {
+    setLoadingDecline(true)
+    setErrorMsg('')
+    setSuccessMsg('')
+    const res = await fetch('/api/admin/update-job-status', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ jobId: job.id, status: 'cancelled' }),
+    })
+    if (res.ok) {
+      setSuccessMsg('Request declined — status set to Cancelled.')
+      setShowDeclineConfirm(false)
+      setOverrideStatus('cancelled')
+    } else {
+      setErrorMsg('Failed to decline request.')
+    }
+    setLoadingDecline(false)
+  }
+
+  const handleResendLink = async () => {
+    setLoadingResend(true)
+    setErrorMsg('')
+    setSuccessMsg('')
+    const res = await fetch('/api/admin/send-deposit-link', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        jobId: job.id,
+        approvedPrice: Number(job.approved_price),
+        confirmedDate: job.confirmed_date,
+      }),
+    })
+    if (res.ok) {
+      setSuccessMsg(`Deposit link resent to ${job.client_email} ✓`)
+    } else {
+      setErrorMsg('Failed to resend link. Please try again.')
+    }
+    setLoadingResend(false)
+  }
+
+  const handleStatusOverride = async (newStatus: string) => {
+    if (newStatus === job.status) return
+    setLoadingOverride(true)
+    setErrorMsg('')
+    setSuccessMsg('')
+    const res = await fetch('/api/admin/update-job-status', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ jobId: job.id, status: newStatus }),
+    })
+    if (res.ok) {
+      setOverrideStatus(newStatus)
+      setSuccessMsg(`Status updated to "${newStatus.replace('_', ' ')}" ✓`)
+    } else {
+      setErrorMsg('Failed to update status.')
+      setOverrideStatus(job.status)
+    }
+    setLoadingOverride(false)
+  }
+
   return (
     <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
       <div className="mb-6 flex items-center justify-between">
         <h2 className="text-lg font-semibold text-slate-900">Quote Summary</h2>
         <Badge variant={statusVariant}>{String(job.status ?? 'new').replace('_', ' ')}</Badge>
       </div>
+
+      {job.status === 'new' && (
+        <button
+          onClick={handleMarkUnderReview}
+          disabled={loadingReview}
+          className="mb-4 w-full cursor-pointer rounded-lg border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm font-medium text-amber-700 transition-colors duration-200 hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {loadingReview ? 'Updating…' : '👁 Mark as Under Review'}
+        </button>
+      )}
 
       <div className="mb-4 rounded-lg border border-slate-200 bg-slate-50 p-4">
         <div className="flex items-center justify-between gap-3">
@@ -152,7 +246,9 @@ export function QuoteCard({ job }: { job: any }) {
       <div className="mt-4 space-y-1 text-sm text-slate-600">
         <p>{formatDateRange(job.availability_start, job.availability_end)}</p>
         <p>{TIME_LABELS[job.time_preference as keyof typeof TIME_LABELS] ?? '—'}</p>
-        <Badge variant="neutral">{FREQUENCY_LABELS[job.frequency as keyof typeof FREQUENCY_LABELS] ?? 'One-time'}</Badge>
+        <Badge variant="neutral">
+          {FREQUENCY_LABELS[job.frequency as keyof typeof FREQUENCY_LABELS] ?? 'One-time'}
+        </Badge>
       </div>
 
       {!job.deposit_paid ? (
@@ -190,9 +286,24 @@ export function QuoteCard({ job }: { job: any }) {
         </div>
         <div className="flex justify-between bg-slate-50 px-4 py-3 text-sm">
           <span className="text-slate-600">Remaining balance</span>
-          <span className="font-mono font-medium tabular-nums text-slate-900">${Math.max(Number(approvedPrice || 0) - 100, 0)}</span>
+          <span className="font-mono font-medium tabular-nums text-slate-900">
+            ${Math.max(Number(approvedPrice || 0) - 100, 0)}
+          </span>
         </div>
       </div>
+
+      {job.status === 'approved' && !job.deposit_paid && job.stripe_payment_link && (
+        <div className="mt-3 flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
+          <p className="text-xs text-slate-600">Link sent. Customer hasn't paid yet.</p>
+          <button
+            onClick={handleResendLink}
+            disabled={loadingResend}
+            className="shrink-0 cursor-pointer rounded-lg border border-(--color-brand) px-3 py-1.5 text-xs font-medium text-(--color-brand) transition-colors duration-200 hover:bg-(--color-brand-muted) disabled:opacity-50"
+          >
+            {loadingResend ? 'Resending…' : 'Resend Link'}
+          </button>
+        </div>
+      )}
 
       {!job.deposit_paid ? (
         <div className="mt-4 flex gap-3">
@@ -218,12 +329,66 @@ export function QuoteCard({ job }: { job: any }) {
         </div>
       )}
 
+      {!job.deposit_paid && job.status !== 'cancelled' && job.status !== 'completed' && (
+        <div className="mt-3">
+          {!showDeclineConfirm ? (
+            <button
+              onClick={() => setShowDeclineConfirm(true)}
+              className="w-full cursor-pointer rounded-lg border border-red-200 px-4 py-2 text-sm font-medium text-red-600 transition-colors duration-200 hover:bg-red-50"
+            >
+              Decline Request
+            </button>
+          ) : (
+            <div className="space-y-3 rounded-lg border border-red-200 bg-red-50 p-4">
+              <p className="text-sm font-medium text-red-700">Decline this request? This cannot be undone.</p>
+              <div className="flex gap-2">
+                <button
+                  onClick={handleDecline}
+                  disabled={loadingDecline}
+                  className="flex-1 cursor-pointer rounded-lg bg-red-600 px-3 py-2 text-sm font-medium text-white transition-colors duration-200 hover:bg-red-700 disabled:opacity-50"
+                >
+                  {loadingDecline ? 'Declining…' : 'Yes, Decline'}
+                </button>
+                <button
+                  onClick={() => setShowDeclineConfirm(false)}
+                  className="flex-1 cursor-pointer rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition-colors duration-200 hover:bg-slate-50"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       {!canApprove && !job.deposit_paid ? (
         <p className="mt-3 text-xs text-slate-500">Set confirmed date and approved price to enable actions.</p>
       ) : null}
 
       {successMsg && <p className="mt-3 text-sm font-medium text-emerald-600">{successMsg}</p>}
       {errorMsg && <p className="mt-3 text-sm font-medium text-red-600">{errorMsg}</p>}
+
+      <div className="mt-6 border-t border-slate-100 pt-4">
+        <label className="block space-y-1.5">
+          <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Manual Status Override</span>
+          <div className="flex gap-2">
+            <select
+              value={overrideStatus}
+              onChange={(e) => handleStatusOverride(e.target.value)}
+              disabled={loadingOverride}
+              className="flex-1 cursor-pointer rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 transition-colors duration-200 hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-(--color-brand) focus:ring-offset-0 disabled:opacity-50"
+            >
+              <option value="new">New</option>
+              <option value="under_review">Under Review</option>
+              <option value="approved">Approved</option>
+              <option value="scheduled">Scheduled</option>
+              <option value="completed">Completed</option>
+              <option value="cancelled">Cancelled</option>
+            </select>
+            {loadingOverride && <div className="flex items-center px-2 text-xs text-slate-500">Saving…</div>}
+          </div>
+        </label>
+      </div>
     </div>
   )
 }
