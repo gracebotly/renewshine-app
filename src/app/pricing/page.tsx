@@ -1,4 +1,5 @@
-import type { Metadata } from 'next'
+'use client'
+
 import Link from 'next/link'
 import { motion } from 'motion/react'
 import {
@@ -21,10 +22,6 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 
-export const metadata: Metadata = {
-  title: 'Pricing — RenewShine',
-  description: 'Simple, transparent pricing. Your final price confirmed before you pay a single cent.',
-}
 
 const tiers = [
   {
