@@ -1,0 +1,92 @@
+import { createServerClient } from '@/lib/supabase/server'
+import { stripe } from '@/lib/stripe/client'
+import { sendCustomerQuote } from '@/lib/email'
+
+export async function POST(request: Request) {
+  const { jobId, approvedPrice, confirmedDate } = await request.json()
+
+  // Validate
+  if (!jobId || !approvedPrice || !confirmedDate) {
+    return Response.json({ error: 'jobId, approvedPrice, and confirmedDate are required' }, { status: 400 })
+  }
+  if (Number(approvedPrice) <= 100) {
+    return Response.json({ error: 'approvedPrice must be greater than $100' }, { status: 400 })
+  }
+
+  const supabase = createServerClient()
+
+  // Fetch job to get client details for email + metadata
+  const { data: job, error: fetchError } = await supabase
+    .from('jobs')
+    .select('*')
+    .eq('id', jobId)
+    .single()
+
+  if (fetchError || !job) {
+    return Response.json({ error: 'Job not found' }, { status: 404 })
+  }
+
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? ''
+
+  // Create Stripe Payment Link
+  // metadata.jobId is how the webhook maps Stripe → your database
+  const paymentLink = await stripe.paymentLinks.create({
+    line_items: [
+      {
+        price_data: {
+          currency: 'usd',
+          product_data: {
+            name: 'RenewShine Cleaning Deposit',
+            description: `Deposit for ${job.client_name} — confirms your booking`,
+          },
+          unit_amount: 10000, // $100.00 in cents
+        },
+        quantity: 1,
+      },
+    ],
+    metadata: {
+      jobId: job.id,
+      client_email: job.client_email,
+      client_name: job.client_name,
+    },
+    after_completion: {
+      type: 'redirect',
+      redirect: {
+        url: `${siteUrl}/pay?session_id={CHECKOUT_SESSION_ID}`,
+      },
+    },
+  })
+
+  // Update job in Supabase
+  const remaining = Number(approvedPrice) - 100
+  const { error: updateError } = await supabase
+    .from('jobs')
+    .update({
+      status: 'approved',
+      approved_price: Number(approvedPrice),
+      confirmed_date: confirmedDate,
+      remaining_amount: remaining,
+      stripe_payment_link: paymentLink.url,
+    })
+    .eq('id', jobId)
+
+  if (updateError) {
+    return Response.json({ error: 'Failed to update job' }, { status: 500 })
+  }
+
+  // Fetch updated job for email (has confirmed_date and approved_price now)
+  const { data: updatedJob } = await supabase
+    .from('jobs')
+    .select('*')
+    .eq('id', jobId)
+    .single()
+
+  // Send Template 3 — never block on email failure
+  try {
+    if (updatedJob) await sendCustomerQuote(updatedJob, paymentLink.url)
+  } catch (emailError) {
+    console.error('sendCustomerQuote failed (non-blocking):', emailError)
+  }
+
+  return Response.json({ url: paymentLink.url })
+}

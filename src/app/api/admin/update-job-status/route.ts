@@ -1,9 +1,4 @@
-import { createClient } from '@supabase/supabase-js'
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
+import { createServerClient } from '@/lib/supabase/server'
 
 const VALID_STATUSES = ['new', 'under_review', 'approved', 'scheduled', 'completed', 'cancelled']
 
@@ -15,6 +10,7 @@ export async function PATCH(request: Request) {
     return Response.json({ error: 'Invalid status' }, { status: 400 })
   }
 
+  const supabase = createServerClient()
   const updates: Record<string, unknown> = {}
   if (status) updates.status = status
   if (notes !== undefined) updates.notes = notes
