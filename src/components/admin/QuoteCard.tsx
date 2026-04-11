@@ -30,7 +30,7 @@ const FREQUENCY_LABELS = {
 
 function formatService(serviceType: string | null) {
   if (serviceType === 'standard') return 'Standard Clean'
-  if (serviceType === 'deep') return 'Deep Clean'
+  if (serviceType === 'detailed') return 'Detailed Clean'
   if (serviceType === 'move_out') return 'Move-In / Move-Out'
   return 'Service'
 }
@@ -70,7 +70,7 @@ export function QuoteCard({ job }: { job: any }) {
     if (job.service_type === 'standard') {
       return Math.max(bedrooms * 60 + bathrooms * 40, 200)
     }
-    if (job.service_type === 'deep') {
+    if (job.service_type === 'detailed') {
       return Math.max(bedrooms * 90 + bathrooms * 55, 350)
     }
     return null

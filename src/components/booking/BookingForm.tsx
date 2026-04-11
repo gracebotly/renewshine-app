@@ -9,7 +9,7 @@ import { MediaUpload } from '@/components/booking/MediaUpload'
 import { PriceEstimate } from '@/components/booking/PriceEstimate'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { ADD_ONS, estimatePrice, type ServiceType, type TimePreference } from '@/lib/pricing'
+import { ADD_ONS_FOR_SERVICE, estimatePrice, type ServiceType, type TimePreference } from '@/lib/pricing'
 import { cn } from '@/lib/utils'
 
 type Frequency = 'one_time' | 'weekly' | 'bi_weekly' | 'monthly'
@@ -262,8 +262,8 @@ export function BookingForm() {
               <div className="space-y-3">
                 {[
                   ['standard', 'Standard Clean', 'from $200', 'For regularly maintained homes'],
-                  ['deep', 'Deep Clean', 'from $350', 'Full reset — recommended for first-time clients'],
-                  ['move_out', 'Move-In / Move-Out', 'from $400', 'Vacant properties — quoted after photo review'],
+                  ['detailed', 'Detailed Clean', 'from $350', 'Full reset — recommended for first-time clients'],
+                  ['move_out', 'Move-In / Move-Out', 'from $500', 'Vacant properties — quoted after photo review'],
                 ].map(([id, title, price, text]) => (
                   <button
                     key={id}
@@ -287,7 +287,7 @@ export function BookingForm() {
 
               <div className="space-y-2 rounded-xl border border-slate-200 p-4">
                 <p className="font-medium text-slate-900">Add-ons (optional)</p>
-                {ADD_ONS.map((addOn) => (
+                {ADD_ONS_FOR_SERVICE(serviceType).map((addOn) => (
                   <label key={addOn.id} className="flex cursor-pointer items-center justify-between gap-3 py-1">
                     <span className="inline-flex items-center gap-2 text-sm text-slate-700">
                       <Checkbox.Root
@@ -404,7 +404,7 @@ export function BookingForm() {
               {errors.resMedia ? <p className="mt-2 text-sm text-red-600">Please upload at least one photo before submitting.</p> : null}
 
               <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
-                <p>Service type: {serviceType}</p>
+                <p>Service type: {serviceType === 'standard' ? 'Standard Clean' : serviceType === 'detailed' ? 'Detailed Clean' : 'Move-In / Move-Out'}</p>
                 <p>Home size: {bedrooms} bed · {bathrooms} bath</p>
                 <p>Add-ons: {selectedAddOns.length ? selectedAddOns.join(', ') : 'None'}</p>
                 <p>Frequency: {resFrequency}</p>
