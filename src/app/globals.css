@@ -1,11 +1,11 @@
-@import "tailwindcss";
+﻿@import "tailwindcss";
 
 @theme inline {
   /* Brand */
-  --color-brand: hsl(221 65% 28%);
-  --color-brand-hover: hsl(221 65% 22%);
-  --color-brand-foreground: hsl(0 0% 100%);
-  --color-brand-muted: hsl(221 40% 94%);
+  --color-brand: #4A7C59;
+  --color-brand-hover: #3d6b4a;
+  --color-brand-foreground: #ffffff;
+  --color-brand-muted: #e8f3ec;
 
   /* Base */
   --color-background: #ffffff;
@@ -37,8 +37,8 @@ html {
 
 /* Selection color */
 ::selection {
-  background: hsl(221 65% 28% / 0.12);
-  color: hsl(221 65% 18%);
+  background: #4A7C59;
+  color: #ffffff;
 }
 
 body {
