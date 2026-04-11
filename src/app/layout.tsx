@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+ï»¿import type { Metadata } from "next";
 import { Geist, Geist_Mono, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import Navbar from '@/components/layout/Navbar'
@@ -21,14 +21,14 @@ const plusJakarta = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "RenewShine — Premium Cleaning Service",
+  title: "RenewShine â€” Premium Cleaning Service",
   description: "No surprises. No underquoting. Just a clean you can count on.",
   icons: {
     icon: [{ url: "/favicon-32.png", sizes: "32x32", type: "image/png" }],
     apple: "/apple-touch-icon.png",
   },
   openGraph: {
-    title: "RenewShine — Premium Cleaning Service",
+    title: "RenewShine â€” Premium Cleaning Service",
     description: "No surprises. No underquoting. Just a clean you can count on.",
     url: "https://renewshine.co",
     siteName: "RenewShine",
@@ -38,7 +38,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "RenewShine — Premium Cleaning Service",
+    title: "RenewShine â€” Premium Cleaning Service",
     description: "No surprises. No underquoting.",
     images: ["/twitter-card.png"],
   },
