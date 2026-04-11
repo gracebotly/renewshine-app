@@ -31,27 +31,27 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 const steps = [
   {
     icon: Camera,
-    title: 'Submit details + photos',
+    title: 'Submit Your Details',
     description:
-      'Fill out the booking form and upload photos of each room. The photos are how we give you an accurate price.',
+      'Tell us about your space — a quick video, some photos, or a written description works.',
   },
   {
     icon: Search,
-    title: 'We review your space',
+    title: 'We Review & Confirm',
     description:
-      'Our team reviews your submission within 24 hours. We look at the photos, size, and condition — then confirm the real price.',
+      'We assess your submission and lock in a realistic price range based on what we see — within 24 hours.',
   },
   {
     icon: CheckCircle,
-    title: 'You approve the price',
+    title: 'Approve & Book',
     description:
-      "We send you a full itemized quote. You review and pay a $100 deposit only when you're happy with the price.",
+      "Review your quote and secure your spot. No payment until you're ready.",
   },
   {
     icon: Sparkles,
-    title: 'We show up and clean',
+    title: 'We Handle the Rest',
     description:
-      'Your cleaner arrives in the confirmed window. You pay the remaining balance only after the job is done.',
+      'Your cleaner arrives fully prepared. You pay the remaining balance only after the job is done.',
   },
 ]
 
@@ -249,30 +249,30 @@ export default function HomePage() {
         <div className="mx-auto grid max-w-6xl gap-10 px-4 sm:px-6 lg:grid-cols-2 lg:px-8">
           <div>
             <p className="text-xs font-semibold uppercase tracking-wider text-(--color-brand)">Why we&apos;re different</p>
-            <h2 className="mt-2 font-display text-3xl font-bold text-slate-900">Photo-reviewed pricing protects you</h2>
+            <h2 className="mt-2 font-display text-3xl font-bold text-slate-900">More accurate estimates — before we ever arrive</h2>
             <p className="mt-4 whitespace-pre-line text-slate-600">
-              Most cleaning apps give you a fast estimate before they&apos;ve seen your home. That leads to cleaners showing up
-              unprepared — or prices jumping at the door.
+              Most cleaning companies give you a quick quote without ever seeing your home. That&apos;s how prices end up
+              changing at the door.
               {'\n\n'}
-              We do it differently. You submit photos. We review them. We confirm a real price. You approve before paying
-              a cent.
+              We do it differently. You share photos, a quick video, or a description. We review your space and give you a
+              realistic price range based on what we see — so you know what to expect before booking.
             </p>
             <div className="mt-6 space-y-4">
               {[
                 {
                   icon: ShieldCheck,
-                  title: 'No surprise charges',
-                  text: 'Your approved price is your final price. Period.',
+                  title: 'Clear price range upfront',
+                  text: 'We give you a realistic estimate based on your submission — not a blind guess.',
                 },
                 {
                   icon: Clock,
-                  title: '24-hour confirmation',
-                  text: 'We review every submission same day and confirm within 24 hours.',
+                  title: 'Final price confirmed after review',
+                  text: 'Once we understand the full scope, we lock in your price before the job begins.',
                 },
                 {
                   icon: Star,
-                  title: 'Premium from day one',
-                  text: 'Photo review means our cleaners arrive knowing exactly what the job requires.',
+                  title: 'No awkward surprises at the door',
+                  text: 'Our goal is full alignment before we arrive — not last-minute changes.',
                 },
               ].map((item) => {
                 const Icon = item.icon
@@ -286,20 +286,23 @@ export default function HomePage() {
                 )
               })}
             </div>
+            <p className="mt-4 text-xs italic text-slate-400">
+              Final pricing may adjust if the condition of the space differs significantly from what was shown.
+            </p>
           </div>
 
           <div className="flex items-center justify-center">
             <div className="w-full max-w-sm">
               <div className="rounded-xl border border-slate-200 bg-white p-4">
-                <p className="font-medium text-slate-900">📷 You submit photos</p>
+                <p className="font-medium text-slate-900">📋 You share your space</p>
               </div>
               <div className="ml-6 h-6 border-l-2 border-dashed border-slate-300" />
               <div className="rounded-xl border border-(--color-brand)/20 bg-(--color-brand-muted) p-4">
-                <p className="font-medium text-slate-900">🔍 We review &amp; quote</p>
+                <p className="font-medium text-slate-900">🔍 We review &amp; estimate</p>
               </div>
               <div className="ml-6 h-6 border-l-2 border-dashed border-slate-300" />
               <div className="rounded-xl border border-slate-200 bg-white p-4">
-                <p className="font-medium text-slate-900">✅ You approve first</p>
+                <p className="font-medium text-slate-900">✅ You approve the range</p>
               </div>
             </div>
           </div>
