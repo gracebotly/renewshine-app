@@ -245,9 +245,9 @@ export function QuoteCard({ job }: { job: any }) {
 
       <div className="mt-4 space-y-1 text-sm text-slate-600">
         <p>{formatDateRange(job.availability_start, job.availability_end)}</p>
-        <p>{TIME_LABELS[job.time_preference as keyof typeof TIME_LABELS] ?? '—'}</p>
+        <p>{TIME_LABELS[job.availability_time_pref as keyof typeof TIME_LABELS] ?? '—'}</p>
         <Badge variant="neutral">
-          {FREQUENCY_LABELS[job.frequency as keyof typeof FREQUENCY_LABELS] ?? 'One-time'}
+          {FREQUENCY_LABELS[job.service_frequency as keyof typeof FREQUENCY_LABELS] ?? 'One-time'}
         </Badge>
       </div>
 

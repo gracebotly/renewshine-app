@@ -1,6 +1,5 @@
-import { createClient } from '@supabase/supabase-js'
-
-const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
+import { createServerClient } from '@/lib/supabase/server'
+import { sendOwnerNewJobAlert, sendCustomerSubmittedConfirmation } from '@/lib/email'
 
 export async function POST(request: Request) {
   const body = await request.json()
@@ -12,13 +11,14 @@ export async function POST(request: Request) {
     }
   }
 
+  const supabase = createServerClient()
   const { media_urls = [], ...jobData } = body
 
   const { data: job, error: jobError } = await supabase
     .from('jobs')
     .insert({
       type: jobData.type,
-      status: 'new',
+      status: 'new' as const,
       client_name: jobData.client_name,
       client_email: jobData.client_email,
       client_phone: jobData.client_phone ?? null,
@@ -55,9 +55,12 @@ export async function POST(request: Request) {
     await supabase.from('job_media').insert(mediaRows)
   }
 
+  // Send Templates 1 + 2 — never block job creation on email failure
   try {
-    // Email hooks are implemented in a later prompt.
-    // Keep non-blocking behavior and never fail job creation.
+    await Promise.all([
+      sendOwnerNewJobAlert(job),
+      sendCustomerSubmittedConfirmation(job),
+    ])
   } catch (emailError) {
     console.error('Email send failed (non-blocking):', emailError)
   }

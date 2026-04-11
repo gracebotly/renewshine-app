@@ -12,13 +12,13 @@ import { Input } from '@/components/ui/input'
 import { ADD_ONS, estimatePrice, type ServiceType, type TimePreference } from '@/lib/pricing'
 import { cn } from '@/lib/utils'
 
-type Frequency = 'one_time' | 'weekly' | 'biweekly' | 'monthly'
+type Frequency = 'one_time' | 'weekly' | 'bi_weekly' | 'monthly'
 type FlowType = 'residential' | 'commercial'
 
 const frequencies: Array<{ id: Frequency; label: string }> = [
   { id: 'one_time', label: 'One-time' },
   { id: 'weekly', label: 'Weekly' },
-  { id: 'biweekly', label: 'Bi-weekly' },
+  { id: 'bi_weekly', label: 'Bi-weekly' },
   { id: 'monthly', label: 'Monthly' },
 ]
 
