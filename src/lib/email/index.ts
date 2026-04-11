@@ -5,6 +5,8 @@ import { customerSubmittedTemplate } from './templates/customer-submitted'
 import { customerQuoteTemplate } from './templates/customer-quote'
 import { customerBookedTemplate } from './templates/customer-booked'
 import { ownerBookedTemplate } from './templates/owner-booked'
+import { customerQuoteReminderTemplate } from './templates/customer-quote-reminder'
+import { customerLinkExpiredTemplate } from './templates/customer-link-expired'
 
 const resend = new Resend(process.env.RESEND_API_KEY!)
 const FROM = 'RenewShine <bookings@renewshine.com>'
@@ -38,4 +40,25 @@ export async function sendCustomerBooked(job: Job): Promise<void> {
 export async function sendOwnerBooked(job: Job): Promise<void> {
   const { subject, html } = ownerBookedTemplate(job)
   await resend.emails.send({ from: FROM, to: OWNER_EMAIL, subject, html })
+}
+
+/**
+ * Quote reminder — fires when owner clicks "Resend Link" on an approved,
+ * unpaid job. Creates a fresh Stripe Payment Link and sends urgency copy.
+ * To: customer.
+ */
+export async function sendQuoteReminder(job: Job, newStripeUrl: string): Promise<void> {
+  const { subject, html } = customerQuoteReminderTemplate(job, newStripeUrl)
+  await resend.emails.send({ from: FROM, to: job.client_email, subject, html })
+}
+
+/**
+ * Expired link recovery — fires when owner regenerates a link for a job
+ * where the original link has expired (job.status === 'approved' and
+ * deposit_paid === false and original link is stale).
+ * To: customer.
+ */
+export async function sendExpiredLinkRecovery(job: Job, newStripeUrl: string): Promise<void> {
+  const { subject, html } = customerLinkExpiredTemplate(job, newStripeUrl)
+  await resend.emails.send({ from: FROM, to: job.client_email, subject, html })
 }
