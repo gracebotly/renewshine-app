@@ -125,11 +125,14 @@ export function MediaUpload({ onUpload, uploadedUrls }: MediaUploadProps) {
       >
         <input {...getInputProps()} />
         <Upload size={24} className="mx-auto text-(--color-brand)" />
-        <p className="mt-3 font-medium text-slate-900">Drag photos here or click to browse</p>
+        <p className="mt-3 font-medium text-slate-900">Upload a video or photos <span className="text-slate-400 font-normal text-sm">(optional)</span></p>
         <p className="mt-1 text-sm text-slate-600">
-          Upload photos of each room — this is how we give you an accurate price.
+          A <span className="font-medium text-slate-900">60-second walkthrough video</span> gives us the most accurate picture of your space. Photos of each room work too.
         </p>
-        <p className="mt-1 text-xs text-slate-600">Images and videos · Max 25MB per file · Up to 10 files</p>
+        <p className="mt-2 text-xs text-slate-400">
+          Skipping is fine — we&apos;ll follow up if we need more details before confirming your price.
+        </p>
+        <p className="mt-1 text-xs text-slate-400">MP4, MOV, JPG, PNG · Max 25MB per file · Up to 10 files</p>
       </div>
 
       {error ? <p className="mt-2 text-sm text-red-600">{error}</p> : null}
@@ -150,14 +153,15 @@ export function MediaUpload({ onUpload, uploadedUrls }: MediaUploadProps) {
                   <img src={item.url} alt={item.name} className="h-24 w-full object-cover" />
                 )}
               </div>
-              {!item.uploading ?
+              {!item.uploading ? (
                 <button
                   type="button"
                   onClick={() => handleRemove(item.url, item.id)}
                   className="mt-2 inline-flex cursor-pointer items-center gap-1 text-xs text-red-600 transition-colors duration-200 hover:text-red-700"
                 >
                   <X size={12} /> Remove
-                </button> : null}
+                </button>
+              ) : null}
             </div>
           ))}
         </div>

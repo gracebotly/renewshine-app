@@ -6,12 +6,15 @@ import * as Accordion from '@radix-ui/react-accordion'
 import {
   AppWindow,
   Bed,
+  Briefcase,
+  Building2,
   Calendar,
   Camera,
   CheckCircle,
   ChevronDown,
   Clock,
   Flame,
+  Home,
   LayoutGrid,
   Layers,
   PaintBucket,
@@ -20,7 +23,10 @@ import {
   ShieldCheck,
   Sparkles,
   Star,
+  Truck,
   UtensilsCrossed,
+  Wind,
+  Wrench,
   WashingMachine,
 } from 'lucide-react'
 import Image from 'next/image'
@@ -31,27 +37,27 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 const steps = [
   {
     icon: Camera,
-    title: 'Submit details + photos',
+    title: 'Submit Your Details',
     description:
-      'Fill out the booking form and upload photos of each room. The photos are how we give you an accurate price.',
+      'Tell us about your space — a quick video, some photos, or a written description works.',
   },
   {
     icon: Search,
-    title: 'We review your space',
+    title: 'We Review & Confirm',
     description:
-      'Our team reviews your submission within 24 hours. We look at the photos, size, and condition — then confirm the real price.',
+      'We assess your submission and lock in a realistic price range based on what we see — within 24 hours.',
   },
   {
     icon: CheckCircle,
-    title: 'You approve the price',
+    title: 'Approve & Book',
     description:
-      "We send you a full itemized quote. You review and pay a $100 deposit only when you're happy with the price.",
+      "Review your quote and secure your spot. No payment until you're ready.",
   },
   {
     icon: Sparkles,
-    title: 'We show up and clean',
+    title: 'We Handle the Rest',
     description:
-      'Your cleaner arrives in the confirmed window. You pay the remaining balance only after the job is done.',
+      'Your cleaner arrives fully prepared. You pay the remaining balance only after the job is done.',
   },
 ]
 
@@ -94,28 +100,28 @@ const services = [
       'Inside refrigerator & oven (included)',
       'Final walkthrough sweep',
     ],
-    note: 'Always quoted after photo review — every property is different.',
+    note: 'Always quoted after review — every property is different.',
     buttonVariant: 'outline' as const,
   },
 ]
 
 const addOns = [
-  { icon: Refrigerator, name: 'Inside Refrigerator', price: '$65' },
-  { icon: Flame, name: 'Inside Oven', price: '$65' },
-  { icon: UtensilsCrossed, name: 'Dishes (washed or put away)', price: '$25' },
-  { icon: Bed, name: 'Change Linens', price: '$15 per bed' },
-  { icon: WashingMachine, name: 'Single Load of Laundry', price: '$25 per load' },
-  { icon: AppWindow, name: 'Interior Windows', price: '$10–$30 per window' },
-  { icon: LayoutGrid, name: 'Tidy-Up / Home Organization', price: '$65+' },
-  { icon: PaintBucket, name: 'Spot Clean Walls', price: '$35' },
-  { icon: Layers, name: 'Basement Cleaning', price: '$75' },
+  { icon: Refrigerator, name: 'Inside Refrigerator' },
+  { icon: Flame, name: 'Inside Oven' },
+  { icon: UtensilsCrossed, name: 'Dishes (washed or put away)' },
+  { icon: Bed, name: 'Change Linens' },
+  { icon: WashingMachine, name: 'Single Load of Laundry' },
+  { icon: AppWindow, name: 'Interior Windows' },
+  { icon: LayoutGrid, name: 'Tidy-Up / Home Organization' },
+  { icon: PaintBucket, name: 'Spot Clean Walls' },
+  { icon: Layers, name: 'Basement Cleaning' },
 ]
 
 const faqs = [
   {
-    question: 'How does the photo review work?',
+    question: 'Do I need to send photos or a video?',
     answer:
-      'After you submit your booking form, we review the photos you upload of each room. This lets us see the actual size and condition of your home before we confirm your price. It protects you from surprise charges and means our cleaner arrives fully prepared for the job.',
+      "You don't have to — but it helps us give you a much more accurate estimate. A 60-second walkthrough video of your space is the easiest way to help us understand what the job involves. Photos of each room work too. If you'd rather just describe your space in writing, that's fine — we'll review what you submit and follow up if we need more details before confirming your price.",
   },
   {
     question: 'Do I have to pay before you confirm my price?',
@@ -125,7 +131,7 @@ const faqs = [
   {
     question: 'What areas do you serve?',
     answer:
-      "We serve the DMV area — Washington DC, Maryland, and Virginia. Contact us if you're not sure whether we cover your zip code.",
+      "We serve communities throughout Maryland, Washington DC, and Northern Virginia — including Columbia, Silver Spring, Greenbelt, Annapolis, Bowie, Odenton, Hanover, Baltimore, Glen Burnie, Laurel, Upper Marlboro, and Gaithersburg. Don't see your city? Reach out — we may still be able to help.",
   },
   {
     question: "What if I'm not satisfied with the clean?",
@@ -166,8 +172,7 @@ export default function HomePage() {
               confirmed before you pay.
             </h1>
             <p className="mx-auto mt-5 max-w-xl text-lg text-slate-600">
-              Submit your details and photos. We review your space and confirm your price within 24 hours. No surprises
-              — ever.
+              Tell us about your space. We review your submission and confirm your price within 24 hours. No surprises — ever.
             </p>
 
             <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
@@ -200,7 +205,7 @@ export default function HomePage() {
             <span className="ml-1 font-medium text-slate-700">4.9 out of 5</span>
           </div>
           <span className="hidden text-slate-300 sm:block">•</span>
-          <span className="text-slate-600">Serving DC, Maryland & Virginia</span>
+          <span className="text-slate-600">Serving Columbia, Silver Spring, Bowie, Laurel & more</span>
           <span className="hidden text-slate-300 sm:block">•</span>
           <p className="italic text-slate-600">&ldquo;Finally a service that doesn&apos;t underquote.&rdquo; — Sarah M., Bethesda</p>
           <p className="italic text-slate-600">&ldquo;The photo review process is genius.&rdquo; — James T., Arlington</p>
@@ -249,30 +254,30 @@ export default function HomePage() {
         <div className="mx-auto grid max-w-6xl gap-10 px-4 sm:px-6 lg:grid-cols-2 lg:px-8">
           <div>
             <p className="text-xs font-semibold uppercase tracking-wider text-(--color-brand)">Why we&apos;re different</p>
-            <h2 className="mt-2 font-display text-3xl font-bold text-slate-900">Photo-reviewed pricing protects you</h2>
+            <h2 className="mt-2 font-display text-3xl font-bold text-slate-900">More accurate estimates — before we ever arrive</h2>
             <p className="mt-4 whitespace-pre-line text-slate-600">
-              Most cleaning apps give you a fast estimate before they&apos;ve seen your home. That leads to cleaners showing up
-              unprepared — or prices jumping at the door.
+              Most cleaning companies give you a quick quote without ever seeing your home. That&apos;s how prices end up
+              changing at the door.
               {'\n\n'}
-              We do it differently. You submit photos. We review them. We confirm a real price. You approve before paying
-              a cent.
+              We do it differently. You share photos, a quick video, or a description. We review your space and give you a
+              realistic price range based on what we see — so you know what to expect before booking.
             </p>
             <div className="mt-6 space-y-4">
               {[
                 {
                   icon: ShieldCheck,
-                  title: 'No surprise charges',
-                  text: 'Your approved price is your final price. Period.',
+                  title: 'Clear price range upfront',
+                  text: 'We give you a realistic estimate based on your submission — not a blind guess.',
                 },
                 {
                   icon: Clock,
-                  title: '24-hour confirmation',
-                  text: 'We review every submission same day and confirm within 24 hours.',
+                  title: 'Final price confirmed after review',
+                  text: 'Once we understand the full scope, we lock in your price before the job begins.',
                 },
                 {
                   icon: Star,
-                  title: 'Premium from day one',
-                  text: 'Photo review means our cleaners arrive knowing exactly what the job requires.',
+                  title: 'No awkward surprises at the door',
+                  text: 'Our goal is full alignment before we arrive — not last-minute changes.',
                 },
               ].map((item) => {
                 const Icon = item.icon
@@ -286,20 +291,23 @@ export default function HomePage() {
                 )
               })}
             </div>
+            <p className="mt-4 text-xs italic text-slate-400">
+              Final pricing may adjust if the condition of the space differs significantly from what was shown.
+            </p>
           </div>
 
           <div className="flex items-center justify-center">
             <div className="w-full max-w-sm">
               <div className="rounded-xl border border-slate-200 bg-white p-4">
-                <p className="font-medium text-slate-900">📷 You submit photos</p>
+                <p className="font-medium text-slate-900">📋 You share your space</p>
               </div>
               <div className="ml-6 h-6 border-l-2 border-dashed border-slate-300" />
               <div className="rounded-xl border border-(--color-brand)/20 bg-(--color-brand-muted) p-4">
-                <p className="font-medium text-slate-900">🔍 We review &amp; quote</p>
+                <p className="font-medium text-slate-900">🔍 We review &amp; estimate</p>
               </div>
               <div className="ml-6 h-6 border-l-2 border-dashed border-slate-300" />
               <div className="rounded-xl border border-slate-200 bg-white p-4">
-                <p className="font-medium text-slate-900">✅ You approve first</p>
+                <p className="font-medium text-slate-900">✅ You approve the range</p>
               </div>
             </div>
           </div>
@@ -308,10 +316,11 @@ export default function HomePage() {
 
       <section id="services" className="bg-white py-20">
         <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+          {/* Residential pricing tiers */}
           <div className="mx-auto mb-12 max-w-2xl text-center">
-            <p className="text-xs font-semibold uppercase tracking-wider text-(--color-brand)">What we offer</p>
+            <p className="text-xs font-semibold uppercase tracking-wider text-(--color-brand)">Residential cleaning</p>
             <h2 className="mt-2 font-display text-3xl font-bold text-slate-900">Three tiers. Zero guesswork.</h2>
-            <p className="mt-3 text-slate-600">Starting prices shown. Final confirmed after we review your photos.</p>
+            <p className="mt-3 text-slate-600">Starting prices shown. Final confirmed after we review your submission.</p>
           </div>
 
           <div className="grid gap-6 lg:grid-cols-3">
@@ -349,6 +358,72 @@ export default function HomePage() {
               </Card>
             ))}
           </div>
+
+          {/* Additional services */}
+          <div className="mx-auto mb-10 mt-20 max-w-2xl text-center">
+            <p className="text-xs font-semibold uppercase tracking-wider text-(--color-brand)">More than just residential</p>
+            <h2 className="mt-2 font-display text-3xl font-bold text-slate-900">We also offer</h2>
+            <p className="mt-3 text-slate-600">
+              From offices to post-construction — all priced after we review your space.
+            </p>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {[
+              {
+                icon: Home,
+                title: 'House Cleaning',
+                description: 'Regular and one-time home cleaning for any size residence.',
+              },
+              {
+                icon: Briefcase,
+                title: 'Janitorial Services',
+                description: 'Ongoing cleaning and maintenance for offices and commercial spaces.',
+              },
+              {
+                icon: Building2,
+                title: 'Office & Commercial Cleaning',
+                description: 'Professional cleaning for offices, retail spaces, and commercial properties.',
+              },
+              {
+                icon: Truck,
+                title: 'Move-In / Move-Out Cleaning',
+                description: 'Thorough cleaning for vacant properties, tenant turnover, and new home prep.',
+              },
+              {
+                icon: Wind,
+                title: 'Window Cleaning',
+                description: 'Interior window cleaning available as a standalone or add-on service.',
+              },
+              {
+                icon: Wrench,
+                title: 'Post-Construction Cleanup',
+                description: 'Dust, debris, and residue removal after renovation or construction work.',
+              },
+            ].map((item) => {
+              const Icon = item.icon
+              return (
+                <div
+                  key={item.title}
+                  className="flex items-start gap-4 rounded-xl border border-slate-200 bg-white p-5 shadow-(--shadow-card)"
+                >
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-(--color-brand-muted)">
+                    <Icon size={18} className="text-(--color-brand)" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-slate-900">{item.title}</p>
+                    <p className="mt-1 text-sm text-slate-600">{item.description}</p>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+
+          <div className="mt-8 text-center">
+            <Button asChild>
+              <Link href="/booking">Get a Quote for Any Service</Link>
+            </Button>
+          </div>
         </div>
       </section>
 
@@ -376,7 +451,7 @@ export default function HomePage() {
           <div className="mx-auto mb-12 max-w-2xl text-center">
             <p className="text-xs font-semibold uppercase tracking-wider text-(--color-brand)">Customize your clean</p>
             <h2 className="mt-2 font-display text-3xl font-bold text-slate-900">Add-on services</h2>
-            <p className="mt-3 text-slate-600">Available on all three service tiers. Select during booking.</p>
+            <p className="mt-3 text-slate-600">Available on Standard and Detailed Cleans. Priced after review — select during booking.</p>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -387,14 +462,56 @@ export default function HomePage() {
                   <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-(--color-brand-muted)">
                     <Icon size={16} className="text-(--color-brand)" />
                   </div>
-                  <div>
-                    <p className="text-sm font-medium text-slate-900">{item.name}</p>
-                    <p className="text-xs font-mono tabular-nums text-slate-600">{item.price}</p>
-                  </div>
+                  <p className="text-sm font-medium text-slate-900">{item.name}</p>
                 </div>
               )
             })}
           </div>
+        </div>
+      </section>
+
+      <section className="bg-slate-50 py-16">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+          <div className="mx-auto mb-10 max-w-2xl text-center">
+            <p className="text-xs font-semibold uppercase tracking-wider text-(--color-brand)">Where we clean</p>
+            <h2 className="mt-2 font-display text-3xl font-bold text-slate-900">Serving the DMV area</h2>
+            <p className="mt-3 text-slate-600">
+              Based in Maryland — we travel throughout the region. Not sure if we cover your area? Just ask.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+            {[
+              'Columbia, MD',
+              'Silver Spring, MD',
+              'Greenbelt, MD',
+              'Annapolis, MD',
+              'Bowie, MD',
+              'Odenton, MD',
+              'Hanover, MD',
+              'Baltimore, MD',
+              'Glen Burnie, MD',
+              'Laurel, MD',
+              'Upper Marlboro, MD',
+              'Gaithersburg, MD',
+              'Washington, DC',
+              'Arlington, VA',
+              'Alexandria, VA',
+              'And surrounding areas',
+            ].map((city) => (
+              <div
+                key={city}
+                className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700"
+              >
+                <CheckCircle size={13} className="shrink-0 text-emerald-500" />
+                {city}
+              </div>
+            ))}
+          </div>
+
+          <p className="mt-8 text-center text-sm text-slate-500">
+            Don&apos;t see your city? <Link href="/booking" className="font-medium text-(--color-brand) underline underline-offset-2">Contact us</Link> — we may still be able to help.
+          </p>
         </div>
       </section>
 
@@ -475,7 +592,7 @@ export default function HomePage() {
         <div className="mx-auto max-w-4xl px-4 text-center sm:px-6 lg:px-8">
           <h2 className="font-display text-3xl font-bold text-white">Ready for a clean you can count on?</h2>
           <p className="mx-auto mt-3 max-w-md text-lg text-white/80">
-            Submit your photos. Get a confirmed price. Pay only when you&apos;re happy.
+            Tell us about your space. Get a confirmed price. Pay only when you&apos;re happy.
           </p>
           <div className="mt-8 flex flex-wrap justify-center gap-3">
             <Button asChild className="bg-white text-(--color-brand) hover:bg-slate-100">

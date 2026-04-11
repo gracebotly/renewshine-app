@@ -78,7 +78,6 @@ export function BookingForm() {
       if (!resName.trim()) nextErrors.resName = 'Name is required'
       if (!resEmail.trim()) nextErrors.resEmail = 'Email is required'
       if (!resPhone.trim()) nextErrors.resPhone = 'Phone is required'
-      if (resMediaUrls.length === 0) nextErrors.resMedia = 'Please upload at least one photo before submitting.'
     }
     setErrors(nextErrors)
     return Object.keys(nextErrors).length === 0
@@ -98,7 +97,6 @@ export function BookingForm() {
       if (!comEndDate) nextErrors.comEndDate = 'Latest date is required'
       if (!comTimePref) nextErrors.comTimePref = 'Time preference is required'
     }
-    if (comStep === 4 && comMediaUrls.length === 0) nextErrors.comMedia = 'Please upload at least one photo before submitting.'
     setErrors(nextErrors)
     return Object.keys(nextErrors).length === 0
   }
@@ -263,7 +261,7 @@ export function BookingForm() {
                 {[
                   ['standard', 'Standard Clean', 'from $200', 'For regularly maintained homes'],
                   ['detailed', 'Detailed Clean', 'from $350', 'Full reset — recommended for first-time clients'],
-                  ['move_out', 'Move-In / Move-Out', 'from $500', 'Vacant properties — quoted after photo review'],
+                  ['move_out', 'Move-In / Move-Out', 'from $500', 'Vacant properties — always quoted after review'],
                 ].map(([id, title, price, text]) => (
                   <button
                     key={id}
@@ -346,7 +344,7 @@ export function BookingForm() {
 
               {serviceType === 'move_out' ? (
                 <p className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
-                  Move-In/Move-Out pricing is always confirmed after we review your photos. We&apos;ll send your quote within
+                  Move-In/Move-Out pricing is always confirmed after we review your submission. We&apos;ll send your quote within
                   24 hours.
                 </p>
               ) : (
@@ -401,7 +399,6 @@ export function BookingForm() {
               </label>
 
               <MediaUpload onUpload={setResMediaUrls} uploadedUrls={resMediaUrls} />
-              {errors.resMedia ? <p className="mt-2 text-sm text-red-600">Please upload at least one photo before submitting.</p> : null}
 
               <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
                 <p>Service type: {serviceType === 'standard' ? 'Standard Clean' : serviceType === 'detailed' ? 'Detailed Clean' : 'Move-In / Move-Out'}</p>
@@ -514,7 +511,6 @@ export function BookingForm() {
           {comStep === 4 ? (
             <div className="space-y-4">
               <MediaUpload onUpload={setComMediaUrls} uploadedUrls={comMediaUrls} />
-              {errors.comMedia ? <p className="mt-2 text-sm text-red-600">Please upload at least one photo before submitting.</p> : null}
 
               <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
                 <p>Property type: {propertyType}</p>
