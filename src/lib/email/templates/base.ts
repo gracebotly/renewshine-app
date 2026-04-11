@@ -28,7 +28,7 @@ export function baseTemplate(content: string, previewText: string): string {
           <tr>
             <td style="background:${BRAND_NAVY};padding:28px 32px;">
               <p style="margin:0;font-size:22px;font-weight:700;color:#ffffff;letter-spacing:-0.3px;">RenewShine</p>
-              <p style="margin:4px 0 0;font-size:13px;color:rgba(255,255,255,0.7);font-weight:400;">Premium Cleaning Service · DMV Area</p>
+              <p style="margin:4px 0 0;font-size:13px;color:rgba(255,255,255,0.7);font-weight:400;">Premium Cleaning. No Surprises. · DMV Area</p>
             </td>
           </tr>
           <tr>
@@ -125,4 +125,21 @@ export function step(num: number, title: string, desc: string): string {
     <p style="margin:4px 0 0;font-size:13px;color:${TEXT_MUTED};">${desc}</p>
   </td>
 </tr>`
+}
+
+/** Trust strip — insert above CTAs to reduce payment hesitation */
+export function trustStrip(): string {
+  return `
+<table width="100%" cellpadding="0" cellspacing="0" role="presentation"
+  style="margin:20px 0;border-top:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0;padding:12px 0;">
+  <tr>
+    <td align="center">
+      <p style="margin:0;font-size:12px;color:#64748b;letter-spacing:0.01em;">
+        🔒&nbsp; Insured &amp; background-checked &nbsp;·&nbsp;
+        📷&nbsp; Photo-reviewed pricing &nbsp;·&nbsp;
+        ✓&nbsp; No surprise charges — ever
+      </p>
+    </td>
+  </tr>
+</table>`
 }

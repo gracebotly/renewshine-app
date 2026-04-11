@@ -1,9 +1,9 @@
 import { createServerClient } from '@/lib/supabase/server'
 import { stripe } from '@/lib/stripe/client'
-import { sendCustomerQuote } from '@/lib/email'
+import { sendCustomerQuote, sendQuoteReminder, sendExpiredLinkRecovery } from '@/lib/email'
 
 export async function POST(request: Request) {
-  const { jobId, approvedPrice, confirmedDate } = await request.json()
+  const { jobId, approvedPrice, confirmedDate, regenerate } = await request.json()
 
   // Validate
   if (!jobId || !approvedPrice || !confirmedDate) {
@@ -81,11 +81,19 @@ export async function POST(request: Request) {
     .eq('id', jobId)
     .single()
 
-  // Send Template 3 — never block on email failure
+  // Send the appropriate email based on whether this is a new quote or a regenerated link
   try {
-    if (updatedJob) await sendCustomerQuote(updatedJob, paymentLink.url)
+    if (updatedJob) {
+      if (regenerate) {
+        // Expired link recovery — different subject + copy to re-engage the customer
+        await sendExpiredLinkRecovery(updatedJob, paymentLink.url)
+      } else {
+        // First-time quote send
+        await sendCustomerQuote(updatedJob, paymentLink.url)
+      }
+    }
   } catch (emailError) {
-    console.error('sendCustomerQuote failed (non-blocking):', emailError)
+    console.error('send-deposit-link email failed (non-blocking):', emailError)
   }
 
   return Response.json({ url: paymentLink.url })

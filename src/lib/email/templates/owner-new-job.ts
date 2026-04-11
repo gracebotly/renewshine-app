@@ -2,7 +2,7 @@ import type { Job } from '@/types/database'
 import { baseTemplate, badge, heading, para, divider, ctaButton, infoTable, infoRow } from './base'
 
 export function ownerNewJobTemplate(job: Job): { subject: string; html: string } {
-  const subject = `New booking request — ${job.client_name} (${job.service_type ?? 'commercial'})`
+  const subject = `⚡ New Request — ${job.client_name} needs review`
 
   const serviceLabel =
     job.service_type === 'standard' ? 'Standard Clean'
@@ -30,8 +30,8 @@ export function ownerNewJobTemplate(job: Job): { subject: string; html: string }
 
   const content = `
     ${badge('New Booking Request', 'amber')}
-    ${heading('A new quote request just came in.')}
-    ${para('Review the details below, then open the admin panel to approve and send the deposit link.')}
+    ${heading('New request — needs your review.')}
+    ${para('A customer submitted photos and their availability window. Open the admin panel, review the photos, set a confirmed date and price, then send the deposit link.')}
     ${infoTable(
       infoRow('Client name', job.client_name) +
       infoRow('Email', job.client_email) +

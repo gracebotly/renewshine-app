@@ -2,7 +2,7 @@ import type { Job } from '@/types/database'
 import { baseTemplate, badge, heading, para, divider, ctaButton, infoTable, infoRow } from './base'
 
 export function ownerBookedTemplate(job: Job): { subject: string; html: string } {
-  const subject = `Deposit received — ${job.client_name} is scheduled`
+  const subject = `💰 Deposit Paid — ${job.client_name} is on the calendar`
 
   const serviceLabel =
     job.service_type === 'standard' ? 'Standard Clean'
