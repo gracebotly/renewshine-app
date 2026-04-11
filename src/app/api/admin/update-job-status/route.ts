@@ -1,4 +1,5 @@
 import { createServerClient } from '@/lib/supabase/server'
+import type { Job } from '@/types/database'
 
 const VALID_STATUSES = ['new', 'under_review', 'approved', 'scheduled', 'completed', 'cancelled']
 
@@ -11,7 +12,7 @@ export async function PATCH(request: Request) {
   }
 
   const supabase = createServerClient()
-  const updates: Record<string, unknown> = {}
+  const updates: Partial<Job> = {}
   if (status) updates.status = status
   if (notes !== undefined) updates.notes = notes
   if (address !== undefined) updates.address = address
