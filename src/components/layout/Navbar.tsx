@@ -30,13 +30,7 @@ export default function Navbar() {
           {/* Logo */}
           <Link href="/" className="flex items-center">
             <Image
-              src="/logo-white.svg"
-              alt="RenewShine"
-              width={160}
-              height={40}
-              priority
-              className="h-8 w-auto"
-            />
+              src="/logo-white.svg" alt="RenewShine" width={172} height={44} priority className="h-10 w-auto" />
           </Link>
 
           {/* Desktop nav */}
