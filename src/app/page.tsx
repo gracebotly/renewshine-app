@@ -70,7 +70,7 @@ const services = [
     buttonVariant: 'outline' as const,
   },
   {
-    title: 'Deep Clean',
+    title: 'Detailed Clean',
     price: 'From $350',
     tagline: 'Full reset. Every surface, every corner.',
     items: [
@@ -85,10 +85,10 @@ const services = [
   },
   {
     title: 'Move-In / Move-Out',
-    price: 'From $400',
+    price: 'From $500',
     tagline: 'Vacant properties & tenant turnover',
     items: [
-      'Everything in Deep Clean',
+      'Everything in Detailed Clean',
       'Inside all cabinets, cupboards & closets',
       'Full wall wipe-down',
       'Inside refrigerator & oven (included)',
@@ -135,12 +135,12 @@ const faqs = [
   {
     question: 'How long does a clean take?',
     answer:
-      "It depends on the size and service type. A standard clean on a 2-bedroom home typically takes 2–3 hours. A deep clean or move-out clean takes longer. We'll confirm estimated time when we send your quote.",
+      "It depends on the size and service type. A standard clean on a 2-bedroom home typically takes 2–3 hours. A detailed clean or move-out clean takes longer. We'll confirm estimated time when we send your quote.",
   },
   {
-    question: "What's the difference between Standard and Deep Clean?",
+    question: "What's the difference between Standard and Detailed Clean?",
     answer:
-      "Standard Clean is maintenance cleaning for homes that are regularly kept up — it covers all the essentials. Deep Clean goes further: double-scrub disinfection, ceiling fans, light fixtures, moldings, and every corner. We recommend Deep Clean for first-time clients or homes that haven't been professionally cleaned recently.",
+      "Standard Clean is maintenance cleaning for homes that are regularly kept up — it covers all the essentials. Detailed Clean goes further: double-scrub disinfection, ceiling fans, light fixtures, moldings, and every corner. We recommend Detailed Clean for first-time clients or homes that haven't been professionally cleaned recently.",
   },
 ]
 

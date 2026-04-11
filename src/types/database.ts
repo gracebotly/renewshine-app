@@ -22,7 +22,7 @@ export type JobStatus =
 
 export type JobType = 'residential' | 'commercial'
 
-export type ServiceType = 'standard' | 'deep' | 'move_out'
+export type ServiceType = 'standard' | 'detailed' | 'move_out'
 
 export type TimePreference = 'morning' | 'afternoon' | 'flexible'
 

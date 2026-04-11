@@ -11,7 +11,7 @@ type JobRecord = {
   client_name: string
   client_email: string
   type: 'residential' | 'commercial' | null
-  service_type: 'standard' | 'deep' | 'move_out' | null
+  service_type: 'standard' | 'detailed' | 'move_out' | null
   availability_start: string | null
   availability_end: string | null
   time_preference: string | null
@@ -50,7 +50,7 @@ function formatAvailability(start: string | null, end: string | null, timePref: 
 
 function formatService(serviceType: JobRecord['service_type']) {
   if (serviceType === 'standard') return 'Standard'
-  if (serviceType === 'deep') return 'Deep Clean'
+  if (serviceType === 'detailed') return 'Detailed Clean'
   if (serviceType === 'move_out') return 'Move-Out'
   return '—'
 }

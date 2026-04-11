@@ -6,7 +6,7 @@ export function ownerNewJobTemplate(job: Job): { subject: string; html: string }
 
   const serviceLabel =
     job.service_type === 'standard' ? 'Standard Clean'
-    : job.service_type === 'deep' ? 'Deep Clean'
+    : job.service_type === 'detailed' ? 'Detailed Clean'
     : job.service_type === 'move_out' ? 'Move-In / Move-Out'
     : 'Commercial / Custom'
 

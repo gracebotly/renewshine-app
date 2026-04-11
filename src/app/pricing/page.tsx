@@ -29,38 +29,46 @@ const tiers = [
     price: 'From $200',
     tagline: 'Regular maintenance on already-tidy homes',
     items: [
-      'Dust all surfaces, furniture & pictures',
-      'Scrub & disinfect kitchen sink, bathroom sink, toilet, tub & shower',
-      'Wipe countertops, backsplash & appliance exteriors',
-      'Vacuum couches, floors & carpets — mop hard floors',
+      'Dust all surfaces, furniture, bookshelves & picture frames',
+      'Wipe cabinet fronts, exterior of oven & fridge, and microwave inside & out',
+      'Clean stovetop, grates & knobs',
+      'Scrub & disinfect kitchen sink, bathroom sink, toilet, shower & bathtub',
+      'Vacuum furniture, upholstery & floors — sweep & mop all floors',
       'Make beds with existing linens',
+      'Dust light fixtures, ceiling fans, blinds, baseboards & doors',
     ],
+    note: 'Recurring clients receive a custom discounted rate. Contact us to discuss a recurring plan.',
     buttonVariant: 'outline' as const,
   },
   {
-    title: 'Deep Clean',
+    title: 'Detailed Clean',
     price: 'From $350',
     tagline: 'Full reset. Recommended for first-time clients.',
     items: [
-      'Everything in Standard Clean',
-      'Ceiling fan blades & light fixtures dusted',
-      'Double-scrub disinfection on all sinks, toilets & tubs',
-      'Moldings, woodwork & window lock ledges cleaned',
-      'Cobwebs removed throughout — inside microwave cleaned',
+      'Everything in Standard Clean, plus:',
+      'Remove grease buildup — clean vent hood',
+      'Wipe top of refrigerator & accessible cabinets',
+      'Remove hard water stains, lime scale, rust & soap scum',
+      'Tackle mold & mildew in bathrooms',
+      'Clean under & behind accessible furniture',
+      'Vents dusted, blinds & sills wiped, cobwebs removed',
+      'Doors & baseboards wet wiped — light switches & outlets wet wiped',
     ],
     popular: true,
     buttonVariant: 'default' as const,
   },
   {
     title: 'Move-In / Move-Out',
-    price: 'From $400',
+    price: 'From $500',
     tagline: 'Vacant properties and tenant turnover',
     items: [
-      'Everything in Deep Clean',
+      'Everything in Detailed Clean, plus:',
       'Inside all cabinets, cupboards & closets',
-      'Full wall wipe-down throughout',
-      'Inside refrigerator & oven cleaned',
-      'Final walkthrough sweep of all rooms',
+      'Clean tops of cabinets',
+      'Inside refrigerator cleaned (included — no extra charge)',
+      'Inside oven cleaned (included — no extra charge)',
+      'Spot clean walls in kitchen & bathrooms',
+      'Vacuum edges of carpet',
     ],
     note: 'Always quoted after photo review — every property is different.',
     buttonVariant: 'outline' as const,
@@ -95,11 +103,11 @@ const checklistRows = [
 ] as const
 
 const addOns = [
-  { icon: Refrigerator, name: 'Inside Refrigerator', price: '$65' },
-  { icon: Flame, name: 'Inside Oven', price: '$65' },
+  { icon: Refrigerator, name: 'Inside Refrigerator', price: '$30–$50' },
+  { icon: Flame, name: 'Inside Oven', price: '$35–$75' },
   { icon: UtensilsCrossed, name: 'Dishes (washed or put away)', price: '$25' },
   { icon: Bed, name: 'Change Linens (clean sheets provided)', price: '$15 per bed' },
-  { icon: WashingMachine, name: 'Single Load of Laundry (wash & fold)', price: '$25 per load' },
+  { icon: WashingMachine, name: 'Single Load of Laundry (wash & fold)', price: '$35–$50 per load' },
   { icon: AppWindow, name: 'Interior Windows', price: '$10–$30 per window' },
   { icon: LayoutGrid, name: 'Tidy-Up / Home Organization', price: '$65+' },
   { icon: PaintBucket, name: 'Spot Clean Walls', price: '$35' },
@@ -182,18 +190,18 @@ export default function PricingPage() {
                 <tr className="sticky top-0 border-b border-slate-200 bg-slate-50">
                   <th className="w-1/2 px-4 py-3 text-left font-semibold text-slate-900">Task</th>
                   <th className="w-1/4 px-4 py-3 text-center font-semibold text-slate-900">Standard</th>
-                  <th className="w-1/4 px-4 py-3 text-center font-semibold text-(--color-brand)">Deep Clean</th>
+                  <th className="w-1/4 px-4 py-3 text-center font-semibold text-(--color-brand)">Detailed Clean</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {checklistRows.map(([task, standard, deep], index) => (
+                {checklistRows.map(([task, standard, detailed], index) => (
                   <tr key={task} className={index % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'}>
                     <td className="px-4 py-3 text-slate-700">{task}</td>
                     <td className="px-4 py-3 text-center">
                       {standard ? <Check size={16} className="mx-auto text-emerald-500" /> : <Minus size={16} className="mx-auto text-slate-300" />}
                     </td>
                     <td className="px-4 py-3 text-center">
-                      {deep ? <Check size={16} className="mx-auto text-emerald-500" /> : <Minus size={16} className="mx-auto text-slate-300" />}
+                      {detailed ? <Check size={16} className="mx-auto text-emerald-500" /> : <Minus size={16} className="mx-auto text-slate-300" />}
                     </td>
                   </tr>
                 ))}
@@ -206,10 +214,13 @@ export default function PricingPage() {
       <section id="add-ons" className="bg-slate-50 py-16">
         <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
           <h2 className="text-2xl font-bold text-slate-900">Additional services</h2>
-          <p className="mt-2 text-slate-600">Available on all service tiers. Select during booking.</p>
+          <p className="mt-2 text-slate-600">Available on Standard and Detailed Cleans. Select during booking.</p>
           <Badge className="mt-3" variant="neutral">
-            Available on all service tiers · Select during booking
+            Available on Standard and Detailed Cleans · Select during booking
           </Badge>
+          <p className="mt-2 text-sm text-slate-500">
+            Inside Refrigerator and Inside Oven are included at no extra charge with Move-In / Move-Out.
+          </p>
 
           <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {addOns.map((item) => {
