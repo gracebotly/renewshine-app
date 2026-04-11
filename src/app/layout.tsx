@@ -21,8 +21,27 @@ const plusJakarta = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "RenewShine â€” Premium Cleaning Service",
+  title: "RenewShine — Premium Cleaning Service",
   description: "No surprises. No underquoting. Just a clean you can count on.",
+  icons: {
+    icon: [{ url: "/favicon-32.png", sizes: "32x32", type: "image/png" }],
+    apple: "/apple-touch-icon.png",
+  },
+  openGraph: {
+    title: "RenewShine — Premium Cleaning Service",
+    description: "No surprises. No underquoting. Just a clean you can count on.",
+    url: "https://renewshine.co",
+    siteName: "RenewShine",
+    images: [{ url: "/og-image.png", width: 1200, height: 630 }],
+    locale: "en_US",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "RenewShine — Premium Cleaning Service",
+    description: "No surprises. No underquoting.",
+    images: ["/twitter-card.png"],
+  },
 };
 
 export default function RootLayout({

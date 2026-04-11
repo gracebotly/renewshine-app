@@ -23,6 +23,7 @@ import {
   UtensilsCrossed,
   WashingMachine,
 } from 'lucide-react'
+import Image from 'next/image'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
@@ -153,6 +154,9 @@ export default function HomePage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.25, ease: 'easeOut' }}
           >
+        <div className="flex justify-center mb-6">
+          <Image src="/logo-stacked.svg" alt="RenewShine" width={120} height={90} priority className="w-28 h-auto" />
+        </div>
             <span className="mb-6 inline-flex items-center gap-1.5 rounded-full bg-(--color-brand-muted) px-3 py-1 text-xs font-semibold uppercase tracking-wide text-(--color-brand)">
               DMV&apos;s photo-reviewed cleaning service
             </span>

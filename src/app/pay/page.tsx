@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { CheckCircle } from 'lucide-react'
 import { createServerClient } from '@/lib/supabase/server'
 import { Button } from '@/components/ui/button'
+import Image from 'next/image'
 
 export const metadata: Metadata = {
   title: 'Booking Confirmed — RenewShine',
@@ -55,6 +56,9 @@ export default async function PayPage({
       <div className="mx-auto w-full max-w-md">
         <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm text-center">
 
+          <div className="flex justify-center mb-4">
+            <Image src="/logo-mark.svg" alt="RenewShine" width={40} height={40} className="w-10 h-10" />
+          </div>
           <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-50">
             <CheckCircle size={28} className="text-emerald-500" />
           </div>

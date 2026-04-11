@@ -1,6 +1,7 @@
 'use client'
 
 import * as React from 'react'
+import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -33,6 +34,9 @@ export default function AdminLoginPage() {
     <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
       <div className="w-full max-w-sm space-y-6 rounded-xl border border-slate-200 bg-white p-8 shadow-sm">
         <div>
+          <div className="flex justify-center mb-4">
+            <Image src="/logo-mark.svg" alt="RenewShine" width={40} height={40} className="w-10 h-10" />
+          </div>
           <h1 className="font-display text-2xl font-bold text-slate-900">RenewShine Admin</h1>
           <p className="mt-1 text-sm text-slate-600">Enter your password to continue.</p>
         </div>

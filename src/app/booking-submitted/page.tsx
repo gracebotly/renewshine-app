@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { motion } from 'motion/react'
 import { CheckCircle, Clock } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import Image from 'next/image'
 import type { Metadata } from 'next'
 
 export default function BookingSubmittedPage() {
@@ -16,6 +17,9 @@ export default function BookingSubmittedPage() {
           transition={{ duration: 0.25, ease: 'easeOut' }}
           className="space-y-6"
         >
+          <div className="flex justify-center mb-2">
+            <Image src="/logo-mark.svg" alt="RenewShine" width={48} height={48} className="w-12 h-12" />
+          </div>
           <CheckCircle size={48} className="mx-auto text-emerald-500" />
           <h1 className="font-display text-3xl font-bold text-slate-900">
             Request Received!

@@ -1,6 +1,7 @@
 'use client'
 
 import * as React from 'react'
+import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Menu, X } from 'lucide-react'
@@ -45,9 +46,7 @@ export default function Navbar() {
             href="/"
             className="flex items-center gap-2 text-slate-900 hover:text-slate-700 transition-colors duration-200"
           >
-            <span className="font-display text-xl font-bold tracking-tight text-(--color-brand)">
-              RenewShine
-            </span>
+            <Image src="/logo-primary.svg" alt="RenewShine" width={160} height={40} priority className="h-8 w-auto" />
           </Link>
 
           {/* Desktop nav */}

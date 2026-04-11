@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import Image from 'next/image'
 import { Phone, Mail, Shield } from 'lucide-react'
 
 const footerLinks = {
@@ -23,9 +24,7 @@ export default function Footer() {
 
           {/* Brand column */}
           <div className="md:col-span-2">
-            <span className="font-display text-xl font-bold text-(--color-brand)">
-              RenewShine
-            </span>
+            <Image src="/logo-primary.svg" alt="RenewShine" width={148} height={37} className="h-9 w-auto" />
             <p className="mt-3 text-sm text-slate-600 leading-relaxed max-w-xs">
               No surprises. No underquoting. Just a clean you can count on. Serving the DMV area.
             </p>
