@@ -44,25 +44,6 @@ export function BookingForm() {
   const [flowType, setFlowType] = React.useState<FlowType>('residential')
   const [pendingSwitch, setPendingSwitch] = React.useState<FlowType | null>(null)
 
-  // Determines whether the current active flow has meaningful data entered.
-  // If it does, switching tabs requires confirmation.
-  const hasResData =
-    resStep > 1 ||
-    resAddress !== '' ||
-    resName !== '' ||
-    resEmail !== '' ||
-    resPhone !== '' ||
-    resMediaUrls.length > 0
-
-  const hasComData =
-    comStep > 1 ||
-    businessName !== '' ||
-    contactName !== '' ||
-    comEmail !== '' ||
-    comPhone !== '' ||
-    comMediaUrls.length > 0
-
-  // Declare all state up front so hasResData / hasComData can reference them
   const [resStep, setResStep] = React.useState(1)
   const [comStep, setComStep] = React.useState(1)
   const [submitting, setSubmitting] = React.useState(false)
@@ -102,6 +83,23 @@ export function BookingForm() {
   const [comMediaUrls, setComMediaUrls] = React.useState<string[]>([])
 
   const estimate = serviceType === 'move_out' ? null : estimatePrice(bedrooms, bathrooms, serviceType, selectedAddOns)
+
+  // Derived booleans — must live after all useState declarations
+  const hasResData =
+    resStep > 1 ||
+    resAddress !== '' ||
+    resName !== '' ||
+    resEmail !== '' ||
+    resPhone !== '' ||
+    resMediaUrls.length > 0
+
+  const hasComData =
+    comStep > 1 ||
+    businessName !== '' ||
+    contactName !== '' ||
+    comEmail !== '' ||
+    comPhone !== '' ||
+    comMediaUrls.length > 0
 
   // ── Helpers ────────────────────────────────────────────────────────────────
   const toggleAddOn = (id: string) => {
