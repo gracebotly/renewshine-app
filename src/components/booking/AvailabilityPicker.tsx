@@ -19,12 +19,12 @@ interface AvailabilityPickerProps {
 }
 
 const timeOptions: Array<{ id: TimePreference; label: string; sub: string }> = [
-  { id: 'early_morning',   label: '8am – 10am',  sub: 'Early morning'    },
-  { id: 'mid_morning',     label: '10am – 12pm', sub: 'Mid morning'      },
-  { id: 'noon',            label: '12pm – 2pm',  sub: 'Midday'           },
-  { id: 'early_afternoon', label: '2pm – 4pm',   sub: 'Early afternoon'  },
-  { id: 'late_afternoon',  label: '4pm – 6pm',   sub: 'Late afternoon'   },
-  { id: 'flexible',        label: 'Flexible',    sub: 'Any time works'   },
+  { id: 'early_morning',   label: '8am – 10am',  sub: 'Early morning'   },
+  { id: 'mid_morning',     label: '10am – 12pm', sub: 'Mid morning'     },
+  { id: 'noon',            label: '12pm – 2pm',  sub: 'Midday'          },
+  { id: 'early_afternoon', label: '2pm – 4pm',   sub: 'Early afternoon' },
+  { id: 'late_afternoon',  label: '4pm – 6pm',   sub: 'Late afternoon'  },
+  { id: 'flexible',        label: 'Flexible',    sub: 'Any time works'  },
 ]
 
 export function AvailabilityPicker({
@@ -53,8 +53,8 @@ export function AvailabilityPicker({
       {/* Scheduling mode toggle */}
       <div className="grid grid-cols-2 gap-2">
         {([
-          { id: 'specific' as SchedulingMode,  label: 'I have a specific date', sub: 'I know exactly when'  },
-          { id: 'flexible' as SchedulingMode,  label: "I'm flexible",           sub: 'Give me a date range' },
+          { id: 'specific' as SchedulingMode, label: 'I have a specific date', sub: 'I know exactly when'  },
+          { id: 'flexible' as SchedulingMode, label: "I'm flexible",           sub: 'Give me a date range' },
         ] as const).map((option) => (
           <button
             key={option.id}
@@ -78,7 +78,7 @@ export function AvailabilityPicker({
         ))}
       </div>
 
-      {/* Date input — specific mode */}
+      {/* Date input — specific mode: single date picker */}
       {schedulingMode === 'specific' ? (
         <label className="block space-y-1">
           <span className="text-sm font-medium text-slate-900">Preferred Date</span>
@@ -88,12 +88,12 @@ export function AvailabilityPicker({
             value={startDate}
             onChange={(e) => {
               onStartDateChange(e.target.value)
-              onEndDateChange(e.target.value) // keep endDate in sync
+              onEndDateChange(e.target.value)
             }}
           />
         </label>
       ) : (
-        /* Date input — flexible mode */
+        /* Date input — flexible mode: date range */
         <div className="grid gap-3 sm:grid-cols-2">
           <label className="space-y-1">
             <span className="text-sm font-medium text-slate-900">Earliest Date</span>
