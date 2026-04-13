@@ -14,7 +14,7 @@ type JobRecord = {
   service_type: 'standard' | 'detailed' | 'move_out' | null
   availability_start: string | null
   availability_end: string | null
-  time_preference: string | null
+  availability_time_pref: string | null
   estimated_price_low: number
   estimated_price_high: number
   status: 'new' | 'under_review' | 'approved' | 'scheduled' | 'completed' | 'cancelled'
@@ -140,7 +140,7 @@ export function JobsTable({ jobs }: { jobs: any[] }) {
                     </td>
                     <td className="px-4 py-3">{formatService(job.service_type)}</td>
                     <td className="px-4 py-3">
-                      {formatAvailability(job.availability_start, job.availability_end, job.time_preference)}
+                      {formatAvailability(job.availability_start, job.availability_end, job.availability_time_pref)}
                     </td>
                     <td className="px-4 py-3 font-mono text-sm tabular-nums">
                       {low === 0 && high === 0 ? 'Manual quote' : `$${low} – $${high}`}

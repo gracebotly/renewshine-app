@@ -64,7 +64,26 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
 
   if (!job) notFound()
 
-  const media = job.job_media ?? []
+  const rawMedia: Array<{ id: string; file_url: string; file_type: string }> =
+    job.job_media ?? []
+
+  // Generate signed URLs for private bucket media.
+  // Old rows may contain full public URLs (starts with 'http') — use as-is.
+  // New rows contain a storage path — generate a 1-hour signed URL.
+  const media = await Promise.all(
+    rawMedia.map(async (m) => {
+      if (m.file_url.startsWith('http')) {
+        return m // Legacy public URL — serve directly
+      }
+      const { data } = await supabase.storage
+        .from('job-media')
+        .createSignedUrl(m.file_url, 3600)
+      return {
+        ...m,
+        file_url: data?.signedUrl ?? m.file_url,
+      }
+    })
+  )
 
   return (
     <div className="min-h-screen bg-slate-50">
