@@ -3,8 +3,8 @@
 import * as React from 'react'
 import * as Checkbox from '@radix-ui/react-checkbox'
 import { useRouter } from 'next/navigation'
-import { Check, Loader2, Minus, Plus } from 'lucide-react'
-import { AvailabilityPicker } from '@/components/booking/AvailabilityPicker'
+import { AlertTriangle, Check, Loader2, Minus, Plus } from 'lucide-react'
+import { AvailabilityPicker, type SchedulingMode } from '@/components/booking/AvailabilityPicker'
 import { MediaUpload } from '@/components/booking/MediaUpload'
 import { PriceEstimate } from '@/components/booking/PriceEstimate'
 import { Button } from '@/components/ui/button'
@@ -22,15 +22,54 @@ const frequencies: Array<{ id: Frequency; label: string }> = [
   { id: 'monthly', label: 'Monthly' },
 ]
 
+// ─── Phone formatting ────────────────────────────────────────────────────────
+// Formats 10 raw digits → (301) 555-1234 as the user types.
+// Strips all non-digits first, caps at 10 digits.
+function formatPhone(raw: string): string {
+  const digits = raw.replace(/\D/g, '').slice(0, 10)
+  if (digits.length < 4) return digits
+  if (digits.length < 7) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`
+  return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`
+}
+
+// Returns the raw digits from a formatted phone string (for submit payload)
+function rawPhone(formatted: string): string {
+  return formatted.replace(/\D/g, '')
+}
+
 export function BookingForm() {
   const router = useRouter()
+
+  // ── Flow type + switch confirmation ────────────────────────────────────────
   const [flowType, setFlowType] = React.useState<FlowType>('residential')
+  const [pendingSwitch, setPendingSwitch] = React.useState<FlowType | null>(null)
+
+  // Determines whether the current active flow has meaningful data entered.
+  // If it does, switching tabs requires confirmation.
+  const hasResData =
+    resStep > 1 ||
+    resAddress !== '' ||
+    resName !== '' ||
+    resEmail !== '' ||
+    resPhone !== '' ||
+    resMediaUrls.length > 0
+
+  const hasComData =
+    comStep > 1 ||
+    businessName !== '' ||
+    contactName !== '' ||
+    comEmail !== '' ||
+    comPhone !== '' ||
+    comMediaUrls.length > 0
+
+  // Declare all state up front so hasResData / hasComData can reference them
   const [resStep, setResStep] = React.useState(1)
   const [comStep, setComStep] = React.useState(1)
   const [submitting, setSubmitting] = React.useState(false)
   const [submitError, setSubmitError] = React.useState('')
   const [errors, setErrors] = React.useState<Record<string, string>>({})
 
+  // ── Residential state ──────────────────────────────────────────────────────
   const [bedrooms, setBedrooms] = React.useState(2)
   const [bathrooms, setBathrooms] = React.useState(1)
   const [serviceType, setServiceType] = React.useState<ServiceType>('standard')
@@ -40,18 +79,20 @@ export function BookingForm() {
   const [resStartDate, setResStartDate] = React.useState('')
   const [resEndDate, setResEndDate] = React.useState('')
   const [resTimePref, setResTimePref] = React.useState<TimePreference | ''>('')
+  const [resSchedulingMode, setResSchedulingMode] = React.useState<SchedulingMode>('specific')
+  const [resNotes, setResNotes] = React.useState('')
   const [resName, setResName] = React.useState('')
   const [resEmail, setResEmail] = React.useState('')
   const [resPhone, setResPhone] = React.useState('')
   const [resMediaUrls, setResMediaUrls] = React.useState<string[]>([])
 
+  // ── Commercial state ───────────────────────────────────────────────────────
   const [businessName, setBusinessName] = React.useState('')
   const [contactName, setContactName] = React.useState('')
   const [comEmail, setComEmail] = React.useState('')
   const [comPhone, setComPhone] = React.useState('')
   const [propertyType, setPropertyType] = React.useState<'office' | 'retail' | 'warehouse' | 'other'>('office')
   const [squareFootage, setSquareFootage] = React.useState('')
-  const [condition, setCondition] = React.useState<'good' | 'fair' | 'needs_work'>('good')
   const [comFrequency, setComFrequency] = React.useState<Frequency>('one_time')
   const [comAddress, setComAddress] = React.useState('')
   const [comStartDate, setComStartDate] = React.useState('')
@@ -62,22 +103,87 @@ export function BookingForm() {
 
   const estimate = serviceType === 'move_out' ? null : estimatePrice(bedrooms, bathrooms, serviceType, selectedAddOns)
 
+  // ── Helpers ────────────────────────────────────────────────────────────────
   const toggleAddOn = (id: string) => {
     setSelectedAddOns((prev) => (prev.includes(id) ? prev.filter((v) => v !== id) : [...prev, id]))
   }
 
+  // Reset residential state when switching away from it
+  const resetResidential = () => {
+    setResStep(1)
+    setBedrooms(2)
+    setBathrooms(1)
+    setServiceType('standard')
+    setSelectedAddOns([])
+    setResFrequency('one_time')
+    setResAddress('')
+    setResStartDate('')
+    setResEndDate('')
+    setResTimePref('')
+    setResSchedulingMode('specific')
+    setResNotes('')
+    setResName('')
+    setResEmail('')
+    setResPhone('')
+    setResMediaUrls([])
+  }
+
+  // Reset commercial state when switching away from it
+  const resetCommercial = () => {
+    setComStep(1)
+    setBusinessName('')
+    setContactName('')
+    setComEmail('')
+    setComPhone('')
+    setPropertyType('office')
+    setSquareFootage('')
+    setComFrequency('one_time')
+    setComAddress('')
+    setComStartDate('')
+    setComEndDate('')
+    setComTimePref('')
+    setComNotes('')
+    setComMediaUrls([])
+  }
+
+  // Called when a tab button is clicked
+  const handleTabClick = (target: FlowType) => {
+    if (target === flowType) return
+    const currentHasData = flowType === 'residential' ? hasResData : hasComData
+    if (currentHasData) {
+      // Show inline confirmation instead of switching immediately
+      setPendingSwitch(target)
+    } else {
+      setFlowType(target)
+      setErrors({})
+      setSubmitError('')
+    }
+  }
+
+  // Called when user confirms the switch in the banner
+  const confirmSwitch = () => {
+    if (!pendingSwitch) return
+    if (flowType === 'residential') resetResidential()
+    else resetCommercial()
+    setFlowType(pendingSwitch)
+    setPendingSwitch(null)
+    setErrors({})
+    setSubmitError('')
+  }
+
+  // ── Validation ─────────────────────────────────────────────────────────────
   const validateResidentialStep = () => {
     const nextErrors: Record<string, string> = {}
     if (resStep === 3 && !resAddress.trim()) nextErrors.resAddress = 'Address is required'
     if (resStep === 4) {
-      if (!resStartDate) nextErrors.resStartDate = 'Earliest date is required'
-      if (!resEndDate) nextErrors.resEndDate = 'Latest date is required'
+      if (!resStartDate) nextErrors.resStartDate = 'Date is required'
+      if (resSchedulingMode === 'flexible' && !resEndDate) nextErrors.resEndDate = 'Latest date is required'
       if (!resTimePref) nextErrors.resTimePref = 'Time preference is required'
     }
     if (resStep === 5) {
       if (!resName.trim()) nextErrors.resName = 'Name is required'
       if (!resEmail.trim()) nextErrors.resEmail = 'Email is required'
-      if (!resPhone.trim()) nextErrors.resPhone = 'Phone is required'
+      if (rawPhone(resPhone).length < 10) nextErrors.resPhone = 'Enter a valid 10-digit phone number'
     }
     setErrors(nextErrors)
     return Object.keys(nextErrors).length === 0
@@ -89,7 +195,7 @@ export function BookingForm() {
       if (!businessName.trim()) nextErrors.businessName = 'Business name is required'
       if (!contactName.trim()) nextErrors.contactName = 'Contact name is required'
       if (!comEmail.trim()) nextErrors.comEmail = 'Email is required'
-      if (!comPhone.trim()) nextErrors.comPhone = 'Phone is required'
+      if (rawPhone(comPhone).length < 10) nextErrors.comPhone = 'Enter a valid 10-digit phone number'
     }
     if (comStep === 2 && !comAddress.trim()) nextErrors.comAddress = 'Address is required'
     if (comStep === 3) {
@@ -101,6 +207,7 @@ export function BookingForm() {
     return Object.keys(nextErrors).length === 0
   }
 
+  // ── Submit ─────────────────────────────────────────────────────────────────
   const submitResidential = async () => {
     if (!validateResidentialStep()) return
     setSubmitting(true)
@@ -113,7 +220,7 @@ export function BookingForm() {
           type: 'residential',
           client_name: resName,
           client_email: resEmail,
-          client_phone: resPhone,
+          client_phone: rawPhone(resPhone),
           address: resAddress,
           service_type: serviceType,
           service_frequency: resFrequency,
@@ -126,7 +233,7 @@ export function BookingForm() {
           availability_end: resEndDate,
           availability_time_pref: resTimePref,
           media_urls: resMediaUrls,
-          notes: '',
+          notes: resNotes,
         }),
       })
       if (!response.ok) throw new Error('Failed')
@@ -150,11 +257,11 @@ export function BookingForm() {
           type: 'commercial',
           client_name: contactName,
           client_email: comEmail,
-          client_phone: comPhone,
+          client_phone: rawPhone(comPhone),
           business_name: businessName,
           address: comAddress,
           square_footage: squareFootage ? Number(squareFootage) : null,
-          condition,
+          condition: null, // removed from form — assessed from photos
           service_frequency: comFrequency,
           availability_start: comStartDate,
           availability_end: comEndDate,
@@ -178,18 +285,17 @@ export function BookingForm() {
     }
   }
 
+  // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <div className="space-y-6 rounded-xl border border-slate-200 p-5 sm:p-6">
+
+      {/* ── Tab toggle ── */}
       <div className="flex gap-2">
         {(['residential', 'commercial'] as const).map((type) => (
           <button
             key={type}
             type="button"
-            onClick={() => {
-              setFlowType(type)
-              setErrors({})
-              setSubmitError('')
-            }}
+            onClick={() => handleTabClick(type)}
             className={cn(
               'cursor-pointer rounded-lg px-6 py-2.5 text-sm font-medium transition-colors duration-200',
               flowType === type
@@ -202,33 +308,68 @@ export function BookingForm() {
         ))}
       </div>
 
+      {/* ── Switch confirmation banner ── */}
+      {pendingSwitch ? (
+        <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4">
+          <AlertTriangle size={18} className="mt-0.5 shrink-0 text-amber-500" />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-slate-900">
+              Switch to {pendingSwitch === 'residential' ? 'Residential' : 'Commercial'}?
+            </p>
+            <p className="mt-0.5 text-xs text-slate-600">
+              Your current form entries will be cleared.
+            </p>
+          </div>
+          <div className="flex shrink-0 gap-2">
+            <button
+              type="button"
+              onClick={() => setPendingSwitch(null)}
+              className="cursor-pointer rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 transition-colors duration-200 hover:bg-slate-50"
+            >
+              Keep {flowType === 'residential' ? 'Residential' : 'Commercial'}
+            </button>
+            <button
+              type="button"
+              onClick={confirmSwitch}
+              className="cursor-pointer rounded-lg bg-(--color-brand) px-3 py-1.5 text-xs font-medium text-white transition-colors duration-200 hover:bg-(--color-brand-hover)"
+            >
+              Yes, switch
+            </button>
+          </div>
+        </div>
+      ) : null}
+
+      {/* ════════════════════════════════════════════════════════════════════ */}
+      {/* RESIDENTIAL FLOW                                                    */}
+      {/* ════════════════════════════════════════════════════════════════════ */}
       {flowType === 'residential' ? (
         <div className="space-y-6">
-          <div>
-            <p className="text-sm font-medium text-slate-900">Step {resStep} of 5</p>
-            <div className="mt-2 h-1.5 w-full rounded-full bg-slate-100">
-              <div className="h-1.5 rounded-full bg-(--color-brand)" style={{ width: `${(resStep / 5) * 100}%` }} />
+
+          {/* Progress + estimate bar */}
+          <div className="space-y-3">
+            <div>
+              <p className="text-sm font-medium text-slate-900">Step {resStep} of 5</p>
+              <div className="mt-2 h-1.5 w-full rounded-full bg-slate-100">
+                <div className="h-1.5 rounded-full bg-(--color-brand)" style={{ width: `${(resStep / 5) * 100}%` }} />
+              </div>
             </div>
+            {resStep >= 2 && estimate && serviceType !== 'move_out' ? (
+              <PriceEstimate low={estimate.low} high={estimate.high} compact />
+            ) : null}
+            {resStep >= 2 && serviceType === 'move_out' ? (
+              <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-2.5">
+                <p className="text-sm text-slate-600">Move-In/Move-Out — price confirmed after photo review</p>
+              </div>
+            ) : null}
           </div>
 
+          {/* Step 1 — Home size */}
           {resStep === 1 ? (
             <div className="space-y-5">
               <h2 className="font-display text-xl font-bold text-slate-900">How big is your home?</h2>
               {[
-                {
-                  label: 'Bedrooms',
-                  value: bedrooms,
-                  min: 1,
-                  max: 6,
-                  set: setBedrooms,
-                },
-                {
-                  label: 'Bathrooms',
-                  value: bathrooms,
-                  min: 0,
-                  max: 4,
-                  set: setBathrooms,
-                },
+                { label: 'Bedrooms', value: bedrooms, min: 1, max: 6, set: setBedrooms },
+                { label: 'Bathrooms', value: bathrooms, min: 0, max: 4, set: setBathrooms },
               ].map((item) => (
                 <div key={item.label} className="flex items-center justify-between rounded-xl border border-slate-200 p-4">
                   <p className="font-medium text-slate-900">{item.label}</p>
@@ -254,15 +395,16 @@ export function BookingForm() {
             </div>
           ) : null}
 
+          {/* Step 2 — Service + add-ons + frequency */}
           {resStep === 2 ? (
             <div className="space-y-5">
               <h2 className="font-display text-xl font-bold text-slate-900">Choose service details</h2>
               <div className="space-y-3">
-                {[
+                {([
                   ['standard', 'Standard Clean', 'from $200'],
                   ['detailed', 'Detailed Clean', 'from $350'],
                   ['move_out', 'Move-In / Move-Out', 'from $500'],
-                ].map(([id, title, price]) => (
+                ] as const).map(([id, title, price]) => (
                   <button
                     key={id}
                     type="button"
@@ -270,7 +412,7 @@ export function BookingForm() {
                     className={cn(
                       'w-full cursor-pointer rounded-xl border p-4 text-left transition-colors duration-200',
                       serviceType === id
-                        ? 'border-(--color-brand) border-2 bg-(--color-brand-muted)/30'
+                        ? 'border-2 border-(--color-brand) bg-(--color-brand-muted)/30'
                         : 'border-slate-200 hover:border-slate-300'
                     )}
                   >
@@ -325,8 +467,10 @@ export function BookingForm() {
             </div>
           ) : null}
 
+          {/* Step 3 — Address */}
           {resStep === 3 ? (
             <div className="space-y-4">
+              <h2 className="font-display text-xl font-bold text-slate-900">Where are we cleaning?</h2>
               <div className="space-y-1">
                 <label className="text-sm font-medium text-slate-900" htmlFor="res-address">
                   Service Address
@@ -344,21 +488,15 @@ export function BookingForm() {
                 </p>
                 {errors.resAddress ? <p className="text-sm text-red-600">{errors.resAddress}</p> : null}
               </div>
-
-              {serviceType === 'move_out' ? (
-                <p className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
-                  Move-In/Move-Out pricing is always confirmed after we review your submission. We&apos;ll send your quote within
-                  24 hours.
-                </p>
-              ) : (
-                <PriceEstimate low={estimate?.low ?? 0} high={estimate?.high ?? 0} />
-              )}
             </div>
           ) : null}
 
+          {/* Step 4 — Scheduling */}
           {resStep === 4 ? (
             <div>
               <AvailabilityPicker
+                schedulingMode={resSchedulingMode}
+                onSchedulingModeChange={setResSchedulingMode}
                 startDate={resStartDate}
                 endDate={resEndDate}
                 timePreference={resTimePref}
@@ -367,19 +505,21 @@ export function BookingForm() {
                 onTimePreferenceChange={setResTimePref}
               />
               {errors.resStartDate || errors.resEndDate || errors.resTimePref ? (
-                <p className="mt-2 text-sm text-red-600">Please complete all availability fields.</p>
+                <p className="mt-2 text-sm text-red-600">Please complete all scheduling fields.</p>
               ) : null}
             </div>
           ) : null}
 
+          {/* Step 5 — Contact + notes + media + summary + submit */}
           {resStep === 5 ? (
             <div className="space-y-4">
-              <label className="space-y-1">
+              <label className="space-y-1 block">
                 <span className="text-sm font-medium text-slate-900">Full Name</span>
                 <Input value={resName} onChange={(e) => setResName(e.target.value)} error={Boolean(errors.resName)} />
                 {errors.resName ? <p className="text-sm text-red-600">{errors.resName}</p> : null}
               </label>
-              <label className="space-y-1">
+
+              <label className="space-y-1 block">
                 <span className="text-sm font-medium text-slate-900">Email Address</span>
                 <Input
                   type="email"
@@ -389,20 +529,32 @@ export function BookingForm() {
                 />
                 {errors.resEmail ? <p className="text-sm text-red-600">{errors.resEmail}</p> : null}
               </label>
-              <label className="space-y-1">
+
+              <label className="space-y-1 block">
                 <span className="text-sm font-medium text-slate-900">Phone Number</span>
                 <Input
                   type="tel"
-                  placeholder="(555) 555-5555"
+                  placeholder="(301) 555-1234"
                   value={resPhone}
-                  onChange={(e) => setResPhone(e.target.value)}
+                  onChange={(e) => setResPhone(formatPhone(e.target.value))}
                   error={Boolean(errors.resPhone)}
                 />
                 {errors.resPhone ? <p className="text-sm text-red-600">{errors.resPhone}</p> : null}
               </label>
 
+              <label className="block space-y-1">
+                <span className="text-sm font-medium text-slate-900">Anything else we should know?</span>
+                <textarea
+                  className="flex min-h-[90px] w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 transition-colors duration-200 hover:border-slate-300 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-(--color-brand) focus:ring-offset-0"
+                  placeholder="Access code, pets, parking notes, areas to focus on..."
+                  value={resNotes}
+                  onChange={(e) => setResNotes(e.target.value)}
+                />
+              </label>
+
               <MediaUpload onUpload={setResMediaUrls} uploadedUrls={resMediaUrls} />
 
+              {/* Booking summary */}
               {(() => {
                 const serviceLabel =
                   serviceType === 'standard' ? 'Standard Clean'
@@ -434,8 +586,14 @@ export function BookingForm() {
                   : 'None'
 
                 const dateLabel =
-                  resStartDate && resEndDate
-                    ? `${new Date(resStartDate + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – ${new Date(resEndDate + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`
+                  resStartDate
+                    ? resSchedulingMode === 'specific'
+                      ? new Date(resStartDate + 'T12:00:00').toLocaleDateString('en-US', {
+                          weekday: 'short', month: 'short', day: 'numeric', year: 'numeric',
+                        })
+                      : resEndDate
+                        ? `${new Date(resStartDate + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – ${new Date(resEndDate + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`
+                        : '—'
                     : '—'
 
                 return (
@@ -455,16 +613,18 @@ export function BookingForm() {
                         <p className="font-medium text-slate-900">{bedrooms} bed · {bathroomLabel}</p>
                       </div>
                       <div>
+                        <p className="text-xs text-slate-500">
+                          {resSchedulingMode === 'specific' ? 'Preferred date' : 'Date window'}
+                        </p>
+                        <p className="font-medium text-slate-900">{dateLabel}</p>
+                      </div>
+                      <div>
                         <p className="text-xs text-slate-500">Arrival window</p>
                         <p className="font-medium text-slate-900">{timeLabel}</p>
                       </div>
                       <div className="col-span-2">
                         <p className="text-xs text-slate-500">Address</p>
                         <p className="font-medium text-slate-900">{resAddress || '—'}</p>
-                      </div>
-                      <div className="col-span-2">
-                        <p className="text-xs text-slate-500">Requested dates</p>
-                        <p className="font-medium text-slate-900">{dateLabel}</p>
                       </div>
                       {selectedAddOns.length > 0 ? (
                         <div className="col-span-2">
@@ -483,16 +643,20 @@ export function BookingForm() {
             </div>
           ) : null}
 
+          {/* Back / Next */}
           <div className="flex justify-between gap-3">
-            <Button type="button" variant="outline" onClick={() => setResStep((s) => Math.max(1, s - 1))} disabled={resStep === 1 || submitting}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setResStep((s) => Math.max(1, s - 1))}
+              disabled={resStep === 1 || submitting}
+            >
               Back
             </Button>
             {resStep < 5 ? (
               <Button
                 type="button"
-                onClick={() => {
-                  if (validateResidentialStep()) setResStep((s) => Math.min(5, s + 1))
-                }}
+                onClick={() => { if (validateResidentialStep()) setResStep((s) => Math.min(5, s + 1)) }}
                 disabled={submitting}
               >
                 Next
@@ -500,62 +664,142 @@ export function BookingForm() {
             ) : null}
           </div>
         </div>
+
       ) : (
+
+      /* ════════════════════════════════════════════════════════════════════ */
+      /* COMMERCIAL FLOW — 3 steps                                           */
+      /* Step 1: Contact info                                                */
+      /* Step 2: Property type + sq ft + frequency + address                */
+      /* Step 3: Scheduling + notes + media + summary + submit              */
+      /* ════════════════════════════════════════════════════════════════════ */
         <div className="space-y-6">
+
+          {/* Progress */}
           <div>
-            <p className="text-sm font-medium text-slate-900">Step {comStep} of 4</p>
+            <p className="text-sm font-medium text-slate-900">Step {comStep} of 3</p>
             <div className="mt-2 h-1.5 w-full rounded-full bg-slate-100">
-              <div className="h-1.5 rounded-full bg-(--color-brand)" style={{ width: `${(comStep / 4) * 100}%` }} />
+              <div className="h-1.5 rounded-full bg-(--color-brand)" style={{ width: `${(comStep / 3) * 100}%` }} />
             </div>
           </div>
 
+          {/* Step 1 — Contact info */}
           {comStep === 1 ? (
-            <div className="space-y-3">
-              <label className="space-y-1"><span className="text-sm font-medium text-slate-900">Business Name</span><Input value={businessName} onChange={(e)=>setBusinessName(e.target.value)} error={Boolean(errors.businessName)} /></label>
-              <label className="space-y-1"><span className="text-sm font-medium text-slate-900">Contact Name</span><Input value={contactName} onChange={(e)=>setContactName(e.target.value)} error={Boolean(errors.contactName)} /></label>
-              <label className="space-y-1"><span className="text-sm font-medium text-slate-900">Email</span><Input type="email" value={comEmail} onChange={(e)=>setComEmail(e.target.value)} error={Boolean(errors.comEmail)} /></label>
-              <label className="space-y-1"><span className="text-sm font-medium text-slate-900">Phone</span><Input type="tel" value={comPhone} onChange={(e)=>setComPhone(e.target.value)} error={Boolean(errors.comPhone)} /></label>
+            <div className="space-y-4">
+              <h2 className="font-display text-xl font-bold text-slate-900">Tell us about your business</h2>
+              <label className="block space-y-1">
+                <span className="text-sm font-medium text-slate-900">Business Name</span>
+                <Input value={businessName} onChange={(e) => setBusinessName(e.target.value)} error={Boolean(errors.businessName)} />
+                {errors.businessName ? <p className="text-sm text-red-600">{errors.businessName}</p> : null}
+              </label>
+              <label className="block space-y-1">
+                <span className="text-sm font-medium text-slate-900">Your Name</span>
+                <Input value={contactName} onChange={(e) => setContactName(e.target.value)} error={Boolean(errors.contactName)} />
+                {errors.contactName ? <p className="text-sm text-red-600">{errors.contactName}</p> : null}
+              </label>
+              <label className="block space-y-1">
+                <span className="text-sm font-medium text-slate-900">Email</span>
+                <Input type="email" value={comEmail} onChange={(e) => setComEmail(e.target.value)} error={Boolean(errors.comEmail)} />
+                {errors.comEmail ? <p className="text-sm text-red-600">{errors.comEmail}</p> : null}
+              </label>
+              <label className="block space-y-1">
+                <span className="text-sm font-medium text-slate-900">Phone Number</span>
+                <Input
+                  type="tel"
+                  placeholder="(301) 555-1234"
+                  value={comPhone}
+                  onChange={(e) => setComPhone(formatPhone(e.target.value))}
+                  error={Boolean(errors.comPhone)}
+                />
+                {errors.comPhone ? <p className="text-sm text-red-600">{errors.comPhone}</p> : null}
+              </label>
             </div>
           ) : null}
 
+          {/* Step 2 — Property details */}
           {comStep === 2 ? (
-            <div className="space-y-4">
+            <div className="space-y-5">
+              <h2 className="font-display text-xl font-bold text-slate-900">About your space</h2>
+
               <div>
                 <p className="mb-2 font-medium text-slate-900">Property Type</p>
-                <div className="grid gap-2 sm:grid-cols-4">
-                  {['office', 'retail', 'warehouse', 'other'].map((p) => (
-                    <button key={p} type="button" onClick={() => setPropertyType(p as typeof propertyType)} className={cn('cursor-pointer rounded-lg border px-4 py-2.5 text-sm font-medium transition-colors duration-200', propertyType === p ? 'border-(--color-brand) bg-(--color-brand) text-white' : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50')}>{p[0].toUpperCase() + p.slice(1)}</button>
+                <div className="grid gap-2 grid-cols-2 sm:grid-cols-4">
+                  {([
+                    ['office', 'Office'],
+                    ['retail', 'Retail'],
+                    ['warehouse', 'Warehouse'],
+                    ['other', 'Other'],
+                  ] as const).map(([id, label]) => (
+                    <button
+                      key={id}
+                      type="button"
+                      onClick={() => setPropertyType(id)}
+                      className={cn(
+                        'cursor-pointer rounded-xl border px-4 py-3 text-left transition-colors duration-200',
+                        propertyType === id
+                          ? 'border-(--color-brand) bg-(--color-brand-muted)/40 ring-1 ring-(--color-brand)'
+                          : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'
+                      )}
+                    >
+                      <p className={cn('text-sm font-semibold', propertyType === id ? 'text-(--color-brand)' : 'text-slate-900')}>
+                        {label}
+                      </p>
+                    </button>
                   ))}
                 </div>
               </div>
-              <label className="space-y-1"><span className="text-sm font-medium text-slate-900">Square Footage</span><Input type="number" placeholder="e.g. 2000" value={squareFootage} onChange={(e)=>setSquareFootage(e.target.value)} /></label>
+
+              <label className="block space-y-1">
+                <span className="text-sm font-medium text-slate-900">Approximate Square Footage</span>
+                <Input
+                  type="number"
+                  placeholder="e.g. 2000"
+                  value={squareFootage}
+                  onChange={(e) => setSquareFootage(e.target.value)}
+                />
+                <p className="text-xs text-slate-500">Estimate is fine — we confirm during walkthrough</p>
+              </label>
+
               <div>
-                <p className="mb-2 font-medium text-slate-900">Condition</p>
-                <div className="grid gap-2 sm:grid-cols-3">
-                  {[
-                    ['good', 'Good'],
-                    ['fair', 'Fair'],
-                    ['needs_work', 'Needs Work'],
-                  ].map(([id, label]) => (
-                    <button key={id} type="button" onClick={() => setCondition(id as typeof condition)} className={cn('cursor-pointer rounded-lg border px-4 py-2.5 text-sm font-medium transition-colors duration-200', condition === id ? 'border-(--color-brand) bg-(--color-brand) text-white' : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50')}>{label}</button>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <p className="mb-2 font-medium text-slate-900">Frequency</p>
+                <p className="mb-2 font-medium text-slate-900">Cleaning Frequency</p>
                 <div className="grid gap-2 sm:grid-cols-4">
                   {frequencies.map((f) => (
-                    <button key={f.id} type="button" onClick={() => setComFrequency(f.id)} className={cn('cursor-pointer rounded-lg border px-4 py-2.5 text-sm font-medium transition-colors duration-200', comFrequency === f.id ? 'border-(--color-brand) bg-(--color-brand) text-white' : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50')}>{f.label}</button>
+                    <button
+                      key={f.id}
+                      type="button"
+                      onClick={() => setComFrequency(f.id)}
+                      className={cn(
+                        'cursor-pointer rounded-lg border px-4 py-2.5 text-sm font-medium transition-colors duration-200',
+                        comFrequency === f.id
+                          ? 'border-(--color-brand) bg-(--color-brand) text-white'
+                          : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50'
+                      )}
+                    >
+                      {f.label}
+                    </button>
                   ))}
                 </div>
               </div>
-              <label className="space-y-1"><span className="text-sm font-medium text-slate-900">Address</span><Input value={comAddress} onChange={(e)=>setComAddress(e.target.value)} error={Boolean(errors.comAddress)} /></label>
+
+              <label className="block space-y-1">
+                <span className="text-sm font-medium text-slate-900">Property Address</span>
+                <Input
+                  value={comAddress}
+                  onChange={(e) => setComAddress(e.target.value)}
+                  placeholder="Street address, City, State, ZIP"
+                  error={Boolean(errors.comAddress)}
+                />
+                {errors.comAddress ? <p className="text-sm text-red-600">{errors.comAddress}</p> : null}
+              </label>
             </div>
           ) : null}
 
+          {/* Step 3 — Scheduling + notes + media + summary + submit */}
           {comStep === 3 ? (
-            <div className="space-y-4">
+            <div className="space-y-5">
               <AvailabilityPicker
+                schedulingMode="flexible"
+                onSchedulingModeChange={() => {}}
                 startDate={comStartDate}
                 endDate={comEndDate}
                 timePreference={comTimePref}
@@ -563,29 +807,49 @@ export function BookingForm() {
                 onEndDateChange={setComEndDate}
                 onTimePreferenceChange={setComTimePref}
               />
-              <div className="space-y-1">
+              {errors.comStartDate || errors.comEndDate || errors.comTimePref ? (
+                <p className="text-sm text-red-600">Please complete all scheduling fields.</p>
+              ) : null}
+
+              <label className="block space-y-1">
                 <span className="text-sm font-medium text-slate-900">Notes</span>
                 <textarea
                   className="flex min-h-[100px] w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 transition-colors duration-200 hover:border-slate-300 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-(--color-brand) focus:ring-offset-0"
-                  placeholder="Any special instructions, access notes, or details about the space..."
+                  placeholder="Access instructions, security codes, areas of focus, any special requirements..."
                   value={comNotes}
                   onChange={(e) => setComNotes(e.target.value)}
                 />
-              </div>
-            </div>
-          ) : null}
+              </label>
 
-          {comStep === 4 ? (
-            <div className="space-y-4">
               <MediaUpload onUpload={setComMediaUrls} uploadedUrls={comMediaUrls} />
 
-              <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
-                <p>Property type: {propertyType}</p>
-                <p>Square footage: {squareFootage || 'N/A'}</p>
-                <p>Condition: {condition}</p>
-                <p>Frequency: {comFrequency}</p>
-                <p>Address: {comAddress}</p>
-                <p>Availability: {comStartDate} to {comEndDate}</p>
+              {/* Commercial summary */}
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-5 space-y-3">
+                <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Submission Summary</p>
+                <div className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
+                  <div>
+                    <p className="text-xs text-slate-500">Business</p>
+                    <p className="font-medium text-slate-900">{businessName || '—'}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-slate-500">Property type</p>
+                    <p className="font-medium text-slate-900 capitalize">{propertyType}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-slate-500">Square footage</p>
+                    <p className="font-medium text-slate-900">{squareFootage ? `~${Number(squareFootage).toLocaleString()} sq ft` : 'Not provided'}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-slate-500">Frequency</p>
+                    <p className="font-medium text-slate-900">
+                      {comFrequency === 'one_time' ? 'One-time' : comFrequency === 'weekly' ? 'Weekly' : comFrequency === 'bi_weekly' ? 'Bi-weekly' : 'Monthly'}
+                    </p>
+                  </div>
+                  <div className="col-span-2">
+                    <p className="text-xs text-slate-500">Address</p>
+                    <p className="font-medium text-slate-900">{comAddress || '—'}</p>
+                  </div>
+                </div>
               </div>
 
               <Button type="button" size="lg" className="w-full" disabled={submitting} onClick={submitCommercial}>
@@ -594,12 +858,22 @@ export function BookingForm() {
             </div>
           ) : null}
 
+          {/* Back / Next */}
           <div className="flex justify-between gap-3">
-            <Button type="button" variant="outline" onClick={() => setComStep((s) => Math.max(1, s - 1))} disabled={comStep === 1 || submitting}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setComStep((s) => Math.max(1, s - 1))}
+              disabled={comStep === 1 || submitting}
+            >
               Back
             </Button>
-            {comStep < 4 ? (
-              <Button type="button" onClick={() => { if (validateCommercialStep()) setComStep((s) => Math.min(4, s + 1)) }} disabled={submitting}>
+            {comStep < 3 ? (
+              <Button
+                type="button"
+                onClick={() => { if (validateCommercialStep()) setComStep((s) => Math.min(3, s + 1)) }}
+                disabled={submitting}
+              >
                 Next
               </Button>
             ) : null}
