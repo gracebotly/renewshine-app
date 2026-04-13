@@ -5,12 +5,10 @@ import { motion } from 'motion/react'
 import {
   AppWindow,
   Bed,
-  Check,
   CheckCircle,
   Flame,
   LayoutGrid,
   Layers,
-  Minus,
   PaintBucket,
   Refrigerator,
   ShieldAlert,
@@ -27,7 +25,7 @@ const tiers = [
   {
     title: 'Standard Clean',
     price: 'From $200',
-    tagline: 'Regular maintenance on already-tidy homes',
+    tagline: 'Regular maintenance',
     items: [
       'Dust all surfaces, furniture, bookshelves & picture frames',
       'Wipe cabinet fronts, exterior of oven & fridge, and microwave inside & out',
@@ -65,8 +63,8 @@ const tiers = [
       'Everything in Detailed Clean, plus:',
       'Inside all cabinets, cupboards & closets',
       'Clean tops of cabinets',
-      'Inside refrigerator cleaned (included — no extra charge)',
-      'Inside oven cleaned (included — no extra charge)',
+      'Inside refrigerator cleaned',
+      'Inside oven cleaned',
       'Spot clean walls in kitchen & bathrooms',
       'Vacuum edges of carpet',
     ],
@@ -75,43 +73,16 @@ const tiers = [
   },
 ]
 
-const checklistRows = [
-  ['Dust all surfaces & furniture', true, true],
-  ['Wipe mirrors', true, true],
-  ['Remove cobwebs', true, true],
-  ['Vacuum couches & upholstery', true, true],
-  ['Sweep, vacuum & mop floors', true, true],
-  ['Empty trash bins', true, true],
-  ['Scrub & disinfect sink', true, true],
-  ['Wipe countertops & backsplash', true, true],
-  ['Clean stovetop surface', true, true],
-  ['Wipe exterior of appliances', true, true],
-  ['Spot clean cabinet exteriors', true, true],
-  ['Clean interior of microwave', true, true],
-  ['Scrub & disinfect toilet', true, true],
-  ['Scrub tub & shower', true, true],
-  ['Shine glass shower doors', true, true],
-  ['Make beds (existing linens)', true, true],
-  ['Dust window sills & ledges', true, true],
-  ['Dust baseboards', true, true],
-  ['Ceiling fan blades dusted', false, true],
-  ['Light fixtures dusted', false, true],
-  ['Moldings & woodwork dusted', false, true],
-  ['Pictures & knick-knacks dusted', false, true],
-  ['Double-scrub disinfection', false, true],
-  ['Window lock ledges dusted', false, true],
-] as const
-
 const addOns = [
-  { icon: Refrigerator, name: 'Inside Refrigerator', price: '$30–$50' },
-  { icon: Flame, name: 'Inside Oven', price: '$35–$75' },
-  { icon: UtensilsCrossed, name: 'Dishes (washed or put away)', price: '$25' },
-  { icon: Bed, name: 'Change Linens (clean sheets provided)', price: '$15 per bed' },
-  { icon: WashingMachine, name: 'Single Load of Laundry (wash & fold)', price: '$35–$50 per load' },
-  { icon: AppWindow, name: 'Interior Windows', price: '$10–$30 per window' },
-  { icon: LayoutGrid, name: 'Tidy-Up / Home Organization', price: '$65+' },
-  { icon: PaintBucket, name: 'Spot Clean Walls', price: '$35' },
-  { icon: Layers, name: 'Basement Cleaning', price: '$75' },
+  { icon: Refrigerator, name: 'Inside Refrigerator' },
+  { icon: Flame, name: 'Inside Oven' },
+  { icon: UtensilsCrossed, name: 'Dishes (washed or put away)' },
+  { icon: Bed, name: 'Change Linens (clean sheets provided)' },
+  { icon: WashingMachine, name: 'Single Load of Laundry (wash & fold)' },
+  { icon: AppWindow, name: 'Interior Windows' },
+  { icon: LayoutGrid, name: 'Tidy-Up / Home Organization' },
+  { icon: PaintBucket, name: 'Spot Clean Walls' },
+  { icon: Layers, name: 'Basement Cleaning' },
 ]
 
 const notOffered = [
@@ -179,48 +150,9 @@ export default function PricingPage() {
         </div>
       </section>
 
-      <section className="bg-white py-16">
-        <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
-          <h2 className="text-2xl font-bold text-slate-900">What&apos;s included</h2>
-          <p className="mt-2 text-slate-600">See exactly what&apos;s covered in each service tier.</p>
-
-          <div className="mt-6 overflow-x-auto rounded-xl border border-slate-200">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="sticky top-0 border-b border-slate-200 bg-slate-50">
-                  <th className="w-1/2 px-4 py-3 text-left font-semibold text-slate-900">Task</th>
-                  <th className="w-1/4 px-4 py-3 text-center font-semibold text-slate-900">Standard</th>
-                  <th className="w-1/4 px-4 py-3 text-center font-semibold text-(--color-brand)">Detailed Clean</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {checklistRows.map(([task, standard, detailed], index) => (
-                  <tr key={task} className={index % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'}>
-                    <td className="px-4 py-3 text-slate-700">{task}</td>
-                    <td className="px-4 py-3 text-center">
-                      {standard ? <Check size={16} className="mx-auto text-emerald-500" /> : <Minus size={16} className="mx-auto text-slate-300" />}
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      {detailed ? <Check size={16} className="mx-auto text-emerald-500" /> : <Minus size={16} className="mx-auto text-slate-300" />}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </section>
-
       <section id="add-ons" className="bg-slate-50 py-16">
         <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
           <h2 className="text-2xl font-bold text-slate-900">Additional services</h2>
-          <p className="mt-2 text-slate-600">Available on Standard and Detailed Cleans. Select during booking.</p>
-          <Badge className="mt-3" variant="neutral">
-            Available on Standard and Detailed Cleans · Select during booking
-          </Badge>
-          <p className="mt-2 text-sm text-slate-500">
-            Inside Refrigerator and Inside Oven are included at no extra charge with Move-In / Move-Out.
-          </p>
 
           <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {addOns.map((item) => {
@@ -230,10 +162,7 @@ export default function PricingPage() {
                   <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-(--color-brand-muted)">
                     <Icon size={16} className="text-(--color-brand)" />
                   </div>
-                  <div>
-                    <p className="text-sm font-medium text-slate-900">{item.name}</p>
-                    <p className="text-xs font-mono tabular-nums text-slate-600">{item.price}</p>
-                  </div>
+                  <p className="text-sm font-medium text-slate-900">{item.name}</p>
                 </div>
               )
             })}
@@ -259,53 +188,6 @@ export default function PricingPage() {
               </div>
             ))}
           </div>
-        </div>
-      </section>
-
-      <section className="bg-slate-50 py-16">
-        <div className="mx-auto grid max-w-6xl gap-6 px-4 sm:px-6 lg:grid-cols-2 lg:px-8">
-          <Card className="border-emerald-200 bg-emerald-50">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-emerald-800">
-                <CheckCircle size={18} className="text-emerald-600" />
-                What we do
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ul className="space-y-2">
-                {[
-                  'Gently move light furniture and rugs to clean underneath',
-                  'Remove items from surfaces, clean, and return them neatly',
-                  'Clean under and behind accessible furniture',
-                  'Add thoughtful finishing touches each visit',
-                ].map((item) => (
-                  <li key={item} className="text-sm text-slate-700">• {item}</li>
-                ))}
-              </ul>
-            </CardContent>
-          </Card>
-
-          <Card className="border-red-200 bg-red-50">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-red-800">
-                <XCircle size={18} className="text-red-600" />
-                What we don&apos;t do
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ul className="space-y-2">
-                {[
-                  'Move items or furniture over 50 lbs',
-                  'Clean excessively cluttered or inaccessible areas',
-                  'Reach above a 3-step ladder',
-                  'Remove items from full shelves or displays',
-                  'Handle biohazards of any kind',
-                ].map((item) => (
-                  <li key={item} className="text-sm text-slate-700">• {item}</li>
-                ))}
-              </ul>
-            </CardContent>
-          </Card>
         </div>
       </section>
 
