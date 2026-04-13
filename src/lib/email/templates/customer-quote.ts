@@ -30,16 +30,18 @@ export function customerQuoteTemplate(job: Job, stripeUrl: string): { subject: s
     : '—'
 
   const timePrefMap: Record<string, string> = {
-    early_morning: '8am – 10am',
-    mid_morning: '10am – 12pm',
-    noon: '12pm – 2pm',
+    morning:         'Morning (8am–12pm)',
+    afternoon:       'Afternoon (12pm–5pm)',
+    early_morning:   '8am – 10am',
+    mid_morning:     '10am – 12pm',
+    noon:            '12pm – 2pm',
     early_afternoon: '2pm – 4pm',
-    late_afternoon: '4pm – 6pm',
-    flexible: 'Flexible (Any Time)',
+    late_afternoon:  '4pm – 6pm',
+    flexible:        'Flexible (Any Time)',
   }
   const timePref = job.availability_time_pref
-    ? (timePrefMap[job.availability_time_pref] ?? job.availability_time_pref)
-    : '—'
+    ? (timePrefMap[job.availability_time_pref] ?? 'Flexible (Any Time)')
+    : 'Flexible (Any Time)'
 
   const deposit = 100
   const remaining = (job.approved_price ?? 0) - deposit
