@@ -45,18 +45,18 @@ export default async function PayPage({
         : 'Cleaning Service'
 
   const timePrefMap: Record<string, string> = {
-  morning:         'Morning (8am–12pm)',
-  afternoon:       'Afternoon (12pm–5pm)',
-  early_morning:   '8am – 10am',
-  mid_morning:     '10am – 12pm',
-  noon:            '12pm – 2pm',
-  early_afternoon: '2pm – 4pm',
-  late_afternoon:  '4pm – 6pm',
-  flexible:        'Flexible (Any Time)',
-}
-const timePref = job?.availability_time_pref
-  ? (timePrefMap[job.availability_time_pref] ?? 'Flexible (Any Time)')
-  : 'Flexible (Any Time)'
+    morning:         'Morning (8am–12pm)',
+    afternoon:       'Afternoon (12pm–5pm)',
+    early_morning:   '8am – 10am',
+    mid_morning:     '10am – 12pm',
+    noon:            '12pm – 2pm',
+    early_afternoon: '2pm – 4pm',
+    late_afternoon:  '4pm – 6pm',
+    flexible:        'Flexible (Any Time)',
+  }
+  const timePref = job?.availability_time_pref
+    ? (timePrefMap[job.availability_time_pref] ?? 'Flexible (Any Time)')
+    : 'Flexible (Any Time)'
 
   const remaining = job?.remaining_amount ?? ((job?.approved_price ?? 0) - 100)
 

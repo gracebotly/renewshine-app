@@ -38,19 +38,7 @@ function formatAvailability(start: string | null, end: string | null, timePref: 
   if (!start || !end) return '—'
   const fmt = (d: string) => new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
   const timeLabel =
-    timePref === 'early_morning'
-      ? '8am–10am'
-      : timePref === 'mid_morning'
-        ? '10am–12pm'
-        : timePref === 'noon'
-          ? '12pm–2pm'
-          : timePref === 'early_afternoon'
-            ? '2pm–4pm'
-            : timePref === 'late_afternoon'
-              ? '4pm–6pm'
-              : timePref === 'flexible'
-                ? 'Flexible'
-                : timePref ?? ''
+    ({ morning: 'Morning', afternoon: 'Afternoon', early_morning: '8–10am', mid_morning: '10am–12pm', noon: '12–2pm', early_afternoon: '2–4pm', late_afternoon: '4–6pm', flexible: 'Flexible' } as Record<string, string>)[timePref ?? ''] ?? timePref ?? ''
   return `${fmt(start)}–${fmt(end)}${timeLabel ? ` · ${timeLabel}` : ''}`
 }
 
