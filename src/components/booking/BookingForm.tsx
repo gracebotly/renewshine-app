@@ -360,77 +360,67 @@ export function BookingForm() {
             <div className="space-y-7">
               <h2 className="font-display text-xl font-bold text-slate-900">Tell us about your home</h2>
 
-              {/* ── Housing type tiles ── */}
+              {/* ── Home type chips ── */}
               <div className="space-y-3">
                 <p className="text-sm font-medium text-slate-900">What type of home?</p>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="flex flex-wrap gap-2">
                   {([
                     {
-                      id: 'apartment',
+                      id: 'apartment' as const,
                       label: 'Apartment',
                       icon: (
-                        <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" className="h-8 w-8">
-                          <rect x="6" y="8" width="28" height="26" rx="1.5" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"/>
-                          <line x1="6" y1="16" x2="34" y2="16" stroke="currentColor" strokeWidth="2"/>
-                          <line x1="20" y1="8" x2="20" y2="34" stroke="currentColor" strokeWidth="2"/>
-                          <rect x="10" y="20" width="4" height="4" rx="0.5" fill="currentColor" opacity="0.5"/>
-                          <rect x="10" y="27" width="4" height="4" rx="0.5" fill="currentColor" opacity="0.5"/>
-                          <rect x="26" y="20" width="4" height="4" rx="0.5" fill="currentColor" opacity="0.5"/>
-                          <rect x="26" y="27" width="4" height="4" rx="0.5" fill="currentColor" opacity="0.5"/>
-                          <rect x="16" y="27" width="8" height="7" rx="0.5" stroke="currentColor" strokeWidth="1.5"/>
+                        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                          <rect x="1" y="2" width="12" height="11" rx="1"/>
+                          <line x1="1" y1="6.5" x2="13" y2="6.5"/>
+                          <line x1="7" y1="2" x2="7" y2="13"/>
+                          <rect x="2.5" y="8" width="2" height="2" rx="0.3" fill="currentColor" opacity="0.4"/>
+                          <rect x="9.5" y="8" width="2" height="2" rx="0.3" fill="currentColor" opacity="0.4"/>
+                          <rect x="5.5" y="9.5" width="3" height="3.5" rx="0.3"/>
                         </svg>
                       ),
                     },
                     {
-                      id: 'townhouse',
+                      id: 'townhouse' as const,
                       label: 'Townhouse',
                       icon: (
-                        <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" className="h-8 w-8">
-                          <path d="M4 18L12 10L20 18V34H4V18Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"/>
-                          <path d="M20 18L28 10L36 18V34H20V18Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"/>
-                          <rect x="8" y="22" width="4" height="4" rx="0.5" fill="currentColor" opacity="0.5"/>
-                          <rect x="28" y="22" width="4" height="4" rx="0.5" fill="currentColor" opacity="0.5"/>
-                          <rect x="10" y="28" width="6" height="6" rx="0.5" stroke="currentColor" strokeWidth="1.5"/>
-                          <rect x="24" y="28" width="6" height="6" rx="0.5" stroke="currentColor" strokeWidth="1.5"/>
+                        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M1 7.5L4 4.5L7 7.5V13H1V7.5Z"/>
+                          <path d="M7 7.5L10 4.5L13 7.5V13H7V7.5Z"/>
+                          <rect x="2.5" y="9" width="2" height="4" rx="0.3"/>
+                          <rect x="9.5" y="9" width="2" height="4" rx="0.3"/>
                         </svg>
                       ),
                     },
                     {
-                      id: 'single_family',
+                      id: 'single_family' as const,
                       label: 'Single Family',
                       icon: (
-                        <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" className="h-8 w-8">
-                          <path d="M5 20L20 7L35 20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                          <path d="M8 17.5V33H32V17.5" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"/>
-                          <rect x="15" y="24" width="10" height="9" rx="0.5" stroke="currentColor" strokeWidth="1.5"/>
-                          <rect x="11" y="20" width="5" height="5" rx="0.5" fill="currentColor" opacity="0.45"/>
-                          <rect x="24" y="20" width="5" height="5" rx="0.5" fill="currentColor" opacity="0.45"/>
-                          <line x1="27" y1="10" x2="27" y2="16" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                          <line x1="23" y1="13" x2="31" y2="13" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M1.5 7L7 2.5L12.5 7"/>
+                          <path d="M2.5 6.2V13H11.5V6.2"/>
+                          <rect x="5.5" y="9" width="3" height="4" rx="0.3"/>
+                          <rect x="3" y="7.5" width="2.5" height="2.5" rx="0.3" fill="currentColor" opacity="0.35"/>
+                          <rect x="8.5" y="7.5" width="2.5" height="2.5" rx="0.3" fill="currentColor" opacity="0.35"/>
                         </svg>
                       ),
                     },
                     {
-                      id: 'condo',
+                      id: 'condo' as const,
                       label: 'Condo',
                       icon: (
-                        <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" className="h-8 w-8">
-                          <rect x="8" y="5" width="24" height="30" rx="1.5" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"/>
-                          <line x1="8" y1="12" x2="32" y2="12" stroke="currentColor" strokeWidth="1.5" opacity="0.5"/>
-                          <line x1="8" y1="19" x2="32" y2="19" stroke="currentColor" strokeWidth="1.5" opacity="0.5"/>
-                          <line x1="8" y1="26" x2="32" y2="26" stroke="currentColor" strokeWidth="1.5" opacity="0.5"/>
-                          <rect x="12" y="7" width="3.5" height="3.5" rx="0.5" fill="currentColor" opacity="0.45"/>
-                          <rect x="18" y="7" width="3.5" height="3.5" rx="0.5" fill="currentColor" opacity="0.45"/>
-                          <rect x="24.5" y="7" width="3.5" height="3.5" rx="0.5" fill="currentColor" opacity="0.45"/>
-                          <rect x="12" y="14" width="3.5" height="3.5" rx="0.5" fill="currentColor" opacity="0.45"/>
-                          <rect x="24.5" y="14" width="3.5" height="3.5" rx="0.5" fill="currentColor" opacity="0.45"/>
-                          <rect x="12" y="21" width="3.5" height="3.5" rx="0.5" fill="currentColor" opacity="0.45"/>
-                          <rect x="24.5" y="21" width="3.5" height="3.5" rx="0.5" fill="currentColor" opacity="0.45"/>
-                          <rect x="16" y="28" width="8" height="7" rx="0.5" stroke="currentColor" strokeWidth="1.5"/>
+                        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                          <rect x="3" y="1.5" width="8" height="11.5" rx="1"/>
+                          <line x1="3" y1="5" x2="11" y2="5" strokeOpacity="0.4"/>
+                          <line x1="3" y1="8" x2="11" y2="8" strokeOpacity="0.4"/>
+                          <rect x="4.5" y="2.5" width="2" height="2" rx="0.3" fill="currentColor" opacity="0.35"/>
+                          <rect x="7.5" y="2.5" width="2" height="2" rx="0.3" fill="currentColor" opacity="0.35"/>
+                          <rect x="4.5" y="5.5" width="2" height="2" rx="0.3" fill="currentColor" opacity="0.35"/>
+                          <rect x="7.5" y="5.5" width="2" height="2" rx="0.3" fill="currentColor" opacity="0.35"/>
+                          <rect x="5.5" y="9.5" width="3" height="3.5" rx="0.3"/>
                         </svg>
                       ),
                     },
-                  ] as const).map((option) => {
+                  ]).map((option) => {
                     const isSelected = resHomeType === option.id
                     return (
                       <button
@@ -438,34 +428,16 @@ export function BookingForm() {
                         type="button"
                         onClick={() => setResHomeType(option.id)}
                         className={cn(
-                          'group relative cursor-pointer rounded-2xl border-2 p-5 text-left transition-all duration-200',
+                          'inline-flex cursor-pointer items-center gap-1.5 rounded-full border px-3.5 py-2 text-sm font-medium transition-all duration-150',
                           isSelected
-                            ? 'border-(--color-brand) bg-(--color-brand-muted)/40 shadow-sm'
-                            : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'
+                            ? 'border-(--color-brand) bg-(--color-brand) text-white'
+                            : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50'
                         )}
                       >
-                        {/* Selected checkmark */}
-                        {isSelected ? (
-                          <div className="absolute right-3 top-3 flex h-5 w-5 items-center justify-center rounded-full bg-(--color-brand)">
-                            <svg viewBox="0 0 12 12" fill="none" className="h-3 w-3">
-                              <path d="M2 6L5 9L10 3" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-                            </svg>
-                          </div>
-                        ) : null}
-                        {/* Icon */}
-                        <div className={cn(
-                          'mb-3 transition-colors duration-200',
-                          isSelected ? 'text-(--color-brand)' : 'text-slate-400 group-hover:text-slate-600'
-                        )}>
+                        <span className={isSelected ? 'text-white' : 'text-slate-400'}>
                           {option.icon}
-                        </div>
-                        {/* Label */}
-                        <p className={cn(
-                          'text-sm font-semibold transition-colors duration-200',
-                          isSelected ? 'text-(--color-brand)' : 'text-slate-900'
-                        )}>
-                          {option.label}
-                        </p>
+                        </span>
+                        {option.label}
                       </button>
                     )
                   })}
@@ -508,15 +480,15 @@ export function BookingForm() {
               </div>
 
               {/* ── Parking notes (optional) ── */}
-              <div className="space-y-2">
+              <div>
                 <label className="block space-y-1.5">
                   <div>
-                    <p className="text-sm font-medium text-slate-900">Parking instructions (optional)</p>
+                    <p className="text-sm font-medium text-slate-900">Parking instructions</p>
                     <p className="text-xs text-slate-500">Optional — let us know if there&apos;s anything to be aware of</p>
                   </div>
                   <textarea
-                    className="flex min-h-[80px] w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 transition-colors duration-200 hover:border-slate-300 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-(--color-brand) focus:ring-offset-0"
-                    placeholder="e.g. Street parking on Oak Ave, use visitor spot #4, buzzer code is 214..."
+                    className="flex min-h-[72px] w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 transition-colors duration-200 hover:border-slate-300 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-(--color-brand) focus:ring-offset-0"
+                    placeholder="e.g. Street parking on Oak Ave, visitor spot #4, buzzer code 214..."
                     value={resNotes}
                     onChange={(e) => setResNotes(e.target.value)}
                   />
