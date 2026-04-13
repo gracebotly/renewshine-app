@@ -67,7 +67,7 @@ export async function POST(request: Request) {
     const mediaRows = media_urls.map((url: string) => ({
       job_id: job.id,
       file_url: url,
-      file_type: url.match(/\.(mp4|mov|avi|webm)$/i) ? 'video' : 'image',
+      file_type: url?.match(/\.(mp4|mov|avi|webm)$/i) ? 'video' : 'image',
     }))
     await supabase.from('job_media').insert(mediaRows)
   }
