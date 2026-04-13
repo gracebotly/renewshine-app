@@ -131,7 +131,7 @@ const faqs = [
   {
     question: 'What areas do you serve?',
     answer:
-      "We serve communities throughout Maryland, Washington DC, and Northern Virginia — including Columbia, Silver Spring, Greenbelt, Annapolis, Bowie, Odenton, Hanover, Baltimore, Glen Burnie, Laurel, Upper Marlboro, and Gaithersburg. Don't see your city? Reach out — we may still be able to help.",
+      "We serve communities throughout Maryland, Washington DC, and Northern Virginia — including Washington DC, Arlington, Alexandria, Bethesda, Silver Spring, McLean, Potomac, Rockville, Gaithersburg, and Reston. Don't see your city? Reach out — we may still be able to help.",
   },
   {
     question: "What if I'm not satisfied with the clean?",
@@ -205,7 +205,7 @@ export default function HomePage() {
             <span className="ml-1 font-medium text-slate-700">4.9 out of 5</span>
           </div>
           <span className="hidden text-slate-300 sm:block">•</span>
-          <span className="text-slate-600">Serving Columbia, Silver Spring, Bowie, Laurel & more</span>
+          <span className="text-slate-600">Serving DC, Arlington, Bethesda, McLean & more</span>
           <span className="hidden text-slate-300 sm:block">•</span>
           <p className="italic text-slate-600">&ldquo;Finally a service that doesn&apos;t underquote.&rdquo; — Sarah M., Bethesda</p>
           <p className="italic text-slate-600">&ldquo;The photo review process is genius.&rdquo; — James T., Arlington</p>
@@ -482,21 +482,16 @@ export default function HomePage() {
 
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
             {[
-              'Columbia, MD',
-              'Silver Spring, MD',
-              'Greenbelt, MD',
-              'Annapolis, MD',
-              'Bowie, MD',
-              'Odenton, MD',
-              'Hanover, MD',
-              'Baltimore, MD',
-              'Glen Burnie, MD',
-              'Laurel, MD',
-              'Upper Marlboro, MD',
-              'Gaithersburg, MD',
               'Washington, DC',
               'Arlington, VA',
               'Alexandria, VA',
+              'Bethesda, MD',
+              'Silver Spring, MD',
+              'McLean, VA',
+              'Potomac, MD',
+              'Rockville, MD',
+              'Gaithersburg, MD',
+              'Reston, VA',
               'And surrounding areas',
             ].map((city) => (
               <div

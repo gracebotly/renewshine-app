@@ -21,28 +21,40 @@ const plusJakarta = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "RenewShine — Premium Cleaning Service",
-  description: "No surprises. No underquoting. Just a clean you can count on.",
+  title: 'RenewShine — Premium House Cleaning Service | DC, MD & VA',
+  description:
+    'Photo-reviewed residential cleaning in Washington DC, Arlington, Bethesda, McLean, Silver Spring & Northern Virginia. No surprises. Confirmed price before you pay.',
+  keywords: [
+    'house cleaning DC',
+    'cleaning service Arlington VA',
+    'cleaning service Bethesda MD',
+    'cleaning service McLean VA',
+    'residential cleaning DMV',
+    'maid service Northern Virginia',
+    'move out cleaning Maryland',
+  ],
   icons: {
-    icon: [{ url: "/favicon-32.png", sizes: "32x32", type: "image/png" }],
-    apple: "/apple-touch-icon.png",
+    icon: [{ url: '/favicon-32.png', sizes: '32x32', type: 'image/png' }],
+    apple: '/apple-touch-icon.png',
   },
   openGraph: {
-    title: "RenewShine — Premium Cleaning Service",
-    description: "No surprises. No underquoting. Just a clean you can count on.",
-    url: "https://renewshine.co",
-    siteName: "RenewShine",
-    images: [{ url: "/og-image.png", width: 1200, height: 630 }],
-    locale: "en_US",
-    type: "website",
+    title: 'RenewShine — Premium House Cleaning | DMV Area',
+    description:
+      'No surprises. No underquoting. Photo-reviewed cleaning service in DC, Maryland & Northern Virginia.',
+    url: 'https://renewshine.co',
+    siteName: 'RenewShine',
+    images: [{ url: '/og-image.png', width: 1200, height: 630 }],
+    locale: 'en_US',
+    type: 'website',
   },
   twitter: {
-    card: "summary_large_image",
-    title: "RenewShine — Premium Cleaning Service",
-    description: "No surprises. No underquoting.",
-    images: ["/twitter-card.png"],
+    card: 'summary_large_image',
+    title: 'RenewShine — Premium House Cleaning | DMV Area',
+    description: 'No surprises. No underquoting. Photo-reviewed cleaning service.',
+    images: ['/twitter-card.png'],
   },
-};
+}
+
 
 export default function RootLayout({
   children,
