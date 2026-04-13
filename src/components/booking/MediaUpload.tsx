@@ -52,10 +52,10 @@ export function MediaUpload({ onUpload, uploadedUrls }: MediaUploadProps) {
         const data = await response.json()
         if (!response.ok) throw new Error(data.error ?? 'Upload failed')
         setItems((prev) =>
-          prev.map((i) => (i.id === id ? { ...i, url: data.url, uploading: false, done: true } : i))
+          prev.map((i) => (i.id === id ? { ...i, url: data.path, uploading: false, done: true } : i))
         )
-        onUpload([...uploadedUrls, data.url])
-        if (previewUrl !== data.url) URL.revokeObjectURL(previewUrl)
+        onUpload([...uploadedUrls, data.path])
+        if (previewUrl !== data.path) URL.revokeObjectURL(previewUrl)
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Upload failed')
         setItems((prev) => prev.filter((i) => i.id !== id))
