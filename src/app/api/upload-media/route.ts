@@ -1,8 +1,30 @@
 import { createClient } from '@supabase/supabase-js'
+import { rateLimit, getClientIp } from '@/lib/ratelimit'
 
-const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
+// IMPORTANT: The 'job-media' bucket must be set to PRIVATE in Supabase Dashboard.
+// Dashboard → Storage → job-media → Edit bucket → toggle "Public bucket" OFF.
+// This endpoint no longer returns public URLs — it returns a storage path.
+// The admin job detail page generates short-lived signed URLs at view time.
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+)
+
+// Rate limit: max 10 uploads per IP per 10 minutes
+const RATE_LIMIT = 10
+const RATE_WINDOW_MS = 10 * 60 * 1000
 
 export async function POST(request: Request) {
+  // ── Rate limiting ──────────────────────────────────────────────────────────
+  const ip = getClientIp(request)
+  if (!rateLimit(`upload:${ip}`, RATE_LIMIT, RATE_WINDOW_MS)) {
+    return Response.json(
+      { error: 'Too many uploads. Please wait a few minutes and try again.' },
+      { status: 429 }
+    )
+  }
+
   const formData = await request.formData()
   const file = formData.get('file') as File | null
 
@@ -10,22 +32,26 @@ export async function POST(request: Request) {
     return Response.json({ error: 'No file provided' }, { status: 400 })
   }
 
+  // ── File type validation ───────────────────────────────────────────────────
   const isImage = file.type.startsWith('image/')
   const isVideo = file.type.startsWith('video/')
   if (!isImage && !isVideo) {
     return Response.json({ error: 'Only images and videos are accepted' }, { status: 400 })
   }
 
+  // ── File size limit: 25MB ──────────────────────────────────────────────────
   if (file.size > 25 * 1024 * 1024) {
     return Response.json({ error: 'File too large (max 25MB)' }, { status: 400 })
   }
 
-  const ext = file.name.split('.').pop() ?? 'bin'
+  // ── Generate a random storage path ────────────────────────────────────────
+  const ext = file.name.split('.').pop()?.toLowerCase() ?? 'bin'
   const path = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
 
   const arrayBuffer = await file.arrayBuffer()
   const buffer = Buffer.from(arrayBuffer)
 
+  // ── Upload to private bucket ───────────────────────────────────────────────
   const { data, error } = await supabase.storage.from('job-media').upload(path, buffer, {
     contentType: file.type,
     upsert: false,
@@ -36,9 +62,7 @@ export async function POST(request: Request) {
     return Response.json({ error: 'Upload failed' }, { status: 500 })
   }
 
-  const {
-    data: { publicUrl },
-  } = supabase.storage.from('job-media').getPublicUrl(data.path)
-
-  return Response.json({ url: publicUrl }, { status: 201 })
+  // Return the storage path — NOT a public URL.
+  // The admin will generate a signed URL from this path at view time.
+  return Response.json({ path: data.path }, { status: 201 })
 }

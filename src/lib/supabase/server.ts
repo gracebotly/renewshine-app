@@ -12,3 +12,16 @@ export function createServerClient() {
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   )
 }
+
+
+/**
+ * Admin client with full storage access — same credentials as createServerClient().
+ * Use when you need to call supabase.storage (signed URLs, uploads, deletes).
+ * Named separately for clarity when reviewing storage-related server code.
+ */
+export function createAdminStorageClient() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
+}

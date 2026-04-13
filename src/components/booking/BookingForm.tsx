@@ -66,6 +66,7 @@ export function BookingForm() {
   const [resEmail, setResEmail] = React.useState('')
   const [resPhone, setResPhone] = React.useState('')
   const [resMediaUrls, setResMediaUrls] = React.useState<string[]>([])
+  const [resHomeType, setResHomeType] = React.useState<'apartment' | 'townhouse' | 'single_family' | 'condo' | ''>('')
 
   // ── Commercial state ───────────────────────────────────────────────────────
   const [businessName, setBusinessName] = React.useState('')
@@ -87,6 +88,7 @@ export function BookingForm() {
   // Derived booleans — must live after all useState declarations
   const hasResData =
     resStep > 1 ||
+    resHomeType !== '' ||
     resAddress !== '' ||
     resName !== '' ||
     resEmail !== '' ||
@@ -124,6 +126,7 @@ export function BookingForm() {
     setResEmail('')
     setResPhone('')
     setResMediaUrls([])
+    setResHomeType('')
   }
 
   // Reset commercial state when switching away from it
@@ -172,6 +175,7 @@ export function BookingForm() {
   // ── Validation ─────────────────────────────────────────────────────────────
   const validateResidentialStep = () => {
     const nextErrors: Record<string, string> = {}
+    if (resStep === 1 && !resHomeType) nextErrors.resHomeType = 'Please select your home type'
     if (resStep === 3 && !resAddress.trim()) nextErrors.resAddress = 'Address is required'
     if (resStep === 4) {
       if (!resStartDate) nextErrors.resStartDate = 'Date is required'
@@ -231,7 +235,7 @@ export function BookingForm() {
           availability_end: resEndDate,
           availability_time_pref: resTimePref,
           media_urls: resMediaUrls,
-          notes: resNotes,
+          notes: resHomeType ? `[${resHomeType.replace('_', ' ')}] ${resNotes}`.trim() : resNotes,
         }),
       })
       if (!response.ok) throw new Error('Failed')
@@ -343,53 +347,182 @@ export function BookingForm() {
       {flowType === 'residential' ? (
         <div className="space-y-6">
 
-          {/* Progress + estimate bar */}
-          <div className="space-y-3">
-            <div>
-              <p className="text-sm font-medium text-slate-900">Step {resStep} of 5</p>
-              <div className="mt-2 h-1.5 w-full rounded-full bg-slate-100">
-                <div className="h-1.5 rounded-full bg-(--color-brand)" style={{ width: `${(resStep / 5) * 100}%` }} />
-              </div>
+          {/* Progress bar */}
+          <div>
+            <p className="text-sm font-medium text-slate-900">Step {resStep} of 5</p>
+            <div className="mt-2 h-1.5 w-full rounded-full bg-slate-100">
+              <div className="h-1.5 rounded-full bg-(--color-brand)" style={{ width: `${(resStep / 5) * 100}%` }} />
             </div>
-            {resStep >= 2 && estimate && serviceType !== 'move_out' ? (
-              <PriceEstimate low={estimate.low} high={estimate.high} compact />
-            ) : null}
-            {resStep >= 2 && serviceType === 'move_out' ? (
-              <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-2.5">
-                <p className="text-sm text-slate-600">Move-In/Move-Out — price confirmed after photo review</p>
-              </div>
-            ) : null}
           </div>
 
-          {/* Step 1 — Home size */}
+          {/* Step 1 — Home details */}
           {resStep === 1 ? (
-            <div className="space-y-5">
-              <h2 className="font-display text-xl font-bold text-slate-900">How big is your home?</h2>
-              {[
-                { label: 'Bedrooms', value: bedrooms, min: 1, max: 6, set: setBedrooms },
-                { label: 'Bathrooms', value: bathrooms, min: 0, max: 4, set: setBathrooms },
-              ].map((item) => (
-                <div key={item.label} className="flex items-center justify-between rounded-xl border border-slate-200 p-4">
-                  <p className="font-medium text-slate-900">{item.label}</p>
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => item.set((v) => Math.max(item.min, v - 1))}
-                      className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg border border-slate-200 transition-colors duration-200 hover:bg-slate-50"
-                    >
-                      <Minus size={16} />
-                    </button>
-                    <span className="w-8 text-center font-mono text-xl font-bold tabular-nums text-slate-900">{item.value}</span>
-                    <button
-                      type="button"
-                      onClick={() => item.set((v) => Math.min(item.max, v + 1))}
-                      className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg border border-slate-200 transition-colors duration-200 hover:bg-slate-50"
-                    >
-                      <Plus size={16} />
-                    </button>
-                  </div>
+            <div className="space-y-7">
+              <h2 className="font-display text-xl font-bold text-slate-900">Tell us about your home</h2>
+
+              {/* ── Housing type tiles ── */}
+              <div className="space-y-3">
+                <p className="text-sm font-medium text-slate-900">What type of home?</p>
+                <div className="grid grid-cols-2 gap-3">
+                  {([
+                    {
+                      id: 'apartment',
+                      label: 'Apartment',
+                      icon: (
+                        <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" className="h-8 w-8">
+                          <rect x="6" y="8" width="28" height="26" rx="1.5" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"/>
+                          <line x1="6" y1="16" x2="34" y2="16" stroke="currentColor" strokeWidth="2"/>
+                          <line x1="20" y1="8" x2="20" y2="34" stroke="currentColor" strokeWidth="2"/>
+                          <rect x="10" y="20" width="4" height="4" rx="0.5" fill="currentColor" opacity="0.5"/>
+                          <rect x="10" y="27" width="4" height="4" rx="0.5" fill="currentColor" opacity="0.5"/>
+                          <rect x="26" y="20" width="4" height="4" rx="0.5" fill="currentColor" opacity="0.5"/>
+                          <rect x="26" y="27" width="4" height="4" rx="0.5" fill="currentColor" opacity="0.5"/>
+                          <rect x="16" y="27" width="8" height="7" rx="0.5" stroke="currentColor" strokeWidth="1.5"/>
+                        </svg>
+                      ),
+                    },
+                    {
+                      id: 'townhouse',
+                      label: 'Townhouse',
+                      icon: (
+                        <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" className="h-8 w-8">
+                          <path d="M4 18L12 10L20 18V34H4V18Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"/>
+                          <path d="M20 18L28 10L36 18V34H20V18Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"/>
+                          <rect x="8" y="22" width="4" height="4" rx="0.5" fill="currentColor" opacity="0.5"/>
+                          <rect x="28" y="22" width="4" height="4" rx="0.5" fill="currentColor" opacity="0.5"/>
+                          <rect x="10" y="28" width="6" height="6" rx="0.5" stroke="currentColor" strokeWidth="1.5"/>
+                          <rect x="24" y="28" width="6" height="6" rx="0.5" stroke="currentColor" strokeWidth="1.5"/>
+                        </svg>
+                      ),
+                    },
+                    {
+                      id: 'single_family',
+                      label: 'Single Family',
+                      icon: (
+                        <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" className="h-8 w-8">
+                          <path d="M5 20L20 7L35 20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                          <path d="M8 17.5V33H32V17.5" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"/>
+                          <rect x="15" y="24" width="10" height="9" rx="0.5" stroke="currentColor" strokeWidth="1.5"/>
+                          <rect x="11" y="20" width="5" height="5" rx="0.5" fill="currentColor" opacity="0.45"/>
+                          <rect x="24" y="20" width="5" height="5" rx="0.5" fill="currentColor" opacity="0.45"/>
+                          <line x1="27" y1="10" x2="27" y2="16" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                          <line x1="23" y1="13" x2="31" y2="13" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                        </svg>
+                      ),
+                    },
+                    {
+                      id: 'condo',
+                      label: 'Condo',
+                      icon: (
+                        <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" className="h-8 w-8">
+                          <rect x="8" y="5" width="24" height="30" rx="1.5" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"/>
+                          <line x1="8" y1="12" x2="32" y2="12" stroke="currentColor" strokeWidth="1.5" opacity="0.5"/>
+                          <line x1="8" y1="19" x2="32" y2="19" stroke="currentColor" strokeWidth="1.5" opacity="0.5"/>
+                          <line x1="8" y1="26" x2="32" y2="26" stroke="currentColor" strokeWidth="1.5" opacity="0.5"/>
+                          <rect x="12" y="7" width="3.5" height="3.5" rx="0.5" fill="currentColor" opacity="0.45"/>
+                          <rect x="18" y="7" width="3.5" height="3.5" rx="0.5" fill="currentColor" opacity="0.45"/>
+                          <rect x="24.5" y="7" width="3.5" height="3.5" rx="0.5" fill="currentColor" opacity="0.45"/>
+                          <rect x="12" y="14" width="3.5" height="3.5" rx="0.5" fill="currentColor" opacity="0.45"/>
+                          <rect x="24.5" y="14" width="3.5" height="3.5" rx="0.5" fill="currentColor" opacity="0.45"/>
+                          <rect x="12" y="21" width="3.5" height="3.5" rx="0.5" fill="currentColor" opacity="0.45"/>
+                          <rect x="24.5" y="21" width="3.5" height="3.5" rx="0.5" fill="currentColor" opacity="0.45"/>
+                          <rect x="16" y="28" width="8" height="7" rx="0.5" stroke="currentColor" strokeWidth="1.5"/>
+                        </svg>
+                      ),
+                    },
+                  ] as const).map((option) => {
+                    const isSelected = resHomeType === option.id
+                    return (
+                      <button
+                        key={option.id}
+                        type="button"
+                        onClick={() => setResHomeType(option.id)}
+                        className={cn(
+                          'group relative cursor-pointer rounded-2xl border-2 p-5 text-left transition-all duration-200',
+                          isSelected
+                            ? 'border-(--color-brand) bg-(--color-brand-muted)/40 shadow-sm'
+                            : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'
+                        )}
+                      >
+                        {/* Selected checkmark */}
+                        {isSelected ? (
+                          <div className="absolute right-3 top-3 flex h-5 w-5 items-center justify-center rounded-full bg-(--color-brand)">
+                            <svg viewBox="0 0 12 12" fill="none" className="h-3 w-3">
+                              <path d="M2 6L5 9L10 3" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                            </svg>
+                          </div>
+                        ) : null}
+                        {/* Icon */}
+                        <div className={cn(
+                          'mb-3 transition-colors duration-200',
+                          isSelected ? 'text-(--color-brand)' : 'text-slate-400 group-hover:text-slate-600'
+                        )}>
+                          {option.icon}
+                        </div>
+                        {/* Label */}
+                        <p className={cn(
+                          'text-sm font-semibold transition-colors duration-200',
+                          isSelected ? 'text-(--color-brand)' : 'text-slate-900'
+                        )}>
+                          {option.label}
+                        </p>
+                      </button>
+                    )
+                  })}
                 </div>
-              ))}
+                {errors.resHomeType ? (
+                  <p className="text-sm text-red-600">{errors.resHomeType}</p>
+                ) : null}
+              </div>
+
+              {/* ── Bedrooms + Bathrooms steppers ── */}
+              <div className="space-y-3">
+                <p className="text-sm font-medium text-slate-900">Home size</p>
+                {[
+                  { label: 'Bedrooms', value: bedrooms, min: 1, max: 6, set: setBedrooms },
+                  { label: 'Bathrooms', value: bathrooms, min: 0, max: 4, set: setBathrooms },
+                ].map((item) => (
+                  <div key={item.label} className="flex items-center justify-between rounded-xl border border-slate-200 p-4">
+                    <p className="font-medium text-slate-900">{item.label}</p>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => item.set((v) => Math.max(item.min, v - 1))}
+                        className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg border border-slate-200 transition-colors duration-200 hover:bg-slate-50"
+                      >
+                        <Minus size={16} />
+                      </button>
+                      <span className="w-8 text-center font-mono text-xl font-bold tabular-nums text-slate-900">
+                        {item.value}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => item.set((v) => Math.min(item.max, v + 1))}
+                        className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg border border-slate-200 transition-colors duration-200 hover:bg-slate-50"
+                      >
+                        <Plus size={16} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* ── Parking notes (optional) ── */}
+              <div className="space-y-2">
+                <label className="block space-y-1.5">
+                  <div>
+                    <p className="text-sm font-medium text-slate-900">Parking instructions (optional)</p>
+                    <p className="text-xs text-slate-500">Optional — let us know if there&apos;s anything to be aware of</p>
+                  </div>
+                  <textarea
+                    className="flex min-h-[80px] w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 transition-colors duration-200 hover:border-slate-300 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-(--color-brand) focus:ring-offset-0"
+                    placeholder="e.g. Street parking on Oak Ave, use visitor spot #4, buzzer code is 214..."
+                    value={resNotes}
+                    onChange={(e) => setResNotes(e.target.value)}
+                  />
+                </label>
+              </div>
+
             </div>
           ) : null}
 
