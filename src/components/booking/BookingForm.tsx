@@ -4,7 +4,7 @@ import * as React from 'react'
 import * as Checkbox from '@radix-ui/react-checkbox'
 import { useRouter } from 'next/navigation'
 import { Check, Loader2, Minus, Plus } from 'lucide-react'
-import { AvailabilityPicker } from '@/components/booking/AvailabilityPicker'
+import { AvailabilityPicker, type SchedulingMode } from '@/components/booking/AvailabilityPicker'
 import { MediaUpload } from '@/components/booking/MediaUpload'
 import { PriceEstimate } from '@/components/booking/PriceEstimate'
 import { Button } from '@/components/ui/button'
@@ -40,6 +40,8 @@ export function BookingForm() {
   const [resStartDate, setResStartDate] = React.useState('')
   const [resEndDate, setResEndDate] = React.useState('')
   const [resTimePref, setResTimePref] = React.useState<TimePreference | ''>('')
+  const [resSchedulingMode, setResSchedulingMode] = React.useState<SchedulingMode>('specific')
+  const [resNotes, setResNotes] = React.useState('')
   const [resName, setResName] = React.useState('')
   const [resEmail, setResEmail] = React.useState('')
   const [resPhone, setResPhone] = React.useState('')
@@ -70,8 +72,8 @@ export function BookingForm() {
     const nextErrors: Record<string, string> = {}
     if (resStep === 3 && !resAddress.trim()) nextErrors.resAddress = 'Address is required'
     if (resStep === 4) {
-      if (!resStartDate) nextErrors.resStartDate = 'Earliest date is required'
-      if (!resEndDate) nextErrors.resEndDate = 'Latest date is required'
+      if (!resStartDate) nextErrors.resStartDate = 'Date is required'
+      if (resSchedulingMode === 'flexible' && !resEndDate) nextErrors.resEndDate = 'Latest date is required'
       if (!resTimePref) nextErrors.resTimePref = 'Time preference is required'
     }
     if (resStep === 5) {
@@ -126,7 +128,7 @@ export function BookingForm() {
           availability_end: resEndDate,
           availability_time_pref: resTimePref,
           media_urls: resMediaUrls,
-          notes: '',
+          notes: resNotes,
         }),
       })
       if (!response.ok) throw new Error('Failed')
@@ -204,11 +206,21 @@ export function BookingForm() {
 
       {flowType === 'residential' ? (
         <div className="space-y-6">
-          <div>
-            <p className="text-sm font-medium text-slate-900">Step {resStep} of 5</p>
-            <div className="mt-2 h-1.5 w-full rounded-full bg-slate-100">
-              <div className="h-1.5 rounded-full bg-(--color-brand)" style={{ width: `${(resStep / 5) * 100}%` }} />
+          <div className="space-y-3">
+            <div>
+              <p className="text-sm font-medium text-slate-900">Step {resStep} of 5</p>
+              <div className="mt-2 h-1.5 w-full rounded-full bg-slate-100">
+                <div className="h-1.5 rounded-full bg-(--color-brand)" style={{ width: `${(resStep / 5) * 100}%` }} />
+              </div>
             </div>
+            {resStep >= 2 && estimate && serviceType !== 'move_out' ? (
+              <PriceEstimate low={estimate.low} high={estimate.high} compact />
+            ) : null}
+            {resStep >= 2 && serviceType === 'move_out' ? (
+              <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-2.5">
+                <p className="text-sm text-slate-600">Move-In/Move-Out — price confirmed after photo review</p>
+              </div>
+            ) : null}
           </div>
 
           {resStep === 1 ? (
@@ -327,6 +339,7 @@ export function BookingForm() {
 
           {resStep === 3 ? (
             <div className="space-y-4">
+              <h2 className="font-display text-xl font-bold text-slate-900">Where are we cleaning?</h2>
               <div className="space-y-1">
                 <label className="text-sm font-medium text-slate-900" htmlFor="res-address">
                   Service Address
@@ -344,21 +357,14 @@ export function BookingForm() {
                 </p>
                 {errors.resAddress ? <p className="text-sm text-red-600">{errors.resAddress}</p> : null}
               </div>
-
-              {serviceType === 'move_out' ? (
-                <p className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
-                  Move-In/Move-Out pricing is always confirmed after we review your submission. We&apos;ll send your quote within
-                  24 hours.
-                </p>
-              ) : (
-                <PriceEstimate low={estimate?.low ?? 0} high={estimate?.high ?? 0} />
-              )}
             </div>
           ) : null}
 
           {resStep === 4 ? (
             <div>
               <AvailabilityPicker
+                schedulingMode={resSchedulingMode}
+                onSchedulingModeChange={setResSchedulingMode}
                 startDate={resStartDate}
                 endDate={resEndDate}
                 timePreference={resTimePref}
@@ -367,7 +373,7 @@ export function BookingForm() {
                 onTimePreferenceChange={setResTimePref}
               />
               {errors.resStartDate || errors.resEndDate || errors.resTimePref ? (
-                <p className="mt-2 text-sm text-red-600">Please complete all availability fields.</p>
+                <p className="mt-2 text-sm text-red-600">Please complete all scheduling fields.</p>
               ) : null}
             </div>
           ) : null}
@@ -399,6 +405,16 @@ export function BookingForm() {
                   error={Boolean(errors.resPhone)}
                 />
                 {errors.resPhone ? <p className="text-sm text-red-600">{errors.resPhone}</p> : null}
+              </label>
+
+              <label className="block space-y-1">
+                <span className="text-sm font-medium text-slate-900">Anything else we should know?</span>
+                <textarea
+                  className="flex min-h-[90px] w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 transition-colors duration-200 hover:border-slate-300 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-(--color-brand) focus:ring-offset-0"
+                  placeholder="Access code, pets, parking notes, areas to focus on..."
+                  value={resNotes}
+                  onChange={(e) => setResNotes(e.target.value)}
+                />
               </label>
 
               <MediaUpload onUpload={setResMediaUrls} uploadedUrls={resMediaUrls} />
@@ -455,16 +471,18 @@ export function BookingForm() {
                         <p className="font-medium text-slate-900">{bedrooms} bed · {bathroomLabel}</p>
                       </div>
                       <div>
+                        <p className="text-xs text-slate-500">
+                          {resSchedulingMode === 'specific' ? 'Preferred date' : 'Date window'}
+                        </p>
+                        <p className="font-medium text-slate-900">{dateLabel}</p>
+                      </div>
+                      <div>
                         <p className="text-xs text-slate-500">Arrival window</p>
                         <p className="font-medium text-slate-900">{timeLabel}</p>
                       </div>
                       <div className="col-span-2">
                         <p className="text-xs text-slate-500">Address</p>
                         <p className="font-medium text-slate-900">{resAddress || '—'}</p>
-                      </div>
-                      <div className="col-span-2">
-                        <p className="text-xs text-slate-500">Requested dates</p>
-                        <p className="font-medium text-slate-900">{dateLabel}</p>
                       </div>
                       {selectedAddOns.length > 0 ? (
                         <div className="col-span-2">
@@ -556,6 +574,8 @@ export function BookingForm() {
           {comStep === 3 ? (
             <div className="space-y-4">
               <AvailabilityPicker
+                schedulingMode="flexible"
+                onSchedulingModeChange={() => {}}
                 startDate={comStartDate}
                 endDate={comEndDate}
                 timePreference={comTimePref}
