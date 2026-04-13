@@ -131,7 +131,7 @@ const faqs = [
   {
     question: 'What areas do you serve?',
     answer:
-      "We serve communities throughout Maryland, Washington DC, and Northern Virginia — including Washington DC, Arlington, Alexandria, Bethesda, Silver Spring, McLean, Potomac, Rockville, Gaithersburg, and Reston. Don't see your city? Reach out — we may still be able to help.",
+      "We serve communities throughout Maryland, Washington DC, and Northern Virginia — including Washington DC, Arlington, Alexandria, Bethesda, Silver Spring, McLean, Potomac, Rockville, Gaithersburg, and Reston. See our full locations list at renewshine.co/locations. Don't see your city? Reach out — we may still be able to help.",
   },
   {
     question: "What if I'm not satisfied with the clean?",
@@ -515,6 +515,7 @@ export default function HomePage() {
           <div className="mx-auto mb-12 max-w-2xl text-center">
             <p className="text-xs font-semibold uppercase tracking-wider text-(--color-brand)">What clients say</p>
             <h2 className="mt-2 font-display text-3xl font-bold text-slate-900">Trusted across the DMV</h2>
+            <p className="mt-2 text-xs text-slate-400">Reviews from early clients. Individual results may vary.</p>
           </div>
 
           <div className="grid gap-6 lg:grid-cols-3">

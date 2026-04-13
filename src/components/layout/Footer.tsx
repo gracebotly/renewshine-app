@@ -22,13 +22,18 @@ const footerLinks = {
     { label: 'Pricing', href: '/pricing' },
     { label: 'Get a Quote', href: '/booking' },
   ],
+  Legal: [
+    { label: 'Privacy Policy', href: '/privacy' },
+    { label: 'Terms of Service', href: '/terms' },
+    { label: 'Cancellation Policy', href: '/cancellation' },
+  ],
 }
 
 export default function Footer() {
   return (
     <footer className="bg-slate-50 border-t border-slate-200">
       <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-6 gap-8">
 
           {/* Brand column */}
           <div className="md:col-span-2">
@@ -77,9 +82,12 @@ export default function Footer() {
           <p className="text-xs text-slate-500">
             © {new Date().getFullYear()} RenewShine. All rights reserved.
           </p>
-          <p className="text-xs text-slate-500">
-            DMV Area · DC · Maryland · Virginia
-          </p>
+          <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1">
+            <Link href="/privacy" className="text-xs text-slate-500 hover:text-slate-700 transition-colors duration-200">Privacy</Link>
+            <Link href="/terms" className="text-xs text-slate-500 hover:text-slate-700 transition-colors duration-200">Terms</Link>
+            <Link href="/cancellation" className="text-xs text-slate-500 hover:text-slate-700 transition-colors duration-200">Cancellation Policy</Link>
+            <span className="text-xs text-slate-400">DMV Area · DC · Maryland · Virginia</span>
+          </div>
         </div>
       </div>
     </footer>
