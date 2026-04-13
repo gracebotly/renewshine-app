@@ -16,8 +16,11 @@ const STATUS_VARIANTS = {
 } as const
 
 const TIME_LABELS = {
-  morning: 'Morning (8am–12pm)',
-  afternoon: 'Afternoon (12pm–5pm)',
+  early_morning: '8am – 10am',
+  mid_morning: '10am – 12pm',
+  noon: '12pm – 2pm',
+  early_afternoon: '2pm – 4pm',
+  late_afternoon: '4pm – 6pm',
   flexible: 'Flexible (Any Time)',
 } as const
 

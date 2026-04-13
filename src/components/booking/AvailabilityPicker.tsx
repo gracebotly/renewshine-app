@@ -14,10 +14,13 @@ interface AvailabilityPickerProps {
   onTimePreferenceChange: (val: TimePreference) => void
 }
 
-const timeOptions: Array<{ id: TimePreference; label: string }> = [
-  { id: 'morning', label: 'Morning (8am–12pm)' },
-  { id: 'afternoon', label: 'Afternoon (12pm–5pm)' },
-  { id: 'flexible', label: 'Flexible (Any Time)' },
+const timeOptions: Array<{ id: TimePreference; label: string; sub: string }> = [
+  { id: 'early_morning', label: '8am – 10am', sub: 'Early morning' },
+  { id: 'mid_morning', label: '10am – 12pm', sub: 'Mid morning' },
+  { id: 'noon', label: '12pm – 2pm', sub: 'Midday' },
+  { id: 'early_afternoon', label: '2pm – 4pm', sub: 'Early afternoon' },
+  { id: 'late_afternoon', label: '4pm – 6pm', sub: 'Late afternoon' },
+  { id: 'flexible', label: 'Flexible', sub: 'Any time works' },
 ]
 
 export function AvailabilityPicker({
@@ -31,13 +34,15 @@ export function AvailabilityPicker({
   const today = new Date().toISOString().split('T')[0]
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <div>
         <p className="inline-flex items-center gap-2 text-sm font-semibold text-slate-900">
           <CalendarRange size={16} className="text-(--color-brand)" />
           When works for you?
         </p>
-        <p className="mt-1 text-sm text-slate-600">Give us a window — we&apos;ll confirm the exact date within 24 hours.</p>
+        <p className="mt-1 text-sm text-slate-600">
+          Give us a date range — we&apos;ll confirm your exact appointment within 24 hours.
+        </p>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2">
@@ -60,28 +65,34 @@ export function AvailabilityPicker({
         </label>
       </div>
 
-      <div className="grid gap-2 sm:grid-cols-3">
-        {timeOptions.map((option) => {
-          const isSelected = timePreference === option.id
-          return (
-            <button
-              key={option.id}
-              type="button"
-              onClick={() => onTimePreferenceChange(option.id)}
-              className={cn(
-                'cursor-pointer rounded-lg border px-4 py-2.5 text-sm font-medium transition-colors duration-200',
-                isSelected
-                  ? 'border-(--color-brand) bg-(--color-brand) text-white'
-                  : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50'
-              )}
-            >
-              <span className="inline-flex items-center gap-2">
-                <Clock size={14} />
-                {option.label}
-              </span>
-            </button>
-          )
-        })}
+      <div>
+        <p className="mb-2 inline-flex items-center gap-2 text-sm font-medium text-slate-900">
+          <Clock size={14} className="text-(--color-brand)" />
+          Preferred arrival window
+        </p>
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+          {timeOptions.map((option) => {
+            const isSelected = timePreference === option.id
+            return (
+              <button
+                key={option.id}
+                type="button"
+                onClick={() => onTimePreferenceChange(option.id)}
+                className={cn(
+                  'cursor-pointer rounded-xl border px-4 py-3 text-left transition-colors duration-200',
+                  isSelected
+                    ? 'border-(--color-brand) bg-(--color-brand-muted)/40 ring-1 ring-(--color-brand)'
+                    : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'
+                )}
+              >
+                <p className={cn('text-sm font-semibold tabular-nums', isSelected ? 'text-(--color-brand)' : 'text-slate-900')}>
+                  {option.label}
+                </p>
+                <p className="mt-0.5 text-xs text-slate-500">{option.sub}</p>
+              </button>
+            )
+          })}
+        </div>
       </div>
     </div>
   )

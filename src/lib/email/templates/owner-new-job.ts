@@ -15,10 +15,16 @@ export function ownerNewJobTemplate(job: Job): { subject: string; html: string }
       ? `${job.availability_start} → ${job.availability_end}`
       : '—'
 
-  const timePref =
-    job.availability_time_pref === 'morning' ? 'Morning (8am–12pm)'
-    : job.availability_time_pref === 'afternoon' ? 'Afternoon (12pm–5pm)'
-    : job.availability_time_pref === 'flexible' ? 'Flexible (Any Time)'
+  const timePrefMap: Record<string, string> = {
+    early_morning: '8am – 10am',
+    mid_morning: '10am – 12pm',
+    noon: '12pm – 2pm',
+    early_afternoon: '2pm – 4pm',
+    late_afternoon: '4pm – 6pm',
+    flexible: 'Flexible (Any Time)',
+  }
+  const timePref = job.availability_time_pref
+    ? (timePrefMap[job.availability_time_pref] ?? job.availability_time_pref)
     : '—'
 
   const priceRange =
