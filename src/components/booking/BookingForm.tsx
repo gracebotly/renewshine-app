@@ -225,7 +225,7 @@ export function BookingForm() {
                 {
                   label: 'Bathrooms',
                   value: bathrooms,
-                  min: 1,
+                  min: 0,
                   max: 4,
                   set: setBathrooms,
                 },
@@ -259,10 +259,10 @@ export function BookingForm() {
               <h2 className="font-display text-xl font-bold text-slate-900">Choose service details</h2>
               <div className="space-y-3">
                 {[
-                  ['standard', 'Standard Clean', 'from $200', 'For regularly maintained homes'],
-                  ['detailed', 'Detailed Clean', 'from $350', 'Full reset — recommended for first-time clients'],
-                  ['move_out', 'Move-In / Move-Out', 'from $500', 'Vacant properties — always quoted after review'],
-                ].map(([id, title, price, text]) => (
+                  ['standard', 'Standard Clean', 'from $200'],
+                  ['detailed', 'Detailed Clean', 'from $350'],
+                  ['move_out', 'Move-In / Move-Out', 'from $500'],
+                ].map(([id, title, price]) => (
                   <button
                     key={id}
                     type="button"
@@ -278,7 +278,6 @@ export function BookingForm() {
                       <p className="font-semibold text-slate-900">{title}</p>
                       <p className="font-mono text-sm font-semibold tabular-nums text-slate-900">{price}</p>
                     </div>
-                    <p className="mt-1 text-sm text-slate-600">{text}</p>
                   </button>
                 ))}
               </div>
@@ -286,7 +285,7 @@ export function BookingForm() {
               <div className="space-y-2 rounded-xl border border-slate-200 p-4">
                 <p className="font-medium text-slate-900">Add-ons (optional)</p>
                 {ADD_ONS_FOR_SERVICE(serviceType).map((addOn) => (
-                  <label key={addOn.id} className="flex cursor-pointer items-center justify-between gap-3 py-1">
+                  <label key={addOn.id} className="flex cursor-pointer items-center gap-3 py-1">
                     <span className="inline-flex items-center gap-2 text-sm text-slate-700">
                       <Checkbox.Root
                         checked={selectedAddOns.includes(addOn.id)}
@@ -298,9 +297,6 @@ export function BookingForm() {
                         </Checkbox.Indicator>
                       </Checkbox.Root>
                       {addOn.label}
-                    </span>
-                    <span className="font-mono text-sm tabular-nums text-slate-600">
-                      {addOn.id === 'windows' ? '$10–$30 / window' : `$${addOn.price}`}
                     </span>
                   </label>
                 ))}
@@ -331,16 +327,23 @@ export function BookingForm() {
 
           {resStep === 3 ? (
             <div className="space-y-4">
-              <label className="space-y-1">
-                <span className="text-sm font-medium text-slate-900">Service Address</span>
+              <div className="space-y-1">
+                <label className="text-sm font-medium text-slate-900" htmlFor="res-address">
+                  Service Address
+                </label>
                 <Input
+                  id="res-address"
                   value={resAddress}
                   onChange={(e) => setResAddress(e.target.value)}
-                  placeholder="123 Main St, Washington DC 20001"
+                  placeholder="Street address, City, State, ZIP"
+                  autoComplete="street-address"
                   error={Boolean(errors.resAddress)}
                 />
+                <p className="text-xs text-slate-500">
+                  Include full street address — e.g. 4521 Oak Hill Dr, Bowie, MD 20715
+                </p>
                 {errors.resAddress ? <p className="text-sm text-red-600">{errors.resAddress}</p> : null}
-              </label>
+              </div>
 
               {serviceType === 'move_out' ? (
                 <p className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
@@ -400,15 +403,79 @@ export function BookingForm() {
 
               <MediaUpload onUpload={setResMediaUrls} uploadedUrls={resMediaUrls} />
 
-              <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
-                <p>Service type: {serviceType === 'standard' ? 'Standard Clean' : serviceType === 'detailed' ? 'Detailed Clean' : 'Move-In / Move-Out'}</p>
-                <p>Home size: {bedrooms} bed · {bathrooms} bath</p>
-                <p>Add-ons: {selectedAddOns.length ? selectedAddOns.join(', ') : 'None'}</p>
-                <p>Frequency: {resFrequency}</p>
-                <p>Address: {resAddress}</p>
-                <p>Availability: {resStartDate} to {resEndDate}</p>
-                <p>Time preference: {resTimePref}</p>
-              </div>
+              {(() => {
+                const serviceLabel =
+                  serviceType === 'standard' ? 'Standard Clean'
+                  : serviceType === 'detailed' ? 'Detailed Clean'
+                  : 'Move-In / Move-Out'
+
+                const frequencyLabel =
+                  resFrequency === 'one_time' ? 'One-time'
+                  : resFrequency === 'weekly' ? 'Weekly'
+                  : resFrequency === 'bi_weekly' ? 'Bi-weekly'
+                  : 'Monthly'
+
+                const timeLabel =
+                  resTimePref === 'early_morning' ? '8am – 10am'
+                  : resTimePref === 'mid_morning' ? '10am – 12pm'
+                  : resTimePref === 'noon' ? '12pm – 2pm'
+                  : resTimePref === 'early_afternoon' ? '2pm – 4pm'
+                  : resTimePref === 'late_afternoon' ? '4pm – 6pm'
+                  : resTimePref === 'flexible' ? 'Flexible'
+                  : '—'
+
+                const bathroomLabel = bathrooms === 0 ? 'Studio / no full bath' : `${bathrooms} bath`
+
+                const addOnLabels = selectedAddOns.length
+                  ? ADD_ONS_FOR_SERVICE(serviceType)
+                      .filter((a) => selectedAddOns.includes(a.id))
+                      .map((a) => a.label)
+                      .join(', ')
+                  : 'None'
+
+                const dateLabel =
+                  resStartDate && resEndDate
+                    ? `${new Date(resStartDate + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – ${new Date(resEndDate + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`
+                    : '—'
+
+                return (
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-5 space-y-3">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Booking Summary</p>
+                    <div className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
+                      <div>
+                        <p className="text-xs text-slate-500">Service</p>
+                        <p className="font-medium text-slate-900">{serviceLabel}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-slate-500">Frequency</p>
+                        <p className="font-medium text-slate-900">{frequencyLabel}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-slate-500">Home size</p>
+                        <p className="font-medium text-slate-900">{bedrooms} bed · {bathroomLabel}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-slate-500">Arrival window</p>
+                        <p className="font-medium text-slate-900">{timeLabel}</p>
+                      </div>
+                      <div className="col-span-2">
+                        <p className="text-xs text-slate-500">Address</p>
+                        <p className="font-medium text-slate-900">{resAddress || '—'}</p>
+                      </div>
+                      <div className="col-span-2">
+                        <p className="text-xs text-slate-500">Requested dates</p>
+                        <p className="font-medium text-slate-900">{dateLabel}</p>
+                      </div>
+                      {selectedAddOns.length > 0 ? (
+                        <div className="col-span-2">
+                          <p className="text-xs text-slate-500">Add-ons</p>
+                          <p className="font-medium text-slate-900">{addOnLabels}</p>
+                        </div>
+                      ) : null}
+                    </div>
+                  </div>
+                )
+              })()}
 
               <Button type="button" size="lg" className="w-full" disabled={submitting} onClick={submitResidential}>
                 {submitting ? <><Loader2 size={16} className="animate-spin" /> Submitting…</> : 'Submit for Review'}

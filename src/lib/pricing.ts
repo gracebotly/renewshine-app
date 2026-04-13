@@ -1,5 +1,11 @@
 export type ServiceType = 'standard' | 'detailed' | 'move_out'
-export type TimePreference = 'morning' | 'afternoon' | 'flexible'
+export type TimePreference =
+  | 'early_morning'
+  | 'mid_morning'
+  | 'noon'
+  | 'early_afternoon'
+  | 'late_afternoon'
+  | 'flexible'
 
 export const ADD_ONS = [
   { id: 'fridge',        label: 'Inside Refrigerator',                    price: 40  },

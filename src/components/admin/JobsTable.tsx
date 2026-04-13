@@ -38,13 +38,19 @@ function formatAvailability(start: string | null, end: string | null, timePref: 
   if (!start || !end) return '—'
   const fmt = (d: string) => new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
   const timeLabel =
-    timePref === 'morning'
-      ? 'Morning'
-      : timePref === 'afternoon'
-        ? 'Afternoon'
-        : timePref === 'flexible'
-          ? 'Flexible'
-          : ''
+    timePref === 'early_morning'
+      ? '8am–10am'
+      : timePref === 'mid_morning'
+        ? '10am–12pm'
+        : timePref === 'noon'
+          ? '12pm–2pm'
+          : timePref === 'early_afternoon'
+            ? '2pm–4pm'
+            : timePref === 'late_afternoon'
+              ? '4pm–6pm'
+              : timePref === 'flexible'
+                ? 'Flexible'
+                : timePref ?? ''
   return `${fmt(start)}–${fmt(end)}${timeLabel ? ` · ${timeLabel}` : ''}`
 }
 
