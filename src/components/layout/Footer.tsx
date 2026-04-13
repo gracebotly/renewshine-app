@@ -5,9 +5,17 @@ import { Mail, Shield } from 'lucide-react'
 const footerLinks = {
   Services: [
     { label: 'Standard Clean', href: '/pricing#standard' },
-    { label: 'Deep Clean', href: '/pricing#deep' },
+    { label: 'Detailed Clean', href: '/pricing#deep' },
     { label: 'Move-In / Move-Out', href: '/pricing#move-out' },
     { label: 'Add-On Services', href: '/pricing#add-ons' },
+  ],
+  Locations: [
+    { label: 'Washington, DC', href: '/locations/washington-dc' },
+    { label: 'Arlington, VA', href: '/locations/arlington-va' },
+    { label: 'Bethesda, MD', href: '/locations/bethesda-md' },
+    { label: 'McLean, VA', href: '/locations/mclean-va' },
+    { label: 'Silver Spring, MD', href: '/locations/silver-spring-md' },
+    { label: 'View All Locations', href: '/locations' },
   ],
   Company: [
     { label: 'How It Works', href: '/#how-it-works' },
@@ -20,7 +28,7 @@ export default function Footer() {
   return (
     <footer className="bg-slate-50 border-t border-slate-200">
       <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-8">
 
           {/* Brand column */}
           <div className="md:col-span-2">
