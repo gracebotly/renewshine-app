@@ -239,7 +239,12 @@ export function BookingForm() {
         }),
       })
       if (!response.ok) throw new Error('Failed')
-      router.push('/booking-submitted')
+      const resParams = new URLSearchParams({
+        name: resName,
+        email: resEmail,
+        phone: rawPhone(resPhone),
+      })
+      router.push(`/booking-submitted?${resParams.toString()}`)
     } catch {
       setSubmitError('Something went wrong. Please try again.')
     } finally {
@@ -279,7 +284,12 @@ export function BookingForm() {
         }),
       })
       if (!response.ok) throw new Error('Failed')
-      router.push('/booking-submitted')
+      const comParams = new URLSearchParams({
+        name: contactName,
+        email: comEmail,
+        phone: rawPhone(comPhone),
+      })
+      router.push(`/booking-submitted?${comParams.toString()}`)
     } catch {
       setSubmitError('Something went wrong. Please try again.')
     } finally {
