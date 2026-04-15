@@ -1,6 +1,9 @@
 -- ============================================================
 -- Migration: create_jobs_and_media
 -- Created: 2026-04-10
+-- Updated: 2026-04-13 — corrected service_type values,
+--          expanded availability_time_pref, added condition
+--          CHECK, expanded status to include 'partial'.
 -- Description: Initial schema for RenewShine booking system.
 --              Creates jobs and job_media tables with RLS.
 --              Applied to Supabase project nueoothgsydbdrseinyu
@@ -10,9 +13,12 @@
 
 create table if not exists jobs (
   id                     uuid      primary key default gen_random_uuid(),
+
   type                   text      check (type in ('residential', 'commercial')),
+
   status                 text      check (
                                      status in (
+                                       'partial',
                                        'new',
                                        'under_review',
                                        'approved',
@@ -21,27 +27,50 @@ create table if not exists jobs (
                                        'cancelled'
                                      )
                                    ) default 'new',
+
   client_name            text      not null,
   client_phone           text,
   client_email           text      not null,
   address                text,
-  service_type           text      check (service_type in ('standard', 'deep', 'move_out')),
+
+  service_type           text      check (service_type in ('standard', 'detailed', 'move_out')),
+
   bedrooms               int,
   bathrooms              int,
   add_ons                jsonb     default '[]',
   square_footage         int,
-  condition              text,
+
+  condition              text      check (
+                                     condition in (
+                                       'maintained',
+                                       'some_buildup',
+                                       'heavy_buildup',
+                                       'reset'
+                                     )
+                                   ),
+
+  pets                   text      check (pets in ('none', 'cat', 'dog', 'other')),
+  home_entry             text      check (home_entry in ('home', 'lockbox', 'fob', 'other')),
+
   business_name          text,
   service_frequency      text,
+
   availability_start     date,
   availability_end       date,
+
   availability_time_pref text      check (
                                      availability_time_pref in (
                                        'morning',
                                        'afternoon',
-                                       'flexible'
+                                       'flexible',
+                                       'early_morning',
+                                       'mid_morning',
+                                       'noon',
+                                       'early_afternoon',
+                                       'late_afternoon'
                                      )
                                    ),
+
   confirmed_date         timestamp,
   estimated_price_low    numeric,
   estimated_price_high   numeric,
