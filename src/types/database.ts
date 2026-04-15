@@ -1,6 +1,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // RenewShine — Supabase Database Types
 // Matches the live schema in project nueoothgsydbdrseinyu
+// Last synced: 2026-04-13
 // Update this file whenever the schema changes.
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -13,6 +14,7 @@ export type Json =
   | Json[]
 
 export type JobStatus =
+  | 'partial'
   | 'new'
   | 'under_review'
   | 'approved'
@@ -24,6 +26,9 @@ export type JobType = 'residential' | 'commercial'
 
 export type ServiceType = 'standard' | 'detailed' | 'move_out'
 
+// All 8 values accepted by the live CHECK constraint.
+// 'morning', 'afternoon', 'flexible' are legacy values kept for backwards
+// compatibility. New submissions use the 6 specific window values.
 export type TimePreference =
   | 'early_morning'
   | 'mid_morning'
@@ -31,6 +36,12 @@ export type TimePreference =
   | 'early_afternoon'
   | 'late_afternoon'
   | 'flexible'
+  | 'morning'
+  | 'afternoon'
+
+export type PetOption    = 'none' | 'cat' | 'dog' | 'other'
+export type HomeEntry    = 'home' | 'lockbox' | 'fob' | 'other'
+export type ConditionOption = 'maintained' | 'some_buildup' | 'heavy_buildup' | 'reset'
 
 export interface Database {
   public: {
@@ -49,7 +60,9 @@ export interface Database {
           bathrooms: number | null
           add_ons: string[]
           square_footage: number | null
-          condition: string | null
+          condition: ConditionOption | null
+          pets: PetOption | null
+          home_entry: HomeEntry | null
           business_name: string | null
           service_frequency: string | null
           availability_start: string | null
@@ -79,7 +92,9 @@ export interface Database {
           bathrooms?: number | null
           add_ons?: string[]
           square_footage?: number | null
-          condition?: string | null
+          condition?: ConditionOption | null
+          pets?: PetOption | null
+          home_entry?: HomeEntry | null
           business_name?: string | null
           service_frequency?: string | null
           availability_start?: string | null
@@ -131,6 +146,6 @@ export interface Database {
   }
 }
 
-export type Job = Database['public']['Tables']['jobs']['Row']
-export type JobMedia = Database['public']['Tables']['job_media']['Row']
+export type Job         = Database['public']['Tables']['jobs']['Row']
+export type JobMedia    = Database['public']['Tables']['job_media']['Row']
 export type JobWithMedia = Job & { job_media: JobMedia[] }

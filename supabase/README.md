@@ -1,6 +1,6 @@
 # Supabase — RenewShine
 
-**Project ref:** `nueoothgsydbdrseinyu`  
+**Project ref:** `nueoothgsydbdrseinyu`
 **Dashboard:** https://supabase.com/dashboard/project/nueoothgsydbdrseinyu
 
 ---
@@ -25,6 +25,7 @@ with a timestamp prefix so they apply in order.
 |---|---|
 | `20260410000001_create_jobs_and_media.sql` | Creates `jobs` and `job_media` tables with RLS |
 | `20260410000002_create_storage_bucket.sql` | Creates the `job-media` public storage bucket |
+| `20260413000001_add_pets_home_entry.sql` | Adds `pets`, `home_entry` columns; adds CHECK constraints to `condition` and `status`; expands `availability_time_pref`; corrects `service_type` value |
 
 ---
 
@@ -38,32 +39,34 @@ The core table. One row per booking request.
 |---|---|---|
 | `id` | uuid | Primary key, auto-generated |
 | `type` | text | `residential` or `commercial` |
-| `status` | text | `new → under_review → approved → scheduled → completed` or `cancelled` |
-| `client_name` | text | Required |
+| `status` | text | `partial → new → under_review → approved → scheduled → completed` or `cancelled`. `partial` = lead captured at Step 1, form not yet completed |
+| `client_name` | text | Required (except for `partial` records) |
 | `client_email` | text | Required |
-| `client_phone` | text | Optional |
+| `client_phone` | text | Optional — collected on final step |
 | `address` | text | Service address |
-| `service_type` | text | `standard`, `deep`, or `move_out` |
+| `service_type` | text | `standard`, `detailed`, or `move_out` |
 | `bedrooms` | int | Residential only |
 | `bathrooms` | int | Residential only |
 | `add_ons` | jsonb | Array of add-on IDs e.g. `["fridge", "oven"]` |
 | `square_footage` | int | Commercial only |
-| `condition` | text | Commercial only |
+| `condition` | text | Home condition — `maintained`, `some_buildup`, `heavy_buildup`, or `reset`. Residential and commercial. |
+| `pets` | text | Residential — `none`, `cat`, `dog`, or `other` |
+| `home_entry` | text | Residential — `home`, `lockbox`, `fob`, or `other` |
 | `business_name` | text | Commercial only |
 | `service_frequency` | text | `one_time`, `weekly`, `bi_weekly`, `monthly` |
 | `availability_start` | date | Earliest date customer can do |
-| `availability_end` | date | Latest date customer can do |
-| `availability_time_pref` | text | `morning`, `afternoon`, or `flexible` |
+| `availability_end` | date | Latest date customer can do (same as start for specific-date bookings) |
+| `availability_time_pref` | text | One of 8 values — see CHECK constraint in migration |
 | `confirmed_date` | timestamp | Set by owner when approving |
-| `estimated_price_low` | numeric | Shown to customer at booking |
-| `estimated_price_high` | numeric | Shown to customer at booking |
+| `estimated_price_low` | numeric | Always `0` — pricing set by owner in admin |
+| `estimated_price_high` | numeric | Always `0` — pricing set by owner in admin |
 | `approved_price` | numeric | Set by owner when approving |
-| `deposit_amount` | numeric | Always 100 |
+| `deposit_amount` | numeric | Always `100` |
 | `remaining_amount` | numeric | `approved_price - 100` |
-| `deposit_paid` | boolean | Set to true by Stripe webhook or cash path |
+| `deposit_paid` | boolean | Set to `true` by Stripe webhook or cash path |
 | `stripe_payment_link` | text | URL of the Stripe Payment Link |
 | `stripe_session_id` | text | Set by Stripe webhook on payment |
-| `notes` | text | Internal owner notes |
+| `notes` | text | Free-text notes from customer |
 | `created_at` | timestamp | Auto-set on insert |
 
 ### `job_media`
@@ -82,11 +85,30 @@ One row per uploaded file. Multiple rows per job.
 
 ## Storage
 
-**Bucket:** `job-media`  
-**Public:** Yes — file URLs are publicly readable without a token  
+**Bucket:** `job-media`
+**Public:** Yes — file URLs are publicly readable without a token
 **Used by:** `src/app/api/upload-media/route.ts`
 
 Files are stored with a random path: `{timestamp}-{random}.{ext}`
+
+---
+
+## Job Status Flow
+
+```
+partial → new → under_review → approved → scheduled → completed
+                                                     ↘ cancelled
+```
+
+| Status | Meaning |
+|---|---|
+| `partial` | Step 1 completed (name + email captured). Form not yet submitted. Used for abandoned lead recovery. |
+| `new` | Full form submitted. Pending owner review. |
+| `under_review` | Owner is reviewing photos and details. |
+| `approved` | Price confirmed. Deposit link sent to customer. |
+| `scheduled` | Deposit paid. Job on the calendar. |
+| `completed` | Job done. |
+| `cancelled` | Cancelled at any stage. |
 
 ---
 
@@ -110,7 +132,8 @@ If you ever need to set up a new Supabase project from scratch:
 2. Open the SQL editor
 3. Run `20260410000001_create_jobs_and_media.sql`
 4. Run `20260410000002_create_storage_bucket.sql`
-5. Update env vars in `.env.local` and Vercel
+5. Skip `20260413000001` — those changes are already in the initial migration above
+6. Update env vars in `.env.local` and Vercel
 
 Or with the Supabase CLI:
 ```bash
@@ -129,3 +152,17 @@ SUPABASE_SERVICE_ROLE_KEY=...
 
 Never commit actual key values. Add them to `.env.local` locally
 and to Vercel environment settings for production.
+```
+
+---
+
+## Summary of All Changes Made
+
+| File | Action | Key changes |
+|---|---|---|
+| `supabase/migrations/20260410000001_create_jobs_and_media.sql` | Updated | Fixed `service_type` ('deep'→'detailed'), expanded `availability_time_pref` to 8 values, added `condition` CHECK, added `status` 'partial', added `pets` + `home_entry` columns |
+| `supabase/migrations/20260413000001_add_pets_home_entry.sql` | Created | Documents all incremental MCP changes as a standalone migration for version control |
+| `src/types/database.ts` | Updated | Fixed `ServiceType` ('deep'→'detailed'), added `'partial'` to `JobStatus`, added `PetOption`, `HomeEntry`, `ConditionOption` types, typed `condition`/`pets`/`home_entry` as proper unions instead of `string` |
+| `supabase/README.md` | Updated | All column descriptions, status values, and migration table accurate |
+
+No application logic was changed. No Supabase operations were run. This is purely a documentation and type sync.
