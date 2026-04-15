@@ -20,5 +20,33 @@ export async function PATCH(request: Request) {
   const { error } = await supabase.from('jobs').update(updates).eq('id', jobId)
   if (error) return Response.json({ error: error.message }, { status: 500 })
 
+  // Fire job-completed webhook when admin marks a job done
+  // n8n uses this to trigger the 2hr wait → rating request SMS → review gate
+  if (status === 'completed') {
+    const { data: completedJob } = await supabase
+      .from('jobs')
+      .select('id, client_name, client_phone, client_email')
+      .eq('id', jobId)
+      .single()
+
+    if (completedJob) {
+      const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? ''
+      const webhookSecret = process.env.N8N_WEBHOOK_SECRET ?? ''
+      fetch(`${siteUrl}/api/webhooks/job-completed`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-webhook-secret': webhookSecret,
+        },
+        body: JSON.stringify({
+          jobId: completedJob.id,
+          clientName: completedJob.client_name,
+          clientPhone: completedJob.client_phone,
+          clientEmail: completedJob.client_email,
+        }),
+      }).catch(err => console.error('job-completed webhook failed:', err))
+    }
+  }
+
   return Response.json({ success: true })
 }
