@@ -27,5 +27,15 @@ export async function POST(request: NextRequest) {
   }
 
   console.log(`flag-job: job ${jobId} flagged with score ${rating}`)
+
+  // Owner alert — fires immediately when a low score (1–3) is received
+  // Non-blocking — never let SMS failure affect the webhook response
+  const { sendSms } = await import('@/lib/sms')
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? ''
+  sendSms(
+    process.env.OWNER_PHONE ?? null,
+    `⚠️ Low rating — job ${jobId} scored ${rating}/5. Review and consider re-clean offer: ${siteUrl}/admin/jobs/${jobId}`
+  ).catch(err => console.error('flag-job owner alert SMS failed:', err))
+
   return Response.json({ flagged: true })
 }
