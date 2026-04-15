@@ -90,6 +90,50 @@ export async function POST(request: Request) {
     } catch (emailError) {
       console.error('Email send failed (non-blocking):', emailError)
     }
+
+    // SMS — non-blocking, fires after emails, skips for partial saves
+    const { sendSms } = await import('@/lib/sms')
+    const firstName = job.client_name.split(' ')[0]
+    const serviceLabel =
+      job.service_type === 'standard' ? 'Standard Clean'
+      : job.service_type === 'detailed' ? 'Detailed Clean'
+      : job.service_type === 'move_out' ? 'Move-In / Move-Out'
+      : 'cleaning request'
+
+    // Customer confirmation text
+    sendSms(
+      job.client_phone,
+      `Hi ${firstName} 👋 We got your ${serviceLabel} request and we're already reviewing your photos. You'll have your confirmed quote within 1–4 hours. — RenewShine`
+    ).catch(err => console.error('Customer submission SMS failed:', err))
+
+    // Owner alert text
+    sendSms(
+      process.env.OWNER_PHONE ?? null,
+      `⚡ New job — ${firstName} (${serviceLabel}, ${job.bedrooms ?? '?'}bd/${job.bathrooms ?? '?'}ba). Review: ${process.env.NEXT_PUBLIC_SITE_URL}/admin/jobs/${job.id}`
+    ).catch(err => console.error('Owner alert SMS failed:', err))
+
+    // Fire job-submitted webhook — non-blocking, n8n uses this for audit trail
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? ''
+    const webhookSecret = process.env.N8N_WEBHOOK_SECRET ?? ''
+    fetch(`${siteUrl}/api/webhooks/job-submitted`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-webhook-secret': webhookSecret,
+      },
+      body: JSON.stringify({
+        jobId: job.id,
+        clientName: job.client_name,
+        clientPhone: job.client_phone,
+        clientEmail: job.client_email,
+        serviceType: job.service_type,
+        address: job.address,
+        bedrooms: job.bedrooms,
+        bathrooms: job.bathrooms,
+        estimatedLow: job.estimated_price_low,
+        estimatedHigh: job.estimated_price_high,
+      }),
+    }).catch(err => console.error('job-submitted webhook failed:', err))
   }
 
   return Response.json({ jobId: job.id }, { status: 201 })

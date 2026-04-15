@@ -42,5 +42,26 @@ export async function POST(request: Request) {
     console.error('Booking confirmation emails failed (non-blocking):', emailError)
   }
 
+  // Fire job-scheduled webhook — n8n uses this to schedule day-before reminder
+  if (job) {
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? ''
+    const webhookSecret = process.env.N8N_WEBHOOK_SECRET ?? ''
+    fetch(`${siteUrl}/api/webhooks/job-scheduled`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-webhook-secret': webhookSecret,
+      },
+      body: JSON.stringify({
+        jobId: job.id,
+        clientName: job.client_name,
+        clientPhone: job.client_phone,
+        confirmedDate: job.confirmed_date,
+        timePreference: job.availability_time_pref,
+        address: job.address,
+      }),
+    }).catch(err => console.error('job-scheduled webhook failed (cash path):', err))
+  }
+
   return Response.json({ success: true })
 }
