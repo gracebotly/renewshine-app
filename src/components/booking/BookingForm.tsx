@@ -862,7 +862,7 @@ export function BookingForm() {
                 <p className="text-sm font-medium text-slate-900">How will our team get in?</p>
                 <div className="grid grid-cols-2 gap-2">
                   {([
-                    { id: 'home' as HomeEntryOption, label: "I'll be home", sub: 'You'll let us in' },
+                    { id: 'home' as HomeEntryOption, label: "I'll be home", sub: "You'll let us in" },
                     { id: 'lockbox' as HomeEntryOption, label: 'Lockbox / key', sub: 'Code shared in notes' },
                     { id: 'fob' as HomeEntryOption, label: 'Building fob', sub: 'Access arranged by you' },
                     { id: 'other' as HomeEntryOption, label: 'Other', sub: 'Explain in notes' },

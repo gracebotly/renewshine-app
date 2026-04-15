@@ -7,7 +7,7 @@ const RATE_WINDOW_MS = 15 * 60 * 1000
 
 export async function PATCH(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const ip = getClientIp(request)
   if (!rateLimit(`update-job:${ip}`, RATE_LIMIT, RATE_WINDOW_MS)) {
@@ -17,7 +17,7 @@ export async function PATCH(
     )
   }
 
-  const { id } = params
+  const { id } = await params
   if (!id) {
     return Response.json({ error: 'Missing job ID' }, { status: 400 })
   }
