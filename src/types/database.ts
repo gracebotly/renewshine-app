@@ -60,9 +60,9 @@ export interface Database {
           bathrooms: number | null
           add_ons: string[]
           square_footage: number | null
-          condition: ConditionOption | null
-          pets: PetOption | null
-          home_entry: HomeEntry | null
+          condition: string | null
+          pets: 'none' | 'cat' | 'dog' | 'other' | null
+          home_entry: 'home' | 'lockbox' | 'fob' | 'other' | null
           business_name: string | null
           service_frequency: string | null
           availability_start: string | null
@@ -92,9 +92,9 @@ export interface Database {
           bathrooms?: number | null
           add_ons?: string[]
           square_footage?: number | null
-          condition?: ConditionOption | null
-          pets?: PetOption | null
-          home_entry?: HomeEntry | null
+          condition?: string | null
+          pets?: 'none' | 'cat' | 'dog' | 'other' | null
+          home_entry?: 'home' | 'lockbox' | 'fob' | 'other' | null
           business_name?: string | null
           service_frequency?: string | null
           availability_start?: string | null
