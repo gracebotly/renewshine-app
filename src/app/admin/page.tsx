@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
-import { JobsTable } from '@/components/admin/JobsTable'
+import { JobsTable, StaleAlert } from '@/components/admin/JobsTable'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -21,9 +21,19 @@ export default async function AdminPage() {
     scheduled: allJobs.filter((j) => j.status === 'scheduled').length,
   }
 
+  // Stale jobs: status 'new' and created more than 4 hours ago
+  const fourHoursAgoDate = new Date()
+  fourHoursAgoDate.setHours(fourHoursAgoDate.getHours() - 4)
+  const fourHoursAgo = fourHoursAgoDate.toISOString()
+  const staleCount = allJobs.filter(
+    (j) => j.status === 'new' && j.created_at < fourHoursAgo
+  ).length
+
   return (
     <div className="min-h-screen bg-slate-50">
       <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+        <StaleAlert count={staleCount} />
+
         <div className="mb-8">
           <h1 className="font-display text-3xl font-bold text-slate-900">Admin Dashboard</h1>
           <p className="mt-1 text-slate-600">Manage bookings and quote requests.</p>

@@ -1,7 +1,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // RenewShine — Supabase Database Types
 // Matches the live schema in project nueoothgsydbdrseinyu
-// Last synced: 2026-04-13
+// Last synced: 2026-04-15
 // Update this file whenever the schema changes.
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -79,6 +79,7 @@ export interface Database {
           stripe_session_id: string | null
           notes: string | null
           created_at: string
+          satisfaction_score: number | null
         }
         Insert: {
           type?: JobType | null
@@ -110,6 +111,7 @@ export interface Database {
           stripe_payment_link?: string | null
           stripe_session_id?: string | null
           notes?: string | null
+          satisfaction_score?: number | null
         }
         Update: Partial<Database['public']['Tables']['jobs']['Row']>
         Relationships: []

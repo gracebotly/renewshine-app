@@ -2,7 +2,7 @@
 
 import * as React from 'react'
 import Link from 'next/link'
-import { Search } from 'lucide-react'
+import { AlertTriangle, Search, X } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 
 type JobRecord = {
@@ -19,6 +19,7 @@ type JobRecord = {
   estimated_price_high: number
   status: 'new' | 'under_review' | 'approved' | 'scheduled' | 'completed' | 'cancelled'
   deposit_paid: boolean
+  satisfaction_score: number | null
 }
 
 const STATUS_VARIANTS = {
@@ -49,12 +50,41 @@ function formatService(serviceType: JobRecord['service_type']) {
   return '—'
 }
 
-export function JobsTable({ jobs }: { jobs: any[] }) {
+export function StaleAlert({ count }: { count: number }) {
+  const [dismissed, setDismissed] = React.useState(false)
+  if (dismissed || count === 0) return null
+
+  return (
+    <div className="mb-6 flex items-start justify-between gap-4 rounded-xl border border-amber-200 bg-amber-50 px-5 py-4">
+      <div className="flex items-start gap-3">
+        <AlertTriangle size={18} className="mt-0.5 shrink-0 text-amber-600" />
+        <p className="text-sm text-amber-900">
+          <span className="font-semibold">
+            {count} job{count > 1 ? 's' : ''} submitted more than 4 hours ago
+          </span>{' '}
+          without a quote sent. Review{' '}
+          <a href="/admin?filter=new" className="underline hover:text-amber-700 transition-colors duration-200">
+            now →
+          </a>
+        </p>
+      </div>
+      <button
+        onClick={() => setDismissed(true)}
+        className="cursor-pointer shrink-0 text-amber-500 hover:text-amber-700 transition-colors duration-200"
+        aria-label="Dismiss"
+      >
+        <X size={16} />
+      </button>
+    </div>
+  )
+}
+
+export function JobsTable({ jobs }: { jobs: JobRecord[] }) {
   const [activeFilter, setActiveFilter] = React.useState<Filter>('all')
   const [query, setQuery] = React.useState('')
 
   const filteredJobs = React.useMemo(() => {
-    return (jobs as JobRecord[])
+    return jobs
       .filter((j) => activeFilter === 'all' || j.status === activeFilter)
       .filter((j) => {
         if (!query.trim()) return true
@@ -130,7 +160,14 @@ export function JobsTable({ jobs }: { jobs: any[] }) {
                   <tr key={job.id} className="border-b border-slate-100 transition-colors duration-200 hover:bg-slate-50">
                     <td className="px-4 py-3">{new Date(job.created_at).toLocaleDateString()}</td>
                     <td className="px-4 py-3">
-                      <div className="font-medium text-slate-900">{job.client_name}</div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-medium text-slate-900">{job.client_name}</span>
+                        {job.satisfaction_score !== null && job.satisfaction_score < 4 && (
+                          <span className="inline-flex items-center rounded-md border border-red-200 bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700">
+                            Needs Attention
+                          </span>
+                        )}
+                      </div>
                       <div className="text-xs text-slate-600">{job.client_email}</div>
                     </td>
                     <td className="px-4 py-3">

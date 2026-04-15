@@ -11,6 +11,7 @@
 |---|---|
 | `jobs` table | ✅ Live |
 | `job_media` table | ✅ Live |
+| `satisfaction_score` column | ✅ Live |
 | `job-media` storage bucket | ✅ Live (public) |
 | Row Level Security | ✅ Enabled on both tables |
 
@@ -26,6 +27,7 @@ with a timestamp prefix so they apply in order.
 | `20260410000001_create_jobs_and_media.sql` | Creates `jobs` and `job_media` tables with RLS |
 | `20260410000002_create_storage_bucket.sql` | Creates the `job-media` public storage bucket |
 | `20260413000001_add_pets_home_entry.sql` | Adds `pets`, `home_entry` columns; adds CHECK constraints to `condition` and `status`; expands `availability_time_pref`; corrects `service_type` value |
+| `20260415000001_add_satisfaction_score.sql` | Adds `satisfaction_score` integer column (1–5) to `jobs` — already applied via MCP |
 
 ---
 
@@ -52,6 +54,7 @@ The core table. One row per booking request.
 | `condition` | text | Home condition — `maintained`, `some_buildup`, `heavy_buildup`, or `reset`. Residential and commercial. |
 | `pets` | text | Residential — `none`, `cat`, `dog`, or `other` |
 | `home_entry` | text | Residential — `home`, `lockbox`, `fob`, or `other` |
+| `satisfaction_score` | int | Optional — set by n8n after post-job SMS rating. Values 1–5. Null until customer replies. Score < 4 triggers re-clean offer and flags job in admin. |
 | `business_name` | text | Commercial only |
 | `service_frequency` | text | `one_time`, `weekly`, `bi_weekly`, `monthly` |
 | `availability_start` | date | Earliest date customer can do |
