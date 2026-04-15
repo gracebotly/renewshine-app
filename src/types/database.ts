@@ -13,6 +13,7 @@ export type Json =
   | Json[]
 
 export type JobStatus =
+  | 'partial'
   | 'new'
   | 'under_review'
   | 'approved'
@@ -50,6 +51,8 @@ export interface Database {
           add_ons: string[]
           square_footage: number | null
           condition: string | null
+          pets: 'none' | 'cat' | 'dog' | 'other' | null
+          home_entry: 'home' | 'lockbox' | 'fob' | 'other' | null
           business_name: string | null
           service_frequency: string | null
           availability_start: string | null
@@ -80,6 +83,8 @@ export interface Database {
           add_ons?: string[]
           square_footage?: number | null
           condition?: string | null
+          pets?: 'none' | 'cat' | 'dog' | 'other' | null
+          home_entry?: 'home' | 'lockbox' | 'fob' | 'other' | null
           business_name?: string | null
           service_frequency?: string | null
           availability_start?: string | null

@@ -18,7 +18,12 @@ export async function POST(request: Request) {
 
   const body = await request.json()
 
-  const required = ['client_name', 'client_email', 'type']
+  // For partial saves, only email + type are required.
+  // client_name is required for all non-partial submissions.
+  const isPartial = body.status === 'partial'
+  const required = isPartial
+    ? ['client_email', 'type']
+    : ['client_name', 'client_email', 'type']
   for (const field of required) {
     if (!body[field]) {
       return Response.json({ error: `Missing required field: ${field}` }, { status: 400 })
@@ -35,7 +40,7 @@ export async function POST(request: Request) {
     .from('jobs')
     .insert({
       type: jobData.type,
-      status: 'new' as const,
+      status: isPartial ? ('partial' as const) : ('new' as const),
       client_name: jobData.client_name,
       client_email: jobData.client_email,
       client_phone: jobData.client_phone || null,
@@ -47,6 +52,8 @@ export async function POST(request: Request) {
       add_ons: jobData.add_ons ?? [],
       square_footage: jobData.square_footage ?? null,
       condition: jobData.condition || null,
+      pets: jobData.pets || null,
+      home_entry: jobData.home_entry || null,
       business_name: jobData.business_name || null,
       availability_start: jobData.availability_start || null,
       availability_end: jobData.availability_end || null,
@@ -73,13 +80,16 @@ export async function POST(request: Request) {
   }
 
   // Send Templates 1 + 2 — never block job creation on email failure
-  try {
-    await Promise.all([
-      sendOwnerNewJobAlert(job),
-      sendCustomerSubmittedConfirmation(job),
-    ])
-  } catch (emailError) {
-    console.error('Email send failed (non-blocking):', emailError)
+  // Skip for partial saves — emails fire when the full form is submitted
+  if (job.status !== 'partial') {
+    try {
+      await Promise.all([
+        sendOwnerNewJobAlert(job),
+        sendCustomerSubmittedConfirmation(job),
+      ])
+    } catch (emailError) {
+      console.error('Email send failed (non-blocking):', emailError)
+    }
   }
 
   return Response.json({ jobId: job.id }, { status: 201 })
