@@ -1,7 +1,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // RenewShine — Supabase Database Types
 // Matches the live schema in project nueoothgsydbdrseinyu
-// Last synced: 2026-04-15
+// Last synced: 2026-04-16
 // Update this file whenever the schema changes.
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -24,7 +24,7 @@ export type JobStatus =
 
 export type JobType = 'residential' | 'commercial'
 
-export type ServiceType = 'standard' | 'detailed' | 'move_out'
+export type ServiceType = 'standard' | 'deep' | 'move_out'
 
 // All 8 values accepted by the live CHECK constraint.
 // 'morning', 'afternoon', 'flexible' are legacy values kept for backwards

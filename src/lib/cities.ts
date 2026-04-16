@@ -47,7 +47,7 @@ export const CITIES: CityData[] = [
       {
         question: 'What does a deep cleaning service include in Washington, DC?',
         answer:
-          'A Detailed Clean covers everything in a Standard Clean plus grease removal, hard water stain treatment, cleaning under and behind accessible furniture, vent dusting, and wet wiping of baseboards and light switches. It\'s recommended for first-time clients and homes that haven\'t been professionally cleaned recently.',
+          'A Deep Clean covers everything in a Standard Clean plus grease removal, hard water stain treatment, cleaning under and behind accessible furniture, vent dusting, and wet wiping of baseboards and light switches. It\'s recommended for first-time clients and homes that haven\'t been professionally cleaned recently.',
       },
       {
         question: 'Do you offer recurring cleaning services in Washington, DC?',
@@ -203,7 +203,7 @@ export const CITIES: CityData[] = [
       {
         question: 'What does a deep cleaning service include in Bethesda, MD?',
         answer:
-          'A Detailed Clean covers everything in Standard plus grease removal, hard water stain treatment, cleaning under and behind accessible furniture, vent dusting, and wet wiping of baseboards and light switches. It\'s recommended for first-time clients and larger Bethesda homes.',
+          'A Deep Clean covers everything in a Standard Clean plus grease removal, hard water stain treatment, cleaning under and behind accessible furniture, vent dusting, and wet wiping of baseboards and light switches. It\'s recommended for first-time clients and larger Bethesda homes.',
       },
       {
         question: 'Do you offer weekly or bi-weekly cleaning services in Bethesda?',
@@ -255,7 +255,7 @@ export const CITIES: CityData[] = [
       {
         question: 'What is the difference between a standard and deep cleaning in Silver Spring?',
         answer:
-          'Standard Clean is maintenance cleaning for homes that are regularly kept up. Detailed Clean goes further — removing grease buildup, treating hard water stains, cleaning under accessible furniture, and wet wiping baseboards and light switches. We recommend Detailed for first-time clients.',
+          'Standard Clean is maintenance cleaning for homes that are regularly kept up. Deep Clean goes further — removing grease buildup, treating hard water stains, cleaning under accessible furniture, and wet wiping baseboards and light switches. We recommend Deep Clean for first-time clients.',
       },
       {
         question: 'Do you offer recurring cleaning services in Silver Spring, MD?',
@@ -327,7 +327,7 @@ export const CITIES: CityData[] = [
       {
         question: 'What services are available for McLean homes?',
         answer:
-          'Standard Clean, Detailed Clean, and Move-In / Move-Out. For larger McLean homes, we typically recommend Detailed Clean for first-time visits to ensure a thorough baseline before any recurring schedule.',
+          'Standard Clean, Deep Clean, and Move-In / Move-Out. For larger McLean homes, we typically recommend Deep Clean for first-time visits to ensure a thorough baseline before any recurring schedule.',
       },
     ],
   },
@@ -377,9 +377,9 @@ export const CITIES: CityData[] = [
           'Yes. Our team arrives fully equipped with professional-grade supplies and tools. You don\'t need to provide anything.',
       },
       {
-        question: 'Is a Detailed Clean recommended for first-time Potomac clients?',
+        question: 'Is a Deep Clean recommended for first-time Potomac clients?',
         answer:
-          'For most first-time clients — especially in larger homes that haven\'t had a recent professional clean — yes. Detailed Clean covers everything in Standard plus grease removal, hard water stain treatment, cleaning under accessible furniture, and thorough high and low cleaning throughout.',
+          'For most first-time clients — especially in larger homes that haven\'t had a recent professional clean — yes. Deep Clean covers everything in a Standard Clean plus grease removal, hard water stain treatment, cleaning under accessible furniture, and thorough high and low cleaning throughout.',
       },
     ],
   },

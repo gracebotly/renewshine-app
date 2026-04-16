@@ -408,7 +408,7 @@ export function BookingForm() {
   // ── Booking summary values (Step 5) ───────────────────────────────────────
   const serviceLabel =
     serviceType === 'standard' ? 'Standard Clean'
-    : serviceType === 'detailed' ? 'Deep Clean'
+    : serviceType === 'deep' ? 'Deep Clean'
     : 'Move-In / Move-Out'
 
   const frequencyLabel =
@@ -733,7 +733,7 @@ export function BookingForm() {
                     desc: 'Maintenance cleaning for regularly kept homes',
                   },
                   {
-                    id: 'detailed' as ServiceType,
+                    id: 'deep' as ServiceType,
                     title: 'Deep Clean',
                     price: 'from $350',
                     desc: 'Full top-to-bottom clean, every surface, every corner',

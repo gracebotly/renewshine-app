@@ -1,4 +1,4 @@
-export type ServiceType = 'standard' | 'detailed' | 'move_out'
+export type ServiceType = 'standard' | 'deep' | 'move_out'
 export type TimePreference =
   | 'early_morning'
   | 'mid_morning'
@@ -19,7 +19,7 @@ export const ADD_ONS = [
   { id: 'basement',      label: 'Basement Cleaning',                       price: 75  },
 ]
 
-// Add-ons available only on Standard and Detailed.
+// Add-ons available only on Standard and Deep.
 // Fridge and Oven are excluded when service is move_out (included at no charge).
 export const ADD_ONS_FOR_SERVICE = (serviceType: ServiceType) => {
   if (serviceType === 'move_out') {
@@ -39,7 +39,7 @@ export function estimatePrice(
   if (serviceType === 'standard') {
     base = bedrooms * 60 + bathrooms * 40
   } else {
-    // detailed
+    // deep
     base = bedrooms * 90 + bathrooms * 55
   }
 
