@@ -13,6 +13,8 @@
 | `job_media` table | ✅ Live |
 | `satisfaction_score` column | ✅ Live |
 | `job-media` storage bucket | ✅ Live (public) |
+| `missed_calls` table     | ✅ Live |
+| `reactivation_log` table | ✅ Live |
 | Row Level Security | ✅ Enabled on both tables |
 
 ---
@@ -28,6 +30,7 @@ with a timestamp prefix so they apply in order.
 | `20260410000002_create_storage_bucket.sql` | Creates the `job-media` public storage bucket |
 | `20260413000001_add_pets_home_entry.sql` | Adds `pets`, `home_entry` columns; adds CHECK constraints to `condition` and `status`; expands `availability_time_pref`; corrects `service_type` value |
 | `20260415000001_add_satisfaction_score.sql` | Adds `satisfaction_score` integer column (1–5) to `jobs` — already applied via MCP |
+| `20260415000002_create_missed_calls_and_reactivation_log.sql` | Creates `missed_calls` and `reactivation_log` tables with RLS — already applied via MCP |
 
 ---
 
@@ -83,6 +86,29 @@ One row per uploaded file. Multiple rows per job.
 | `file_url` | text | Public URL from Supabase Storage |
 | `file_type` | text | `image` or `video` |
 | `created_at` | timestamp | Auto-set on insert |
+
+### `missed_calls`
+
+Logs missed calls received on the Twilio number. Written by the `missed-call-log` webhook route.
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | uuid | Primary key, auto-generated |
+| `caller_phone` | text | Phone number that called |
+| `called_at` | timestamp | When the call came in (from Twilio payload) |
+| `text_back_sent` | boolean | Always `true` — text-back fires automatically via n8n WF-05 |
+| `created_at` | timestamp | Auto-set on insert |
+
+### `reactivation_log`
+
+Logs 90-day reactivation SMS events fired by n8n. One row per reactivation attempt.
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | uuid | Primary key, auto-generated |
+| `job_id` | uuid | FK → `jobs.id` (set null on delete) — the completed job that triggered reactivation |
+| `client_phone` | text | Phone number the reactivation SMS was sent to |
+| `fired_at` | timestamp | When the reactivation SMS fired, auto-set on insert |
 
 ---
 

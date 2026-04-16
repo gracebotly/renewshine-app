@@ -25,7 +25,7 @@ export async function PATCH(request: Request) {
   if (status === 'completed') {
     const { data: completedJob } = await supabase
       .from('jobs')
-      .select('id, client_name, client_phone, client_email')
+      .select('id, client_name, client_phone, client_email, remaining_amount, stripe_payment_link')
       .eq('id', jobId)
       .single()
 
@@ -43,6 +43,8 @@ export async function PATCH(request: Request) {
           clientName: completedJob.client_name,
           clientPhone: completedJob.client_phone,
           clientEmail: completedJob.client_email,
+          remainingAmount: completedJob.remaining_amount,
+          stripePaymentLink: completedJob.stripe_payment_link,
         }),
       }).catch(err => console.error('job-completed webhook failed:', err))
     }
