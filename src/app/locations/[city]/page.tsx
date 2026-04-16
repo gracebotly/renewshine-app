@@ -51,7 +51,7 @@ const serviceTiers = [
     buttonVariant: 'outline' as const,
   },
   {
-    title: 'Detailed Clean',
+    title: 'Deep Clean',
     price: 'From $350',
     tagline: 'Full reset — every surface, every corner',
     popular: true,
@@ -70,7 +70,7 @@ const serviceTiers = [
     price: 'From $500',
     tagline: 'Vacant properties & tenant turnover',
     items: [
-      'Everything in Detailed Clean, plus:',
+      'Everything in Deep Clean, plus:',
       'Inside all cabinets, cupboards & closets',
       'Inside refrigerator & oven (included)',
       'Spot clean walls in kitchen & bathrooms',

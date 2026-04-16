@@ -39,7 +39,7 @@ const tiers = [
     buttonVariant: 'outline' as const,
   },
   {
-    title: 'Detailed Clean',
+    title: 'Deep Clean',
     price: 'From $350',
     tagline: 'Full reset. Recommended for first-time clients.',
     items: [
@@ -60,7 +60,7 @@ const tiers = [
     price: 'From $500',
     tagline: 'Vacant properties and tenant turnover',
     items: [
-      'Everything in Detailed Clean, plus:',
+      'Everything in Deep Clean, plus:',
       'Inside all cabinets, cupboards & closets',
       'Clean tops of cabinets',
       'Inside refrigerator cleaned',

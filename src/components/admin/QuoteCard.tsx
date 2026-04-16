@@ -34,7 +34,7 @@ const FREQUENCY_LABELS = {
 
 function formatService(serviceType: string | null) {
   if (serviceType === 'standard') return 'Standard Clean'
-  if (serviceType === 'detailed') return 'Detailed Clean'
+  if (serviceType === 'detailed') return 'Deep Clean'
   if (serviceType === 'move_out') return 'Move-In / Move-Out'
   return 'Service'
 }

@@ -79,7 +79,7 @@ const services = [
     buttonVariant: 'outline' as const,
   },
   {
-    title: 'Detailed Clean',
+    title: 'Deep Clean',
     price: 'From $350',
     tagline: 'Full reset. Recommended for first-time clients.',
     items: [
@@ -100,7 +100,7 @@ const services = [
     price: 'From $500',
     tagline: 'Vacant properties and tenant turnover',
     items: [
-      'Everything in Detailed Clean, plus:',
+      'Everything in Deep Clean, plus:',
       'Inside all cabinets, cupboards & closets',
       'Clean tops of cabinets',
       'Inside refrigerator cleaned',
@@ -149,12 +149,12 @@ const faqs = [
   {
     question: 'How long does a clean take?',
     answer:
-      "It depends on the size and service type. A standard clean on a 2-bedroom home typically takes 2–3 hours. A detailed clean or move-out clean takes longer. We'll confirm estimated time when we send your quote.",
+      "It depends on the size and service type. A standard clean on a 2-bedroom home typically takes 2–3 hours. A deep clean or move-out clean takes longer. We'll confirm estimated time when we send your quote.",
   },
   {
-    question: "What's the difference between Standard and Detailed Clean?",
+    question: "What's the difference between Standard and Deep Clean?",
     answer:
-      "Standard Clean is maintenance cleaning for homes that are regularly kept up — it covers all the essentials. Detailed Clean goes further: double-scrub disinfection, ceiling fans, light fixtures, moldings, and every corner. We recommend Detailed Clean for first-time clients or homes that haven't been professionally cleaned recently.",
+      "Standard Clean is maintenance cleaning for homes that are regularly kept up — it covers all the essentials. Deep Clean goes further: double-scrub disinfection, ceiling fans, light fixtures, moldings, and every corner. We recommend Deep Clean for first-time clients or homes that haven't been professionally cleaned recently.",
   },
 ]
 
@@ -459,7 +459,7 @@ export default function HomePage() {
           <div className="mx-auto mb-12 max-w-2xl text-center">
             <p className="text-xs font-semibold uppercase tracking-wider text-(--color-brand)">Customize your clean</p>
             <h2 className="mt-2 font-display text-3xl font-bold text-slate-900">Add-on services</h2>
-            <p className="mt-3 text-slate-600">Available on Standard and Detailed Cleans. Priced after review — select during booking.</p>
+            <p className="mt-3 text-slate-600">Available on Standard and Deep Cleans. Priced after review — select during booking.</p>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
