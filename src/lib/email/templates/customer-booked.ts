@@ -7,7 +7,7 @@ export function customerBookedTemplate(job: Job): { subject: string; html: strin
 
   const serviceLabel =
     job.service_type === 'standard' ? 'Standard Clean'
-    : job.service_type === 'detailed' ? 'Detailed Clean'
+    : job.service_type === 'detailed' ? 'Deep Clean'
     : job.service_type === 'move_out' ? 'Move-In / Move-Out'
     : 'Cleaning Service'
 

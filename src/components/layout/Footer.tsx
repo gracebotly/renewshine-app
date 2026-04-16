@@ -5,7 +5,7 @@ import { Mail, Shield } from 'lucide-react'
 const footerLinks = {
   Services: [
     { label: 'Standard Clean', href: '/pricing#standard' },
-    { label: 'Detailed Clean', href: '/pricing#deep' },
+    { label: 'Deep Clean', href: '/pricing#deep' },
     { label: 'Move-In / Move-Out', href: '/pricing#move-out' },
     { label: 'Add-On Services', href: '/pricing#add-ons' },
   ],

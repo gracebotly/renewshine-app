@@ -96,7 +96,7 @@ export async function POST(request: Request) {
     const firstName = job.client_name.split(' ')[0]
     const serviceLabel =
       job.service_type === 'standard' ? 'Standard Clean'
-      : job.service_type === 'detailed' ? 'Detailed Clean'
+      : job.service_type === 'detailed' ? 'Deep Clean'
       : job.service_type === 'move_out' ? 'Move-In / Move-Out'
       : 'cleaning request'
 

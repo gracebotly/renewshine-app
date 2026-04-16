@@ -156,9 +156,9 @@ export const CITIES: CityData[] = [
           'Yes. Many Bethesda homes are 3,000–5,000+ square feet. Our photo review process is specifically designed for larger properties — it lets us assess the actual scope before confirming a price, rather than guessing by bedroom count alone.',
       },
       {
-        question: "What's included in a Detailed Clean?",
+        question: "What's included in a Deep Clean?",
         answer:
-          'Detailed Clean covers everything in Standard, plus grease buildup removal, hard water stain treatment, cleaning under and behind accessible furniture, vent dusting, wet wipe of baseboards and light switches, and more. It\'s recommended for first-time clients.',
+          'Deep Clean covers everything in Standard, plus grease buildup removal, hard water stain treatment, cleaning under and behind accessible furniture, vent dusting, wet wipe of baseboards and light switches, and more. It\'s recommended for first-time clients.',
       },
       {
         question: 'Do you serve the Chevy Chase neighborhoods near Bethesda?',
@@ -193,9 +193,9 @@ export const CITIES: CityData[] = [
           'Yes — we serve all Silver Spring zip codes including 20901, 20902, 20903, 20904, 20905, 20906, and 20910. Submit your address in the booking form and we\'ll confirm coverage.',
       },
       {
-        question: "What's the difference between Standard and Detailed Clean?",
+        question: "What's the difference between Standard and Deep Clean?",
         answer:
-          'Standard Clean is maintenance cleaning for homes that are regularly kept up. Detailed Clean goes further — double-scrub disinfection, grease removal, hard water stain treatment, and cleaning under accessible furniture. We recommend Detailed for first-time clients.',
+          'Standard Clean is maintenance cleaning for homes that are regularly kept up. Deep Clean goes further — double-scrub disinfection, grease removal, hard water stain treatment, and cleaning under accessible furniture. We recommend Detailed for first-time clients.',
       },
       {
         question: 'Do you offer recurring cleaning in Silver Spring?',
@@ -232,7 +232,7 @@ export const CITIES: CityData[] = [
       {
         question: 'What services are available for McLean homes?',
         answer:
-          'Standard Clean, Detailed Clean, and Move-In / Move-Out. All service tiers include the same thorough process — the difference is depth. For larger McLean homes, we typically recommend Detailed Clean for first-time visits.',
+          'Standard Clean, Deep Clean, and Move-In / Move-Out. All service tiers include the same thorough process — the difference is depth. For larger McLean homes, we typically recommend Deep Clean for first-time visits.',
       },
       {
         question: 'Are you insured for high-value homes in Virginia?',
@@ -272,9 +272,9 @@ export const CITIES: CityData[] = [
           'Yes. We regularly serve large Potomac properties. Our pricing accounts for actual square footage, condition, and number of rooms — not just a standard per-bedroom rate.',
       },
       {
-        question: 'Is a Detailed Clean recommended for first-time Potomac clients?',
+        question: 'Is a Deep Clean recommended for first-time Potomac clients?',
         answer:
-          'For most first-time clients — especially in larger homes that haven\'t had a recent professional clean — yes. Detailed Clean covers everything in Standard plus grease removal, hard water stain treatment, cleaning under accessible furniture, and thorough high and low cleaning throughout.',
+          'For most first-time clients — especially in larger homes that haven\'t had a recent professional clean — yes. Deep Clean covers everything in Standard plus grease removal, hard water stain treatment, cleaning under accessible furniture, and thorough high and low cleaning throughout.',
       },
     ],
   },
@@ -330,7 +330,7 @@ export const CITIES: CityData[] = [
     neighborhoods: ['Kentlands', 'Lakelands', 'Rio', 'Quince Orchard', 'Montgomery Village', 'Shady Grove'],
     housingNote: 'Gaithersburg has a large inventory of townhomes, colonials, and single-family homes across well-planned communities — pricing is always reviewed per property.',
     testimonial: {
-      quote: 'Booked for a detailed clean before putting my house on the market. They were thorough, professional, and the price was exactly what they quoted. Great experience.',
+      quote: 'Booked for a deep clean before putting my house on the market. They were thorough, professional, and the price was exactly what they quoted. Great experience.',
       name: 'Tony M.',
       location: 'Gaithersburg, MD',
     },

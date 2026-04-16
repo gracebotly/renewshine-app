@@ -45,7 +45,7 @@ function formatAvailability(start: string | null, end: string | null, timePref: 
 
 function formatService(serviceType: JobRecord['service_type']) {
   if (serviceType === 'standard') return 'Standard'
-  if (serviceType === 'detailed') return 'Detailed Clean'
+  if (serviceType === 'detailed') return 'Deep Clean'
   if (serviceType === 'move_out') return 'Move-Out'
   return '—'
 }
