@@ -7,7 +7,7 @@ export function customerSubmittedTemplate(job: Job): { subject: string; html: st
 
   const serviceLabel =
     job.service_type === 'standard' ? 'Standard Clean'
-    : job.service_type === 'detailed' ? 'Deep Clean'
+    : job.service_type === 'deep' ? 'Deep Clean'
     : job.service_type === 'move_out' ? 'Move-In / Move-Out'
     : 'Commercial Cleaning'
 

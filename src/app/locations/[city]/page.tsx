@@ -23,6 +23,9 @@ export async function generateMetadata({
   return {
     title: city.metaTitle,
     description: city.metaDescription,
+    alternates: {
+      canonical: `https://renewshine.co/locations/${city.slug}`,
+    },
     openGraph: {
       title: city.metaTitle,
       description: city.metaDescription,
@@ -93,18 +96,33 @@ export default async function CityPage({
 
   const jsonLd = {
     '@context': 'https://schema.org',
-    '@type': 'LocalBusiness',
-    name: 'RenewShine',
-    description: city.metaDescription,
-    url: `https://renewshine.co/locations/${city.slug}`,
-    email: 'renewshinedmv@gmail.com',
-    areaServed: {
-      '@type': 'City',
-      name: city.displayName,
-    },
-    serviceType: 'Residential Cleaning Service',
-    priceRange: '$$',
-    image: 'https://renewshine.co/og-image.png',
+    '@graph': [
+      {
+        '@type': 'LocalBusiness',
+        name: 'RenewShine',
+        description: city.metaDescription,
+        url: `https://renewshine.co/locations/${city.slug}`,
+        email: 'renewshinedmv@gmail.com',
+        areaServed: {
+          '@type': 'City',
+          name: city.displayName,
+        },
+        serviceType: 'Residential Cleaning Service',
+        priceRange: '$$',
+        image: 'https://renewshine.co/og-image.png',
+      },
+      {
+        '@type': 'FAQPage',
+        mainEntity: city.faqs.map((faq) => ({
+          '@type': 'Question',
+          name: faq.question,
+          acceptedAnswer: {
+            '@type': 'Answer',
+            text: faq.answer,
+          },
+        })),
+      },
+    ],
   }
 
   return (

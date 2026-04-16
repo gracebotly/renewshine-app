@@ -4,6 +4,9 @@
 -- Updated: 2026-04-13 — corrected service_type values,
 --          expanded availability_time_pref, added condition
 --          CHECK, expanded status to include 'partial'.
+-- Updated: 2026-04-16 — renamed service_type value 'detailed'
+--          to 'deep' for SEO alignment. See migration
+--          20260416000001_rename_detailed_to_deep_service_type.sql
 -- Description: Initial schema for RenewShine booking system.
 --              Creates jobs and job_media tables with RLS.
 --              Applied to Supabase project nueoothgsydbdrseinyu
@@ -33,7 +36,7 @@ create table if not exists jobs (
   client_email           text      not null,
   address                text,
 
-  service_type           text      check (service_type in ('standard', 'detailed', 'move_out')),
+  service_type           text      check (service_type in ('standard', 'deep', 'move_out')),
 
   bedrooms               int,
   bathrooms              int,

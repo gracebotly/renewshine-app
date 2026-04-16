@@ -40,19 +40,34 @@ export const CITIES: CityData[] = [
     },
     faqs: [
       {
-        question: 'Do you serve all DC neighborhoods?',
+        question: 'How much does house cleaning cost in Washington, DC?',
         answer:
-          'We serve all major DC neighborhoods including Georgetown, Capitol Hill, Dupont Circle, Logan Circle, Cleveland Park, Chevy Chase DC, and more. If you\'re unsure whether we cover your area, submit a booking request and we\'ll confirm.',
+          'Most DC homes range from $200–$500 depending on size, condition, and service type. We provide an exact confirmed price after reviewing your photos — no guessing and no surprise charges at the door.',
       },
       {
-        question: 'Do you clean condos and apartments in DC?',
+        question: 'What does a deep cleaning service include in Washington, DC?',
         answer:
-          'Yes — condos, apartments, row houses, and townhomes. We\'re experienced with DC building access requirements including key fob entry, concierge check-in, and elevator buildings. Just include access instructions in your booking notes.',
+          'A Deep Clean covers everything in a Standard Clean plus grease removal, hard water stain treatment, cleaning under and behind accessible furniture, vent dusting, and wet wiping of baseboards and light switches. It\'s recommended for first-time clients and homes that haven\'t been professionally cleaned recently.',
       },
       {
-        question: 'How does pricing work for DC homes?',
+        question: 'Do you offer recurring cleaning services in Washington, DC?',
         answer:
-          'You submit your details and photos. We review within 1–4 hours and confirm a price before you pay anything. A $100 deposit secures your booking — the remaining balance is due after the job is done.',
+          'Yes. Many DC clients choose weekly, bi-weekly, or monthly plans to maintain their homes consistently. Recurring clients receive a custom discounted rate on Standard Cleans. Select your preferred frequency when submitting your booking.',
+      },
+      {
+        question: 'Do I need to be home during the cleaning?',
+        answer:
+          'No. Most clients provide access instructions — a lockbox code, key drop, or concierge check-in — and return to a fully cleaned home. Just include your access details in the booking notes.',
+      },
+      {
+        question: 'Do you bring your own cleaning supplies?',
+        answer:
+          'Yes. Our team arrives fully equipped with professional-grade supplies and tools. You don\'t need to provide anything.',
+      },
+      {
+        question: 'Do you clean condos and apartments in Washington, DC?',
+        answer:
+          'Yes — condos, apartments, row houses, and townhomes throughout DC. We\'re experienced with building access requirements including key fob entry, concierge check-in, and elevator buildings.',
       },
     ],
   },
@@ -77,19 +92,34 @@ export const CITIES: CityData[] = [
     },
     faqs: [
       {
-        question: 'Do you clean high-rise condos in Arlington?',
+        question: 'How much does house cleaning cost in Arlington, VA?',
         answer:
-          'Yes. We regularly clean high-rise condos along the Orange, Blue, and Silver Line corridors in Clarendon, Ballston, Rosslyn, and Crystal City. Include your building access instructions in the booking notes and we\'ll handle the rest.',
+          'Most Arlington homes range from $200–$450 depending on size, condition, and service type. We confirm your exact price after reviewing your photos — before you pay anything.',
+      },
+      {
+        question: 'Do you offer move-out cleaning services in Arlington, VA?',
+        answer:
+          'Yes. Our Move-In / Move-Out service is popular with Arlington renters and homeowners, especially with the strong turnover near the Metro corridors. Every move-out clean is quoted after photo review.',
+      },
+      {
+        question: 'Do you offer weekly or bi-weekly cleaning in Arlington, VA?',
+        answer:
+          'Yes. We offer weekly, bi-weekly, and monthly recurring plans. Recurring Arlington clients receive a custom discounted rate on Standard Cleans. Select your frequency during booking.',
+      },
+      {
+        question: 'Do I need to be home during the cleaning?',
+        answer:
+          'No. Most clients provide a lockbox code or building access instructions and return to a fully cleaned home. Include your access details in the booking notes.',
       },
       {
         question: 'Are you licensed and insured in Virginia?',
         answer:
-          'Yes. RenewShine is fully insured and background-checked. All team members are vetted before their first job.',
+          'Yes. RenewShine is fully insured and all team members are background-checked before their first job.',
       },
       {
-        question: 'Do you offer recurring cleaning in Arlington?',
+        question: 'Do you clean high-rise condos in Arlington?',
         answer:
-          'Yes — weekly, bi-weekly, and monthly plans are available. Recurring clients receive a custom discounted rate on Standard Cleans. Select your preferred frequency when submitting your booking.',
+          'Yes. We regularly clean high-rise condos along the Orange, Blue, and Silver Line corridors in Clarendon, Ballston, Rosslyn, and Crystal City. Include your building access instructions in the booking notes.',
       },
     ],
   },
@@ -114,19 +144,34 @@ export const CITIES: CityData[] = [
     },
     faqs: [
       {
+        question: 'How much does house cleaning cost in Alexandria, VA?',
+        answer:
+          'Most Alexandria homes range from $200–$450 depending on size, condition, and service type. We provide an exact confirmed price after reviewing your photos — no surprises at the door.',
+      },
+      {
+        question: 'Do you offer move-out cleaning in Alexandria, VA?',
+        answer:
+          'Yes. Move-out cleaning is one of our most requested services in Alexandria, driven by the strong rental market and military PCS turnover in the area. Every move-out clean is quoted after photo review — no instant estimates for vacant properties.',
+      },
+      {
+        question: 'Do you offer recurring cleaning services in Alexandria?',
+        answer:
+          'Yes — weekly, bi-weekly, and monthly. Recurring clients receive a custom discounted rate on Standard Cleans. Select your preferred frequency when submitting your booking.',
+      },
+      {
+        question: 'Do I need to be home during the cleaning?',
+        answer:
+          'No. Many clients provide a lockbox code or key and return to a fully cleaned home. Just include your access details in the booking notes.',
+      },
+      {
+        question: 'Do you bring your own cleaning supplies?',
+        answer:
+          'Yes. Our team arrives fully equipped with professional-grade supplies and tools. You don\'t need to provide anything.',
+      },
+      {
         question: 'Do you clean historic homes in Old Town Alexandria?',
         answer:
-          'Yes — we\'re experienced with the older homes, wood floors, and detailed millwork typical of Old Town. We treat historic properties with care and adapt our approach to the finishes in your home.',
-      },
-      {
-        question: 'Do you offer move-out cleaning in Alexandria?',
-        answer:
-          'Yes. Our Move-In / Move-Out service is popular with Alexandria renters and homeowners due to the strong rental market and military PCS turnover in the area. Every move-out clean is quoted after photo review — no instant estimates for vacant properties.',
-      },
-      {
-        question: 'How far in advance should I book?',
-        answer:
-          'We recommend submitting your request 5–7 days before your preferred window. After you submit, we review within 1–4 hours and confirm your date and price.',
+          'Yes. We\'re experienced with the older homes, wood floors, and detailed millwork typical of Old Town. We treat historic properties with care and adapt our approach to the finishes in your home.',
       },
     ],
   },
@@ -151,19 +196,34 @@ export const CITIES: CityData[] = [
     },
     faqs: [
       {
-        question: 'Do you clean large homes in Bethesda?',
+        question: 'How much does house cleaning cost in Bethesda, MD?',
         answer:
-          'Yes. Many Bethesda homes are 3,000–5,000+ square feet. Our photo review process is specifically designed for larger properties — it lets us assess the actual scope before confirming a price, rather than guessing by bedroom count alone.',
+          'Most Bethesda homes range from $200–$500 depending on size, condition, and service type. We provide an exact confirmed price after reviewing your photos — so you always know what you\'re paying before we arrive.',
       },
       {
-        question: "What's included in a Deep Clean?",
+        question: 'What does a deep cleaning service include in Bethesda, MD?',
         answer:
-          'Deep Clean covers everything in Standard, plus grease buildup removal, hard water stain treatment, cleaning under and behind accessible furniture, vent dusting, wet wipe of baseboards and light switches, and more. It\'s recommended for first-time clients.',
+          'A Deep Clean covers everything in a Standard Clean plus grease removal, hard water stain treatment, cleaning under and behind accessible furniture, vent dusting, and wet wiping of baseboards and light switches. It\'s recommended for first-time clients and larger Bethesda homes.',
       },
       {
-        question: 'Do you serve the Chevy Chase neighborhoods near Bethesda?',
+        question: 'Do you offer weekly or bi-weekly cleaning services in Bethesda?',
         answer:
-          'Yes — we serve Chevy Chase MD, Kenwood, and the neighborhoods along the DC/Maryland border near Bethesda. If you\'re unsure whether your address is in our service area, submit a request and we\'ll confirm.',
+          'Yes. Many Bethesda clients choose recurring cleanings to maintain their homes consistently. We offer flexible weekly, bi-weekly, and monthly plans with a custom discounted rate for recurring bookings.',
+      },
+      {
+        question: 'Do I need to be home during the cleaning?',
+        answer:
+          'No. Most clients provide a lockbox code or key and return to a fully cleaned home. Include your access details in the booking notes.',
+      },
+      {
+        question: 'Do you bring your own cleaning supplies?',
+        answer:
+          'Yes. Our team arrives fully equipped with professional-grade supplies and tools. You don\'t need to provide anything.',
+      },
+      {
+        question: 'Do you clean large homes in Bethesda, MD?',
+        answer:
+          'Yes. We regularly clean larger multi-level homes in Bethesda. Our photo review process is specifically designed for larger properties — it lets us assess the actual scope before confirming a price, rather than guessing by bedroom count alone.',
       },
     ],
   },
@@ -188,19 +248,34 @@ export const CITIES: CityData[] = [
     },
     faqs: [
       {
-        question: 'Do you serve all of Silver Spring?',
+        question: 'How much does house cleaning cost in Silver Spring, MD?',
+        answer:
+          'Most Silver Spring homes range from $200–$420 depending on size, condition, and service type. We provide an exact confirmed price after reviewing your photos — before you pay anything.',
+      },
+      {
+        question: 'What is the difference between a standard and deep cleaning in Silver Spring?',
+        answer:
+          'Standard Clean is maintenance cleaning for homes that are regularly kept up. Deep Clean goes further — removing grease buildup, treating hard water stains, cleaning under accessible furniture, and wet wiping baseboards and light switches. We recommend Deep Clean for first-time clients.',
+      },
+      {
+        question: 'Do you offer recurring cleaning services in Silver Spring, MD?',
+        answer:
+          'Yes — weekly, bi-weekly, and monthly plans available. Recurring clients receive a custom discounted rate on Standard Cleans. Select your frequency during booking.',
+      },
+      {
+        question: 'Do I need to be home during the cleaning?',
+        answer:
+          'No. Most clients provide a lockbox code or key and return to a fully cleaned home. Just include your access details in the booking notes.',
+      },
+      {
+        question: 'Do you bring your own cleaning supplies?',
+        answer:
+          'Yes. Our team arrives fully equipped. You don\'t need to provide anything.',
+      },
+      {
+        question: 'Do you serve all Silver Spring zip codes?',
         answer:
           'Yes — we serve all Silver Spring zip codes including 20901, 20902, 20903, 20904, 20905, 20906, and 20910. Submit your address in the booking form and we\'ll confirm coverage.',
-      },
-      {
-        question: "What's the difference between Standard and Deep Clean?",
-        answer:
-          'Standard Clean is maintenance cleaning for homes that are regularly kept up. Deep Clean goes further — double-scrub disinfection, grease removal, hard water stain treatment, and cleaning under accessible furniture. We recommend Detailed for first-time clients.',
-      },
-      {
-        question: 'Do you offer recurring cleaning in Silver Spring?',
-        answer:
-          'Yes — weekly, bi-weekly, and monthly. Recurring clients receive a custom discounted rate on Standard Cleans. You select your frequency during booking.',
       },
     ],
   },
@@ -216,7 +291,7 @@ export const CITIES: CityData[] = [
     h1: 'House Cleaning in McLean, VA',
     intro:
       'McLean is home to some of the largest and most detailed properties in the DMV. RenewShine\'s photo-reviewed quoting process was built for homes like these — where a quick bedroom count doesn\'t capture the actual scope. We review your space, confirm a realistic price, and deliver a clean that matches the standard of your home.',
-    neighborhoods: ['Langley', 'Chain Bridge Forest', 'Tur key Run', 'Chesterbrook', 'Spring Hill', 'Lewinsville'],
+    neighborhoods: ['Langley', 'Chain Bridge Forest', 'Turkey Run', 'Chesterbrook', 'Spring Hill', 'Lewinsville'],
     housingNote: 'McLean properties are often 4,000–8,000+ square feet, with high-end finishes, multiple living areas, and detailed millwork — all of which we account for in our photo review.',
     testimonial: {
       quote: "Other services would quote me a flat rate and show up underprepared. RenewShine reviewed photos of every room and gave me an accurate price. Worth every penny.",
@@ -225,19 +300,34 @@ export const CITIES: CityData[] = [
     },
     faqs: [
       {
-        question: 'Do you clean large luxury homes in McLean?',
+        question: 'How much does house cleaning cost in McLean, VA?',
         answer:
-          'Yes. Our photo review process is specifically designed for large properties. Rather than quoting by bedroom count alone, we review the actual rooms, condition, and finishes before confirming any price. This protects you from surprises and ensures we arrive prepared.',
+          'McLean homes vary significantly in size. Most range from $300–$700+ depending on square footage, condition, and service type. We confirm your exact price after reviewing your photos — bedroom count alone doesn\'t capture the scope of most McLean properties.',
       },
       {
-        question: 'What services are available for McLean homes?',
+        question: 'Do you clean large luxury homes in McLean, VA?',
         answer:
-          'Standard Clean, Deep Clean, and Move-In / Move-Out. All service tiers include the same thorough process — the difference is depth. For larger McLean homes, we typically recommend Deep Clean for first-time visits.',
+          'Yes. Our photo review process was built for large properties. We review the actual rooms, condition, and finishes before confirming any price — so we arrive fully prepared and you never get a surprise charge.',
+      },
+      {
+        question: 'Do you offer recurring cleaning services in McLean, VA?',
+        answer:
+          'Yes. Many McLean clients use weekly or bi-weekly recurring service to maintain their homes consistently. Recurring clients receive a custom discounted rate. Select your frequency during booking.',
+      },
+      {
+        question: 'Do I need to be home during the cleaning?',
+        answer:
+          'No. Most clients provide a lockbox code or gate access instructions and return to a fully cleaned home.',
       },
       {
         question: 'Are you insured for high-value homes in Virginia?',
         answer:
-          'Yes. RenewShine is fully insured and all team members are background-checked before their first job. We treat every home with the care it deserves.',
+          'Yes. RenewShine is fully insured and all team members are background-checked before their first job. We treat every home — including high-value finishes and luxury fixtures — with the care it deserves.',
+      },
+      {
+        question: 'What services are available for McLean homes?',
+        answer:
+          'Standard Clean, Deep Clean, and Move-In / Move-Out. For larger McLean homes, we typically recommend Deep Clean for first-time visits to ensure a thorough baseline before any recurring schedule.',
       },
     ],
   },
@@ -262,19 +352,34 @@ export const CITIES: CityData[] = [
     },
     faqs: [
       {
-        question: 'How does photo review work for large Potomac estates?',
+        question: 'How much does house cleaning cost in Potomac, MD?',
         answer:
-          'You submit a walkthrough video or room-by-room photos through our booking form. We review within 1–4 hours and send you a confirmed price range. Once you approve the quote, a $100 deposit secures your booking.',
+          'Potomac homes are among the largest in Maryland. Most range from $350–$800+ depending on square footage, condition, and service type. We confirm your exact price after reviewing your photos — no flat-rate guessing for estate properties.',
       },
       {
-        question: 'Do you clean estate-sized properties?',
+        question: 'Do you clean large estate homes in Potomac, MD?',
         answer:
-          'Yes. We regularly serve large Potomac properties. Our pricing accounts for actual square footage, condition, and number of rooms — not just a standard per-bedroom rate.',
+          'Yes. We regularly serve large Potomac properties along the River Road corridor and surrounding neighborhoods. Our pricing accounts for actual square footage, condition, and number of rooms — not just a standard per-bedroom rate.',
+      },
+      {
+        question: 'Do you offer recurring cleaning services in Potomac, MD?',
+        answer:
+          'Yes. Many Potomac clients maintain a consistent bi-weekly or monthly schedule. Recurring clients receive a custom discounted rate. Select your frequency when submitting your booking.',
+      },
+      {
+        question: 'Do I need to be home during the cleaning?',
+        answer:
+          'No. Most clients provide gate codes or lockbox details and return to a fully cleaned home. Include your access instructions in the booking notes.',
+      },
+      {
+        question: 'Do you bring your own cleaning supplies?',
+        answer:
+          'Yes. Our team arrives fully equipped with professional-grade supplies and tools. You don\'t need to provide anything.',
       },
       {
         question: 'Is a Deep Clean recommended for first-time Potomac clients?',
         answer:
-          'For most first-time clients — especially in larger homes that haven\'t had a recent professional clean — yes. Deep Clean covers everything in Standard plus grease removal, hard water stain treatment, cleaning under accessible furniture, and thorough high and low cleaning throughout.',
+          'For most first-time clients — especially in larger homes that haven\'t had a recent professional clean — yes. Deep Clean covers everything in a Standard Clean plus grease removal, hard water stain treatment, cleaning under accessible furniture, and thorough high and low cleaning throughout.',
       },
     ],
   },
@@ -299,19 +404,34 @@ export const CITIES: CityData[] = [
     },
     faqs: [
       {
-        question: 'Do you serve all of Rockville?',
+        question: 'How much does house cleaning cost in Rockville, MD?',
         answer:
-          'Yes — we serve all Rockville neighborhoods including King Farm, Fallsgrove, Twinbrook, Hungerford, and the older neighborhoods near Downtown Rockville. Submit your address and we\'ll confirm coverage.',
+          'Most Rockville homes range from $200–$450 depending on size, condition, and service type. We confirm your exact price after reviewing your photos — before you pay anything.',
       },
       {
-        question: 'Do you clean townhomes in Rockville?',
+        question: 'Do you offer move-out cleaning services in Rockville, MD?',
         answer:
-          'Yes. Townhomes are one of our most common job types. Multi-level homes are accounted for in our pricing — we review the photos of all floors before confirming your estimate.',
+          'Yes. Our Move-In / Move-Out service covers vacant properties thoroughly — inside all cabinets, appliances, and all surfaces. Every move-out clean is quoted after photo review.',
       },
       {
-        question: 'How quickly can I get a quote?',
+        question: 'Do you offer recurring cleaning in Rockville, MD?',
         answer:
-          'Submit your booking form with photos or a short video and we\'ll review within 1–4 hours. Most clients hear back the same day.',
+          'Yes — weekly, bi-weekly, and monthly plans. Recurring clients receive a custom discounted rate on Standard Cleans. Select your frequency during booking.',
+      },
+      {
+        question: 'Do I need to be home during the cleaning?',
+        answer:
+          'No. Most clients provide a lockbox code or key and return to a fully cleaned home. Include your access details in the booking notes.',
+      },
+      {
+        question: 'Do you bring your own cleaning supplies?',
+        answer:
+          'Yes. Our team arrives fully equipped. You don\'t need to provide anything.',
+      },
+      {
+        question: 'Do you clean townhomes in Rockville, MD?',
+        answer:
+          'Yes. Townhomes are one of our most common job types in Rockville. Multi-level homes are accounted for in our pricing — we review photos of all floors before confirming your estimate.',
       },
     ],
   },
@@ -336,19 +456,34 @@ export const CITIES: CityData[] = [
     },
     faqs: [
       {
+        question: 'How much does house cleaning cost in Gaithersburg, MD?',
+        answer:
+          'Most Gaithersburg homes range from $200–$450 depending on size, condition, and service type. We confirm your exact price after reviewing your photos — before you pay anything.',
+      },
+      {
+        question: 'Do you offer move-out cleaning in Gaithersburg, MD?',
+        answer:
+          'Yes. Our Move-In / Move-Out service covers vacant properties thoroughly — inside cabinets, inside appliances, and all surfaces. Every move-out clean is quoted after photo review.',
+      },
+      {
+        question: 'Do you offer recurring cleaning services in Gaithersburg, MD?',
+        answer:
+          'Yes — weekly, bi-weekly, and monthly plans. Recurring clients receive a custom discounted rate on Standard Cleans. Select your preferred frequency during booking.',
+      },
+      {
+        question: 'Do I need to be home during the cleaning?',
+        answer:
+          'No. Most clients provide a lockbox code or key and return to a fully cleaned home. Include your access details in the booking notes.',
+      },
+      {
+        question: 'Do you bring your own cleaning supplies?',
+        answer:
+          'Yes. Our team arrives fully equipped with professional-grade supplies. You don\'t need to provide anything.',
+      },
+      {
         question: 'Do you serve all Gaithersburg neighborhoods?',
         answer:
-          'Yes — Kentlands, Lakelands, Rio, Quince Orchard, Montgomery Village, Shady Grove, and surrounding areas. If you\'re unsure, submit a request and we\'ll confirm your address is in our service area.',
-      },
-      {
-        question: 'Do you offer move-out cleaning in Gaithersburg?',
-        answer:
-          'Yes. Our Move-In / Move-Out service covers vacant properties thoroughly — inside cabinets, appliances, and all surfaces. Every move-out clean is quoted after photo review.',
-      },
-      {
-        question: 'What add-on services are available?',
-        answer:
-          'Inside refrigerator, inside oven, dishes, linen changes, laundry, interior windows, home organization, spot clean walls, and basement cleaning. All add-ons are selected during booking and priced after photo review.',
+          'Yes — Kentlands, Lakelands, Rio, Quince Orchard, Montgomery Village, Shady Grove, and surrounding areas. Submit your address in the booking form and we\'ll confirm coverage.',
       },
     ],
   },
@@ -373,19 +508,34 @@ export const CITIES: CityData[] = [
     },
     faqs: [
       {
-        question: 'Do you serve all Reston neighborhoods?',
+        question: 'How much does house cleaning cost in Reston, VA?',
         answer:
-          'Yes — Lake Anne, South Lakes, North Point, Hunters Woods, Tall Oaks, and surrounding areas near the Reston Town Center and Silver Line corridor.',
+          'Most Reston homes range from $200–$420 depending on size, condition, and service type. We confirm your exact price after reviewing your photos — before you pay anything.',
       },
       {
-        question: 'Do you clean condos in Reston?',
+        question: 'Do you offer recurring cleaning services in Reston, VA?',
+        answer:
+          'Yes. Many Reston clients — especially those with demanding work schedules — use bi-weekly or monthly recurring service to maintain their homes. Recurring clients receive a custom discounted rate. Select your frequency during booking.',
+      },
+      {
+        question: 'Do you clean condos and townhomes in Reston, VA?',
         answer:
           'Yes. Reston has a large condo inventory, particularly around Lake Anne and the Town Center. Include building access instructions in your booking notes — key fob, concierge, or lockbox details.',
       },
       {
+        question: 'Do I need to be home during the cleaning?',
+        answer:
+          'No. Most clients provide a lockbox code or building access details and return to a fully cleaned home.',
+      },
+      {
         question: 'Are you licensed and insured in Virginia?',
         answer:
-          'Yes. RenewShine is fully insured and all cleaners are background-checked. You\'ll receive confirmation of your assigned cleaner before your appointment.',
+          'Yes. RenewShine is fully insured and all cleaners are background-checked before their first job.',
+      },
+      {
+        question: 'Do you bring your own cleaning supplies?',
+        answer:
+          'Yes. Our team arrives fully equipped with professional-grade supplies and tools. You don\'t need to provide anything.',
       },
     ],
   },

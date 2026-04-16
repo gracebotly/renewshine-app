@@ -8,14 +8,14 @@ export function customerQuoteTemplate(job: Job, stripeUrl: string): { subject: s
 
   const serviceLabel =
     job.service_type === 'standard' ? 'Standard Clean'
-    : job.service_type === 'detailed' ? 'Deep Clean'
+    : job.service_type === 'deep' ? 'Deep Clean'
     : job.service_type === 'move_out' ? 'Move-In / Move-Out'
     : 'Cleaning Service'
 
   let basePrice: number | null = null
   if (job.service_type === 'standard') {
     basePrice = Math.max((job.bedrooms ?? 0) * 60 + (job.bathrooms ?? 0) * 40, 200)
-  } else if (job.service_type === 'detailed') {
+  } else if (job.service_type === 'deep') {
     basePrice = Math.max((job.bedrooms ?? 0) * 90 + (job.bathrooms ?? 0) * 55, 350)
   }
 
