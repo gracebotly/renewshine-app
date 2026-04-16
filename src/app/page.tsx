@@ -45,7 +45,7 @@ const steps = [
     icon: Search,
     title: 'We Review & Confirm',
     description:
-      'We assess your submission and lock in a realistic price range based on what we see — within 24 hours.',
+      'We assess your submission and lock in a realistic price range based on what we see — usually within 1–4 hours.',
   },
   {
     icon: CheckCircle,
@@ -180,7 +180,7 @@ export default function HomePage() {
               confirmed before you pay.
             </h1>
             <p className="mx-auto mt-5 max-w-xl text-lg text-slate-600">
-              Tell us about your space. We review your submission and confirm your price within 24 hours. No surprises — ever.
+              Tell us about your space. We review your submission and confirm your price within 1–4 hours. No surprises — ever.
             </p>
 
             <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
@@ -193,7 +193,7 @@ export default function HomePage() {
             </div>
 
             <div className="mt-6 flex flex-wrap items-center justify-center gap-6 text-sm text-slate-600">
-              {['Insured & background checked', '24-hour quote turnaround', 'No payment until you approve'].map((item) => (
+              {['Insured & background checked', 'Quote within 1–4 hours', 'No payment until you approve'].map((item) => (
                 <div key={item} className="inline-flex items-center gap-2">
                   <CheckCircle size={14} className="text-emerald-500" />
                   <span>{item}</span>

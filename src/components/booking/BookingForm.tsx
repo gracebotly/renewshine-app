@@ -822,7 +822,7 @@ export function BookingForm() {
             <div className="space-y-6">
               <div>
                 <h2 className="font-display text-xl font-bold text-slate-900">Where and when?</h2>
-                <p className="mt-1 text-sm text-slate-600">We'll confirm your exact appointment within 24 hours.</p>
+                <p className="mt-1 text-sm text-slate-600">We'll confirm your exact appointment within 1–4 hours.</p>
               </div>
 
               {/* Address */}
@@ -978,7 +978,7 @@ export function BookingForm() {
               {/* Commitment copy + submit */}
               <div className="space-y-3">
                 <p className="text-center text-sm text-slate-600">
-                  We'll review your photos and confirm your exact price within 24 hours —{' '}
+                  We'll review your photos and confirm your exact price within 1–4 hours —{' '}
                   <span className="font-medium text-slate-900">no payment until you approve.</span>
                 </p>
                 <Button
@@ -1158,7 +1158,7 @@ export function BookingForm() {
               </div>
               <div className="space-y-3">
                 <p className="text-center text-sm text-slate-600">
-                  We'll review and confirm your quote within 24 hours —{' '}
+                  We'll review and confirm your quote within 1–4 hours —{' '}
                   <span className="font-medium text-slate-900">no payment until you approve.</span>
                 </p>
                 <Button type="button" size="lg" className="w-full" disabled={submitting} onClick={submitCommercial}>

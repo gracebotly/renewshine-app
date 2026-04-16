@@ -36,7 +36,7 @@ export function customerSubmittedTemplate(job: Job): { subject: string; html: st
     <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="margin:20px 0;">
       <tbody>
         ${step(1, 'Request submitted ✓', 'Your details and photos are with us.')}
-        ${step(2, 'We review your space (within 24hrs)', 'We look at your photos, confirm the price, and set a date.')}
+        ${step(2, 'We review your space (within 1–4 hrs)', 'We look at your photos, confirm the price, and set a date.')}
         ${step(3, 'You approve and pay a $100 deposit', 'Only after you\'re happy with the confirmed price.')}
       </tbody>
     </table>`
@@ -44,7 +44,7 @@ export function customerSubmittedTemplate(job: Job): { subject: string; html: st
   const content = `
     ${badge('Request Received', 'green')}
     ${heading(`Thanks, ${firstName}!`)}
-    ${para(`We've received your cleaning request and we're reviewing it now. You'll hear from us within 24 hours with a confirmed price and available date.`)}
+    ${para(`We've received your cleaning request and we're reviewing it now. You'll hear from us within 1–4 hours with a confirmed price and available date.`)}
     ${steps}
     ${divider}
     <p style="margin:0 0 8px;font-size:14px;font-weight:600;color:#0f172a;">Your submission summary</p>
@@ -61,5 +61,5 @@ export function customerSubmittedTemplate(job: Job): { subject: string; html: st
     ${para('No payment is needed right now. We\'ll send you a full quote to review before anything is charged.')}
   `
 
-  return { subject, html: baseTemplate(content, `Got it! We'll review your home and confirm your price within 24 hours.`) }
+  return { subject, html: baseTemplate(content, `Got it! We'll review your home and confirm your price within 1–4 hours.`) }
 }
