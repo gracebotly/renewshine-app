@@ -1,21 +1,19 @@
 import type { Job } from '@/types/database'
 import { ADD_ONS } from '@/lib/pricing'
+import { normalizeServiceType, serviceTypeLabel } from '@/lib/serviceType'
 import { baseTemplate, badge, heading, para, divider, ctaButton, infoTable, infoRow, lineItem, trustStrip } from './base'
 
 export function customerQuoteTemplate(job: Job, stripeUrl: string): { subject: string; html: string } {
   const firstName = job.client_name.split(' ')[0]
   const subject = `${firstName}, your RenewShine quote is confirmed — $${job.approved_price}`
 
-  const serviceLabel =
-    job.service_type === 'standard' ? 'Standard Clean'
-    : job.service_type === 'detailed' ? 'Detailed Clean'
-    : job.service_type === 'move_out' ? 'Move-In / Move-Out'
-    : 'Cleaning Service'
+  const serviceLabel = serviceTypeLabel(job.service_type)
+  const normalizedServiceType = normalizeServiceType(job.service_type)
 
   let basePrice: number | null = null
-  if (job.service_type === 'standard') {
+  if (normalizedServiceType === 'standard') {
     basePrice = Math.max((job.bedrooms ?? 0) * 60 + (job.bathrooms ?? 0) * 40, 200)
-  } else if (job.service_type === 'detailed') {
+  } else if (normalizedServiceType === 'deep') {
     basePrice = Math.max((job.bedrooms ?? 0) * 90 + (job.bathrooms ?? 0) * 55, 350)
   }
 
@@ -56,7 +54,7 @@ export function customerQuoteTemplate(job: Job, stripeUrl: string): { subject: s
     style="border:1px solid #e2e8f0;border-radius:8px;padding:4px 16px;margin:0 0 16px;">
     <tbody>
       ${lineItem(
-        `${serviceLabel}${job.service_type !== 'move_out' && job.bedrooms ? ` · ${job.bedrooms} bed / ${job.bathrooms} bath` : ''}`,
+        `${serviceLabel}${normalizedServiceType !== 'move_out' && job.bedrooms ? ` · ${job.bedrooms} bed / ${job.bathrooms} bath` : ''}`,
         basePrice != null ? `$${basePrice}` : 'Quoted after review'
       )}
       ${selectedAddOns.map((a) => lineItem(a.label, `$${a.price}`)).join('')}

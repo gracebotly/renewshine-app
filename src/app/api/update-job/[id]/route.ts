@@ -1,6 +1,7 @@
 import { createServerClient } from '@/lib/supabase/server'
 import { sendOwnerNewJobAlert, sendCustomerSubmittedConfirmation } from '@/lib/email'
 import { rateLimit, getClientIp } from '@/lib/ratelimit'
+import { normalizeServiceType, serviceTypeLabel } from '@/lib/serviceType'
 
 const RATE_LIMIT = 10
 const RATE_WINDOW_MS = 15 * 60 * 1000
@@ -41,6 +42,7 @@ export async function PATCH(
   }
 
   const { media_urls = [], ...jobData } = body
+  const normalizedServiceType = normalizeServiceType(jobData.service_type)
 
   const { data: job, error: updateError } = await supabase
     .from('jobs')
@@ -49,7 +51,7 @@ export async function PATCH(
       client_name: jobData.client_name,
       client_phone: jobData.client_phone || null,
       address: jobData.address || null,
-      service_type: jobData.service_type || null,
+      service_type: normalizedServiceType,
       service_frequency: jobData.service_frequency || null,
       bedrooms: jobData.bedrooms ?? null,
       bathrooms: jobData.bathrooms ?? null,
@@ -96,11 +98,7 @@ export async function PATCH(
   // SMS — non-blocking
   const { sendSms } = await import('@/lib/sms')
   const firstName = job.client_name.split(' ')[0]
-  const serviceLabel =
-    job.service_type === 'standard' ? 'Standard Clean'
-    : job.service_type === 'detailed' ? 'Detailed Clean'
-    : job.service_type === 'move_out' ? 'Move-In / Move-Out'
-    : 'cleaning request'
+  const serviceLabel = serviceTypeLabel(job.service_type).toLowerCase()
 
   sendSms(
     job.client_phone,

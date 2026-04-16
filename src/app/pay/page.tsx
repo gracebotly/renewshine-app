@@ -4,6 +4,7 @@ import { CheckCircle } from 'lucide-react'
 import { createServerClient } from '@/lib/supabase/server'
 import { Button } from '@/components/ui/button'
 import Image from 'next/image'
+import { serviceTypeLabel } from '@/lib/serviceType'
 
 export const metadata: Metadata = {
   title: 'Booking Confirmed — RenewShine',
@@ -38,11 +39,7 @@ export default async function PayPage({
       })
     : null
 
-  const serviceLabel =
-    job?.service_type === 'standard' ? 'Standard Clean'
-    : job?.service_type === 'detailed' ? 'Detailed Clean'
-      : job?.service_type === 'move_out' ? 'Move-In / Move-Out'
-        : 'Cleaning Service'
+  const serviceLabel = serviceTypeLabel(job?.service_type)
 
   const timePrefMap: Record<string, string> = {
     morning:         'Morning (8am–12pm)',

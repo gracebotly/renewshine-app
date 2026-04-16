@@ -1,6 +1,7 @@
 import { createServerClient } from '@/lib/supabase/server'
 import { sendOwnerNewJobAlert, sendCustomerSubmittedConfirmation } from '@/lib/email'
 import { rateLimit, getClientIp } from '@/lib/ratelimit'
+import { normalizeServiceType, serviceTypeLabel } from '@/lib/serviceType'
 
 // Rate limit: max 5 job submissions per IP per 15 minutes
 const RATE_LIMIT = 5
@@ -32,6 +33,7 @@ export async function POST(request: Request) {
 
   const supabase = createServerClient()
   const { media_urls = [], ...jobData } = body
+  const normalizedServiceType = normalizeServiceType(jobData.service_type)
 
   // NOTE: Use `|| null` (not `?? null`) for string fields that may arrive as ''.
   // `'' ?? null` evaluates to '' — empty string is not nullish.
@@ -45,7 +47,7 @@ export async function POST(request: Request) {
       client_email: jobData.client_email,
       client_phone: jobData.client_phone || null,
       address: jobData.address || null,
-      service_type: jobData.service_type || null,
+      service_type: normalizedServiceType,
       service_frequency: jobData.service_frequency || null,
       bedrooms: jobData.bedrooms ?? null,
       bathrooms: jobData.bathrooms ?? null,
@@ -94,11 +96,7 @@ export async function POST(request: Request) {
     // SMS — non-blocking, fires after emails, skips for partial saves
     const { sendSms } = await import('@/lib/sms')
     const firstName = job.client_name.split(' ')[0]
-    const serviceLabel =
-      job.service_type === 'standard' ? 'Standard Clean'
-      : job.service_type === 'detailed' ? 'Detailed Clean'
-      : job.service_type === 'move_out' ? 'Move-In / Move-Out'
-      : 'cleaning request'
+    const serviceLabel = serviceTypeLabel(job.service_type).toLowerCase()
 
     // Customer confirmation text
     sendSms(

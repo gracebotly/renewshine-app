@@ -28,9 +28,10 @@ with a timestamp prefix so they apply in order.
 |---|---|
 | `20260410000001_create_jobs_and_media.sql` | Creates `jobs` and `job_media` tables with RLS |
 | `20260410000002_create_storage_bucket.sql` | Creates the `job-media` public storage bucket |
-| `20260413000001_add_pets_home_entry.sql` | Adds `pets`, `home_entry` columns; adds CHECK constraints to `condition` and `status`; expands `availability_time_pref`; corrects `service_type` value |
+| `20260413000001_add_pets_home_entry.sql` | Adds `pets`, `home_entry` columns; adds CHECK constraints to `condition` and `status`; expands `availability_time_pref`; enforces canonical `service_type` values |
 | `20260415000001_add_satisfaction_score.sql` | Adds `satisfaction_score` integer column (1–5) to `jobs` — already applied via MCP |
 | `20260415000002_create_missed_calls_and_reactivation_log.sql` | Creates `missed_calls` and `reactivation_log` tables with RLS — already applied via MCP |
+| `20260416000001_rename_detailed_service_type_to_deep.sql` | Backfills existing `jobs.service_type` rows (`detailed` → `deep`) and updates the CHECK constraint |
 
 ---
 
@@ -49,7 +50,7 @@ The core table. One row per booking request.
 | `client_email` | text | Required |
 | `client_phone` | text | Optional — collected on final step |
 | `address` | text | Service address |
-| `service_type` | text | `standard`, `detailed`, or `move_out` |
+| `service_type` | text | `standard`, `deep`, or `move_out` |
 | `bedrooms` | int | Residential only |
 | `bathrooms` | int | Residential only |
 | `add_ons` | jsonb | Array of add-on IDs e.g. `["fridge", "oven"]` |
@@ -189,9 +190,9 @@ and to Vercel environment settings for production.
 
 | File | Action | Key changes |
 |---|---|---|
-| `supabase/migrations/20260410000001_create_jobs_and_media.sql` | Updated | Fixed `service_type` ('deep'→'detailed'), expanded `availability_time_pref` to 8 values, added `condition` CHECK, added `status` 'partial', added `pets` + `home_entry` columns |
+| `supabase/migrations/20260410000001_create_jobs_and_media.sql` | Updated | Canonicalized `service_type` values (`detailed`→`deep`), expanded `availability_time_pref` to 8 values, added `condition` CHECK, added `status` 'partial', added `pets` + `home_entry` columns |
 | `supabase/migrations/20260413000001_add_pets_home_entry.sql` | Created | Documents all incremental MCP changes as a standalone migration for version control |
-| `src/types/database.ts` | Updated | Fixed `ServiceType` ('deep'→'detailed'), added `'partial'` to `JobStatus`, added `PetOption`, `HomeEntry`, `ConditionOption` types, typed `condition`/`pets`/`home_entry` as proper unions instead of `string` |
+| `src/types/database.ts` | Updated | Canonicalized `ServiceType` (`detailed`→`deep`), added `'partial'` to `JobStatus`, added `PetOption`, `HomeEntry`, `ConditionOption` types, typed `condition`/`pets`/`home_entry` as proper unions instead of `string` |
 | `supabase/README.md` | Updated | All column descriptions, status values, and migration table accurate |
 
-No application logic was changed. No Supabase operations were run. This is purely a documentation and type sync.
+Application logic now normalizes legacy `detailed` payloads to canonical `deep` while preserving backward compatibility in admin views and notifications.

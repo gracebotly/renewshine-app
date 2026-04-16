@@ -1,4 +1,5 @@
 import type { Job } from '@/types/database'
+import { serviceTypeLabel } from '@/lib/serviceType'
 import { baseTemplate, badge, heading, para, divider, infoTable, infoRow, step } from './base'
 
 export function customerSubmittedTemplate(job: Job): { subject: string; html: string } {
@@ -6,10 +7,9 @@ export function customerSubmittedTemplate(job: Job): { subject: string; html: st
   const firstName = job.client_name.split(' ')[0]
 
   const serviceLabel =
-    job.service_type === 'standard' ? 'Standard Clean'
-    : job.service_type === 'detailed' ? 'Detailed Clean'
-    : job.service_type === 'move_out' ? 'Move-In / Move-Out'
-    : 'Commercial Cleaning'
+    job.type === 'commercial' && !job.service_type
+      ? 'Commercial Cleaning'
+      : serviceTypeLabel(job.service_type)
 
   const addOnsCount = Array.isArray(job.add_ons) ? job.add_ons.length : 0
 

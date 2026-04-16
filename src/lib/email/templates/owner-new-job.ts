@@ -1,14 +1,11 @@
 import type { Job } from '@/types/database'
+import { serviceTypeLabel } from '@/lib/serviceType'
 import { baseTemplate, badge, heading, para, divider, ctaButton, infoTable, infoRow } from './base'
 
 export function ownerNewJobTemplate(job: Job): { subject: string; html: string } {
   const subject = `⚡ New Request — ${job.client_name} needs review`
 
-  const serviceLabel =
-    job.service_type === 'standard' ? 'Standard Clean'
-    : job.service_type === 'detailed' ? 'Detailed Clean'
-    : job.service_type === 'move_out' ? 'Move-In / Move-Out'
-    : 'Commercial / Custom'
+  const serviceLabel = serviceTypeLabel(job.service_type)
 
   const availWindow =
     job.availability_start && job.availability_end

@@ -8,7 +8,7 @@
 --              2. Added pets column with CHECK constraint
 --              3. Added home_entry column with CHECK constraint
 --              4. Added CHECK constraint to condition column
---              5. Updated service_type CHECK: 'deep' → 'detailed'
+--              5. Updated service_type CHECK to use canonical 'deep'
 --              6. Expanded availability_time_pref CHECK from
 --                 3 values to 8 values
 --
@@ -40,10 +40,10 @@ alter table jobs add constraint jobs_condition_check
     'maintained', 'some_buildup', 'heavy_buildup', 'reset'
   ]));
 
--- 5. Service type CHECK (corrected 'deep' → 'detailed')
+-- 5. Service type CHECK (canonical: 'deep')
 alter table jobs drop constraint if exists jobs_service_type_check;
 alter table jobs add constraint jobs_service_type_check
-  check (service_type = any (array['standard', 'detailed', 'move_out']));
+  check (service_type = any (array['standard', 'deep', 'move_out']));
 
 -- 6. Availability time pref CHECK (expanded)
 alter table jobs drop constraint if exists jobs_availability_time_pref_check;

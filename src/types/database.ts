@@ -24,7 +24,7 @@ export type JobStatus =
 
 export type JobType = 'residential' | 'commercial'
 
-export type ServiceType = 'standard' | 'detailed' | 'move_out'
+export type ServiceType = 'standard' | 'deep' | 'move_out'
 
 // All 8 values accepted by the live CHECK constraint.
 // 'morning', 'afternoon', 'flexible' are legacy values kept for backwards

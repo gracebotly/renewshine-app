@@ -1,15 +1,12 @@
 import type { Job } from '@/types/database'
+import { serviceTypeLabel } from '@/lib/serviceType'
 import { baseTemplate, badge, heading, para, divider, infoTable, infoRow, trustStrip } from './base'
 
 export function customerBookedTemplate(job: Job): { subject: string; html: string } {
   const subject = `You're booked — RenewShine is confirmed`
   const firstName = job.client_name.split(' ')[0]
 
-  const serviceLabel =
-    job.service_type === 'standard' ? 'Standard Clean'
-    : job.service_type === 'detailed' ? 'Detailed Clean'
-    : job.service_type === 'move_out' ? 'Move-In / Move-Out'
-    : 'Cleaning Service'
+  const serviceLabel = serviceTypeLabel(job.service_type)
 
   const confirmedDateStr = job.confirmed_date
     ? new Date(job.confirmed_date).toLocaleDateString('en-US', {

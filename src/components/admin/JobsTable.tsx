@@ -4,6 +4,7 @@ import * as React from 'react'
 import Link from 'next/link'
 import { AlertTriangle, Search, X } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
+import { serviceTypeLabel } from '@/lib/serviceType'
 
 type JobRecord = {
   id: string
@@ -11,7 +12,7 @@ type JobRecord = {
   client_name: string
   client_email: string
   type: 'residential' | 'commercial' | null
-  service_type: 'standard' | 'detailed' | 'move_out' | null
+  service_type: 'standard' | 'deep' | 'detailed' | 'move_out' | null
   availability_start: string | null
   availability_end: string | null
   availability_time_pref: string | null
@@ -44,10 +45,8 @@ function formatAvailability(start: string | null, end: string | null, timePref: 
 }
 
 function formatService(serviceType: JobRecord['service_type']) {
-  if (serviceType === 'standard') return 'Standard'
-  if (serviceType === 'detailed') return 'Detailed Clean'
-  if (serviceType === 'move_out') return 'Move-Out'
-  return '—'
+  if (!serviceType) return '—'
+  return serviceTypeLabel(serviceType)
 }
 
 export function StaleAlert({ count }: { count: number }) {

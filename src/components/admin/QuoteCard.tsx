@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Bell } from 'lucide-react'
+import { normalizeServiceType, serviceTypeLabel } from '@/lib/serviceType'
 
 const STATUS_VARIANTS = {
   new: 'neutral',
@@ -33,10 +34,7 @@ const FREQUENCY_LABELS = {
 } as const
 
 function formatService(serviceType: string | null) {
-  if (serviceType === 'standard') return 'Standard Clean'
-  if (serviceType === 'detailed') return 'Detailed Clean'
-  if (serviceType === 'move_out') return 'Move-In / Move-Out'
-  return 'Service'
+  return serviceTypeLabel(serviceType)
 }
 
 function formatDateRange(start: string | null, end: string | null) {
@@ -72,11 +70,12 @@ export function QuoteCard({ job }: { job: any }) {
   const bathrooms = Number(job.bathrooms ?? 0)
 
   const basePrice = React.useMemo(() => {
-    if (job.service_type === 'move_out') return null
-    if (job.service_type === 'standard') {
+    const normalizedServiceType = normalizeServiceType(job.service_type)
+    if (normalizedServiceType === 'move_out') return null
+    if (normalizedServiceType === 'standard') {
       return Math.max(bedrooms * 60 + bathrooms * 40, 200)
     }
-    if (job.service_type === 'detailed') {
+    if (normalizedServiceType === 'deep') {
       return Math.max(bedrooms * 90 + bathrooms * 55, 350)
     }
     return null

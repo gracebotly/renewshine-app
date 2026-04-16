@@ -33,7 +33,7 @@ create table if not exists jobs (
   client_email           text      not null,
   address                text,
 
-  service_type           text      check (service_type in ('standard', 'detailed', 'move_out')),
+  service_type           text      check (service_type in ('standard', 'deep', 'move_out')),
 
   bedrooms               int,
   bathrooms              int,
