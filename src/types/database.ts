@@ -1,7 +1,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // RenewShine — Supabase Database Types
 // Matches the live schema in project nueoothgsydbdrseinyu
-// Last synced: 2026-04-13
+// Last synced: 2026-04-15
 // Update this file whenever the schema changes.
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -79,6 +79,7 @@ export interface Database {
           stripe_session_id: string | null
           notes: string | null
           created_at: string
+          satisfaction_score: number | null
         }
         Insert: {
           type?: JobType | null
@@ -110,6 +111,7 @@ export interface Database {
           stripe_payment_link?: string | null
           stripe_session_id?: string | null
           notes?: string | null
+          satisfaction_score?: number | null
         }
         Update: Partial<Database['public']['Tables']['jobs']['Row']>
         Relationships: []
@@ -138,6 +140,45 @@ export interface Database {
           },
         ]
       }
+      missed_calls: {
+        Row: {
+          id: string
+          caller_phone: string
+          called_at: string
+          text_back_sent: boolean | null
+          created_at: string
+        }
+        Insert: {
+          caller_phone: string
+          called_at: string
+          text_back_sent?: boolean | null
+        }
+        Update: Partial<Database['public']['Tables']['missed_calls']['Row']>
+        Relationships: []
+      }
+      reactivation_log: {
+        Row: {
+          id: string
+          job_id: string | null
+          client_phone: string | null
+          fired_at: string
+        }
+        Insert: {
+          job_id?: string | null
+          client_phone?: string | null
+          fired_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['reactivation_log']['Row']>
+        Relationships: [
+          {
+            foreignKeyName: 'reactivation_log_job_id_fkey'
+            columns: ['job_id']
+            isOneToOne: false
+            referencedRelation: 'jobs'
+            referencedColumns: ['id']
+          },
+        ]
+      }
     }
     Views: Record<string, never>
     Functions: Record<string, never>
@@ -149,3 +190,5 @@ export interface Database {
 export type Job         = Database['public']['Tables']['jobs']['Row']
 export type JobMedia    = Database['public']['Tables']['job_media']['Row']
 export type JobWithMedia = Job & { job_media: JobMedia[] }
+export type MissedCall      = Database['public']['Tables']['missed_calls']['Row']
+export type ReactivationLog = Database['public']['Tables']['reactivation_log']['Row']

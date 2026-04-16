@@ -52,7 +52,7 @@ export const CITIES: CityData[] = [
       {
         question: 'How does pricing work for DC homes?',
         answer:
-          'You submit your details and photos. We review within 24 hours and confirm a price before you pay anything. A $100 deposit secures your booking — the remaining balance is due after the job is done.',
+          'You submit your details and photos. We review within 1–4 hours and confirm a price before you pay anything. A $100 deposit secures your booking — the remaining balance is due after the job is done.',
       },
     ],
   },
@@ -126,7 +126,7 @@ export const CITIES: CityData[] = [
       {
         question: 'How far in advance should I book?',
         answer:
-          'We recommend submitting your request 5–7 days before your preferred window. After you submit, we review within 24 hours and confirm your date and price.',
+          'We recommend submitting your request 5–7 days before your preferred window. After you submit, we review within 1–4 hours and confirm your date and price.',
       },
     ],
   },
@@ -264,7 +264,7 @@ export const CITIES: CityData[] = [
       {
         question: 'How does photo review work for large Potomac estates?',
         answer:
-          'You submit a walkthrough video or room-by-room photos through our booking form. We review within 24 hours and send you a confirmed price range. Once you approve the quote, a $100 deposit secures your booking.',
+          'You submit a walkthrough video or room-by-room photos through our booking form. We review within 1–4 hours and send you a confirmed price range. Once you approve the quote, a $100 deposit secures your booking.',
       },
       {
         question: 'Do you clean estate-sized properties?',
@@ -311,7 +311,7 @@ export const CITIES: CityData[] = [
       {
         question: 'How quickly can I get a quote?',
         answer:
-          'Submit your booking form with photos or a short video and we\'ll review within 24 hours. Most clients hear back the same day.',
+          'Submit your booking form with photos or a short video and we\'ll review within 1–4 hours. Most clients hear back the same day.',
       },
     ],
   },

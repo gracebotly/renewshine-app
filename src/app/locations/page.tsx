@@ -87,7 +87,7 @@ export default function LocationsPage() {
         <div className="mx-auto max-w-4xl px-4 text-center sm:px-6 lg:px-8">
           <h2 className="font-display text-3xl font-bold text-white">Ready to get started?</h2>
           <p className="mt-3 text-white/80">
-            Submit your details. We review within 24 hours and confirm your price before you pay.
+            Submit your details. We review within 1–4 hours and confirm your price before you pay.
           </p>
           <div className="mt-6">
             <Button asChild className="bg-white text-(--color-brand) hover:bg-slate-100">

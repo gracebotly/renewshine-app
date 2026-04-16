@@ -96,5 +96,25 @@ export async function POST(request: Request) {
     console.error('send-deposit-link email failed (non-blocking):', emailError)
   }
 
+  // Fire quote-approved webhook — n8n uses this to start the 24hr/48hr deposit follow-up sequence
+  // Only fire on first-time quote sends (not regenerated/expired links — customer already has the link)
+  if (!regenerate && updatedJob) {
+    const webhookSecret = process.env.N8N_WEBHOOK_SECRET ?? ''
+    fetch(`${siteUrl}/api/webhooks/quote-approved`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-webhook-secret': webhookSecret,
+      },
+      body: JSON.stringify({
+        jobId: updatedJob.id,
+        clientName: updatedJob.client_name,
+        clientPhone: updatedJob.client_phone,
+        stripePaymentLink: paymentLink.url,
+        confirmedDate: updatedJob.confirmed_date,
+      }),
+    }).catch(err => console.error('quote-approved webhook failed:', err))
+  }
+
   return Response.json({ url: paymentLink.url })
 }

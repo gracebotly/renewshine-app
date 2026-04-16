@@ -5,7 +5,7 @@ import { Suspense } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { motion } from 'motion/react'
-import { CheckCircle, Clock, Mail, Phone } from 'lucide-react'
+import { CheckCircle, Clock, Mail, Phone, MessageSquare, ClipboardCheck, CreditCard } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import Image from 'next/image'
 
@@ -44,7 +44,7 @@ function SubmittedContent() {
             {firstName ? `Got it, ${firstName}!` : 'Request Received!'}
           </h1>
           <p className="text-slate-600">
-            We&apos;ll review your photos and send your confirmed quote within 24 hours.
+            We&apos;re reviewing your photos now. Your confirmed quote arrives within 1–4 hours.
           </p>
 
           {/* Contact confirmation card — check and balance for typos */}
@@ -78,6 +78,31 @@ function SubmittedContent() {
             </div>
           )}
 
+          {/* What happens next card */}
+          <div className="rounded-xl border border-slate-200 bg-slate-50 p-5 text-left space-y-3">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+              What happens next
+            </p>
+            <div className="flex items-start gap-3">
+              <MessageSquare size={15} className="text-brand mt-0.5 shrink-0" />
+              <span className="text-sm text-slate-700">
+                You&apos;ll get a text confirmation within minutes
+              </span>
+            </div>
+            <div className="flex items-start gap-3">
+              <ClipboardCheck size={15} className="text-brand mt-0.5 shrink-0" />
+              <span className="text-sm text-slate-700">
+                We&apos;ll review your photos and confirm your exact price
+              </span>
+            </div>
+            <div className="flex items-start gap-3">
+              <CreditCard size={15} className="text-brand mt-0.5 shrink-0" />
+              <span className="text-sm text-slate-700">
+                We&apos;ll send your quote to approve — no payment until you&apos;re ready
+              </span>
+            </div>
+          </div>
+
           {/* Status checklist */}
           <div className="rounded-xl border border-slate-200 bg-white p-5 text-left">
             <ul className="space-y-3 text-sm text-slate-700">
@@ -95,7 +120,7 @@ function SubmittedContent() {
               </li>
               <li className="flex items-center gap-2">
                 <Clock size={16} className="text-amber-500 shrink-0" />
-                Quote pending — check your email
+                Quote incoming — check your text and email
               </li>
             </ul>
           </div>

@@ -91,6 +91,27 @@ export async function POST(request: Request) {
     } catch (emailError) {
       console.error('Webhook: confirmation emails failed (non-blocking):', emailError)
     }
+
+    // Fire job-scheduled webhook — n8n uses this to schedule day-before reminder
+    if (updatedJob) {
+      const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? ''
+      const webhookSecret = process.env.N8N_WEBHOOK_SECRET ?? ''
+      fetch(`${siteUrl}/api/webhooks/job-scheduled`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-webhook-secret': webhookSecret,
+        },
+        body: JSON.stringify({
+          jobId: updatedJob.id,
+          clientName: updatedJob.client_name,
+          clientPhone: updatedJob.client_phone,
+          confirmedDate: updatedJob.confirmed_date,
+          timePreference: updatedJob.availability_time_pref,
+          address: updatedJob.address,
+        }),
+      }).catch(err => console.error('job-scheduled webhook failed (stripe path):', err))
+    }
   }
 
   // Always return 200 — Stripe interprets anything else as a failure and retries

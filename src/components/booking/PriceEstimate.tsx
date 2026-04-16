@@ -24,7 +24,7 @@ export function PriceEstimate({ low, high, compact = false }: PriceEstimateProps
         Estimated: ${low} – ${high}
       </p>
       <p className="mt-1 text-sm text-slate-600">
-        Final price confirmed within 24 hours after we review your photos
+        Final price confirmed within 1–4 hours after we review your photos
       </p>
     </div>
   )

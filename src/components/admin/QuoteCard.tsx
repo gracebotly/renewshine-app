@@ -5,6 +5,7 @@ import { ADD_ONS } from '@/lib/pricing'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Bell } from 'lucide-react'
 
 const STATUS_VARIANTS = {
   new: 'neutral',
@@ -62,6 +63,8 @@ export function QuoteCard({ job }: { job: any }) {
   const [loadingResend, setLoadingResend] = React.useState(false)
   const [overrideStatus, setOverrideStatus] = React.useState(job.status)
   const [loadingOverride, setLoadingOverride] = React.useState(false)
+  const [loadingReminder, setLoadingReminder] = React.useState(false)
+  const [reminderSent, setReminderSent] = React.useState(false)
 
   const canApprove = Boolean(confirmedDate && approvedPrice && Number(approvedPrice) > 0 && !job.deposit_paid)
 
@@ -198,6 +201,26 @@ export function QuoteCard({ job }: { job: any }) {
     setLoadingOverride(false)
   }
 
+  async function handleReminder() {
+    setLoadingReminder(true)
+    try {
+      const res = await fetch('/api/admin/send-reminder', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ jobId: job.id }),
+      })
+      if (res.ok) {
+        setReminderSent(true)
+      } else {
+        console.error('Reminder send failed')
+      }
+    } catch (err) {
+      console.error('Reminder send error:', err)
+    } finally {
+      setLoadingReminder(false)
+    }
+  }
+
   return (
     <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
       <div className="mb-6 flex items-center justify-between">
@@ -327,8 +350,19 @@ export function QuoteCard({ job }: { job: any }) {
           </Button>
         </div>
       ) : (
-        <div className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">
-          ✓ Deposit received — job is scheduled
+        <div className="mt-4 space-y-3">
+          <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">
+            ✓ Deposit received — job is scheduled
+          </div>
+          {/* Manual day-before reminder — only show for scheduled jobs */}
+          <button
+            onClick={handleReminder}
+            disabled={loadingReminder || reminderSent}
+            className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition-colors duration-200 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <Bell size={14} />
+            {reminderSent ? 'Reminder sent ✓' : loadingReminder ? 'Sending…' : 'Send Day-Before Reminder'}
+          </button>
         </div>
       )}
 
