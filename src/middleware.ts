@@ -1,7 +1,5 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-import { createClient as createSupabaseServer } from '@supabase/supabase-js'
-
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
@@ -18,28 +16,15 @@ export async function middleware(request: NextRequest) {
   // Auth callback — always allow
   if (pathname.startsWith('/auth/')) return NextResponse.next()
 
-  // Read Supabase session from cookies
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  // Check for a Supabase session cookie.
+  // Supabase names its session cookie: sb-<project-ref>-auth-token
+  // We check for any cookie matching that pattern.
+  const cookieHeader = request.headers.get('cookie') ?? ''
+  const hasSession = cookieHeader
+    .split(';')
+    .some((c) => c.trim().startsWith('sb-') && c.includes('-auth-token'))
 
-  const supabase = createSupabaseServer(supabaseUrl, supabaseAnonKey, {
-    global: {
-      headers: {
-        cookie: request.headers.get('cookie') ?? '',
-      },
-    },
-    auth: {
-      persistSession: false,
-      autoRefreshToken: false,
-      detectSessionInUrl: false,
-    },
-  })
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
+  if (!hasSession) {
     return NextResponse.redirect(new URL('/admin/login', request.url))
   }
 
