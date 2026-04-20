@@ -21,6 +21,7 @@ const plusJakarta = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://renewshine.co'),
   title: 'RenewShine — Premium House Cleaning Service | DC, MD & VA',
   description:
     'Photo-reviewed residential cleaning in Washington DC, Arlington, Bethesda, McLean, Silver Spring & Northern Virginia. No surprises. Confirmed price before you pay.',

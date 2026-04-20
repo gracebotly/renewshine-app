@@ -186,35 +186,42 @@ export default function PrivacyPage() {
           </section>
 
           <section>
-            <h2>SMS Communications</h2>
-            <p>
-              By providing your phone number through our booking form, you consent to receive SMS (text) messages from RenewShine related to your service request.
+            <h2 className="font-display text-xl font-bold text-slate-900 mb-3">10. SMS Communications</h2>
+            <p className="text-slate-600 leading-relaxed mb-3">
+              By providing your phone number through our booking form, you consent to
+              receive SMS (text) messages from RenewShine related to your service request.
+              These messages may include:
             </p>
-
-            <p>These messages may include:</p>
-            <ul>
-              <li>Appointment confirmations and reminders</li>
-              <li>Quote follow-ups</li>
-              <li>Service updates and notifications</li>
-              <li>Payment and billing messages</li>
-              <li>Customer satisfaction and review requests</li>
+            <ul className="space-y-2 text-slate-600 text-sm mb-4">
+              {[
+                'Appointment confirmations and reminders',
+                'Quote follow-ups',
+                'Service updates and notifications',
+                'Payment and billing messages',
+                'Customer satisfaction and review requests',
+              ].map((item) => (
+                <li key={item} className="flex gap-2">
+                  <span className="text-(--color-brand) font-bold shrink-0">·</span>
+                  <span>{item}</span>
+                </li>
+              ))}
             </ul>
-
-            <p>
-              Message frequency varies depending on your interaction with our services. Message and data rates may apply.
+            <p className="text-slate-600 leading-relaxed mb-3">
+              Message frequency varies depending on your interaction with our services.
+              Message and data rates may apply.
             </p>
-
-            <p>
-              You can opt out of receiving SMS messages at any time by replying STOP. For assistance, reply HELP.
+            <p className="text-slate-600 leading-relaxed mb-3">
+              You can opt out at any time by replying <strong className="text-slate-900">STOP</strong>.
+              For assistance, reply <strong className="text-slate-900">HELP</strong>.
             </p>
-
-            <p>
-              We do not share, sell, or disclose your phone number or SMS consent information to third parties or affiliates for marketing purposes.
+            <p className="text-slate-600 leading-relaxed">
+              We do not share, sell, or disclose your phone number or SMS consent
+              information to third parties or affiliates for marketing purposes.
             </p>
           </section>
 
           <section>
-            <h2 className="font-display text-xl font-bold text-slate-900 mb-3">10. Children&apos;s Privacy</h2>
+            <h2 className="font-display text-xl font-bold text-slate-900 mb-3">11. Children&apos;s Privacy</h2>
             <p className="text-slate-600 leading-relaxed">
               Our services are intended for adults. We do not knowingly collect personal
               information from anyone under 18. If you believe we have inadvertently
@@ -224,7 +231,7 @@ export default function PrivacyPage() {
           </section>
 
           <section>
-            <h2 className="font-display text-xl font-bold text-slate-900 mb-3">11. Changes to This Policy</h2>
+            <h2 className="font-display text-xl font-bold text-slate-900 mb-3">12. Changes to This Policy</h2>
             <p className="text-slate-600 leading-relaxed">
               We may update this Privacy Policy from time to time. When we do, we will
               update the &quot;Last updated&quot; date at the top of this page. Continued use of
@@ -233,7 +240,7 @@ export default function PrivacyPage() {
           </section>
 
           <section>
-            <h2 className="font-display text-xl font-bold text-slate-900 mb-3">12. Contact Us</h2>
+            <h2 className="font-display text-xl font-bold text-slate-900 mb-3">13. Contact Us</h2>
             <div className="rounded-xl border border-slate-200 bg-slate-50 p-5 text-sm text-slate-700">
               <p className="font-semibold text-slate-900">RenewShine</p>
               <p className="mt-1">Email: <a href="mailto:renewshinedmv@gmail.com" className="text-(--color-brand) underline underline-offset-2">renewshinedmv@gmail.com</a></p>
