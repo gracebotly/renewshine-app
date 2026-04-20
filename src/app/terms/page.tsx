@@ -191,30 +191,41 @@ export default function TermsPage() {
           </section>
 
           <section>
-            <h2>SMS Communications</h2>
-
-            <p>
-              By submitting your phone number through our booking form, you agree to receive SMS (text) messages from RenewShine.
+            <h2 className="font-display text-xl font-bold text-slate-900 mb-3">11. SMS Communications</h2>
+            <p className="text-slate-600 leading-relaxed mb-3">
+              By submitting your phone number through our booking form, you agree to
+              receive SMS (text) messages from RenewShine related to your booking and
+              service. These messages may include:
             </p>
-
-            <p>These messages may include:</p>
-            <ul>
-              <li>Appointment confirmations and reminders</li>
-              <li>Quote follow-ups</li>
-              <li>Service updates and notifications</li>
-              <li>Payment-related messages</li>
-              <li>Customer satisfaction and review requests</li>
+            <ul className="space-y-2 text-slate-600 text-sm mb-4">
+              {[
+                'Appointment confirmations and reminders',
+                'Quote follow-ups',
+                'Service updates and notifications',
+                'Payment-related messages',
+                'Customer satisfaction and review requests',
+              ].map((item) => (
+                <li key={item} className="flex gap-2">
+                  <span className="text-(--color-brand) font-bold shrink-0">·</span>
+                  <span>{item}</span>
+                </li>
+              ))}
             </ul>
-
-            <p>
+            <p className="text-slate-600 leading-relaxed mb-3">
               Message frequency varies. Message and data rates may apply.
             </p>
-
-            <p>
-              You can opt out at any time by replying STOP. For assistance, reply HELP or contact us at renewshinedmv@gmail.com.
+            <p className="text-slate-600 leading-relaxed mb-3">
+              You can opt out at any time by replying{' '}
+              <strong className="text-slate-900">STOP</strong>. For assistance, reply{' '}
+              <strong className="text-slate-900">HELP</strong> or email{' '}
+              <a
+                href="mailto:renewshinedmv@gmail.com"
+                className="text-(--color-brand) underline underline-offset-2"
+              >
+                renewshinedmv@gmail.com
+              </a>.
             </p>
-
-            <p>
+            <p className="text-slate-600 leading-relaxed">
               Consent to receive SMS messages is not a condition of purchase.
             </p>
           </section>
