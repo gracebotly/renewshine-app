@@ -190,6 +190,35 @@ export default function TermsPage() {
             </p>
           </section>
 
+          <section>
+            <h2>SMS Communications</h2>
+
+            <p>
+              By submitting your phone number through our booking form, you agree to receive SMS (text) messages from RenewShine.
+            </p>
+
+            <p>These messages may include:</p>
+            <ul>
+              <li>Appointment confirmations and reminders</li>
+              <li>Quote follow-ups</li>
+              <li>Service updates and notifications</li>
+              <li>Payment-related messages</li>
+              <li>Customer satisfaction and review requests</li>
+            </ul>
+
+            <p>
+              Message frequency varies. Message and data rates may apply.
+            </p>
+
+            <p>
+              You can opt out at any time by replying STOP. For assistance, reply HELP or contact us at renewshinedmv@gmail.com.
+            </p>
+
+            <p>
+              Consent to receive SMS messages is not a condition of purchase.
+            </p>
+          </section>
+
         </div>
       </div>
     </div>
