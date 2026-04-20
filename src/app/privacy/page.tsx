@@ -186,6 +186,34 @@ export default function PrivacyPage() {
           </section>
 
           <section>
+            <h2>SMS Communications</h2>
+            <p>
+              By providing your phone number through our booking form, you consent to receive SMS (text) messages from RenewShine related to your service request.
+            </p>
+
+            <p>These messages may include:</p>
+            <ul>
+              <li>Appointment confirmations and reminders</li>
+              <li>Quote follow-ups</li>
+              <li>Service updates and notifications</li>
+              <li>Payment and billing messages</li>
+              <li>Customer satisfaction and review requests</li>
+            </ul>
+
+            <p>
+              Message frequency varies depending on your interaction with our services. Message and data rates may apply.
+            </p>
+
+            <p>
+              You can opt out of receiving SMS messages at any time by replying STOP. For assistance, reply HELP.
+            </p>
+
+            <p>
+              We do not share, sell, or disclose your phone number or SMS consent information to third parties or affiliates for marketing purposes.
+            </p>
+          </section>
+
+          <section>
             <h2 className="font-display text-xl font-bold text-slate-900 mb-3">10. Children&apos;s Privacy</h2>
             <p className="text-slate-600 leading-relaxed">
               Our services are intended for adults. We do not knowingly collect personal
