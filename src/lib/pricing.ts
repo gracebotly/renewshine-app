@@ -22,7 +22,7 @@ export const ADD_ONS = [
 // Add-ons available only on Standard and Deep.
 // Fridge and Oven are excluded when service is move_out (included at no charge).
 export const ADD_ONS_FOR_SERVICE = (serviceType: ServiceType) => {
-  if (serviceType === 'move_out') {
+  if (serviceType === 'move_out' || serviceType === 'deep') {
     return ADD_ONS.filter((a) => a.id !== 'fridge' && a.id !== 'oven')
   }
   return ADD_ONS
@@ -43,7 +43,7 @@ export function estimatePrice(
     base = bedrooms * 90 + bathrooms * 55
   }
 
-  const floor = serviceType === 'standard' ? 200 : 350
+  const floor = serviceType === 'standard' ? 200 : 400
 
   const addOnsTotal = ADD_ONS
     .filter((a) => selectedAddOns.includes(a.id))

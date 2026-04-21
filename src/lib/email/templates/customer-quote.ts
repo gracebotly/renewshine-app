@@ -16,7 +16,7 @@ export function customerQuoteTemplate(job: Job, stripeUrl: string): { subject: s
   if (job.service_type === 'standard') {
     basePrice = Math.max((job.bedrooms ?? 0) * 60 + (job.bathrooms ?? 0) * 40, 200)
   } else if (job.service_type === 'deep') {
-    basePrice = Math.max((job.bedrooms ?? 0) * 90 + (job.bathrooms ?? 0) * 55, 350)
+    basePrice = Math.max((job.bedrooms ?? 0) * 90 + (job.bathrooms ?? 0) * 55, 400)
   }
 
   const selectedAddOns = ADD_ONS.filter((a) =>

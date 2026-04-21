@@ -727,8 +727,8 @@ export function BookingForm() {
                   {
                     id: 'deep' as ServiceType,
                     title: 'Deep Clean',
-                    price: 'from $350',
-                    desc: 'Full top-to-bottom clean, every surface, every corner',
+                    price: 'from $400',
+                    desc: 'Full top-to-bottom clean — includes inside oven & fridge',
                   },
                   {
                     id: 'move_out' as ServiceType,
