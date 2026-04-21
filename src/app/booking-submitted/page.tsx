@@ -5,7 +5,7 @@ import { Suspense } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { motion } from 'motion/react'
-import { CheckCircle, Clock, Mail, Phone, MessageSquare, ClipboardCheck, CreditCard } from 'lucide-react'
+import { CheckCircle, Clock, Mail, Phone, MessageSquare, ClipboardCheck } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import Image from 'next/image'
 
@@ -93,12 +93,6 @@ function SubmittedContent() {
               <ClipboardCheck size={15} className="text-brand mt-0.5 shrink-0" />
               <span className="text-sm text-slate-700">
                 We&apos;ll review your photos and confirm your exact price
-              </span>
-            </div>
-            <div className="flex items-start gap-3">
-              <CreditCard size={15} className="text-brand mt-0.5 shrink-0" />
-              <span className="text-sm text-slate-700">
-                We&apos;ll send your quote to approve — no payment until you&apos;re ready
               </span>
             </div>
           </div>

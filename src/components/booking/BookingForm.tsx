@@ -945,10 +945,6 @@ export function BookingForm() {
 
               {/* Commitment copy + submit */}
               <div className="space-y-3">
-                <p className="text-center text-sm text-slate-600">
-                  We'll review your photos and confirm your exact price within 1–4 hours —{' '}
-                  <span className="font-medium text-slate-900">no payment until you approve.</span>
-                </p>
                 <Button
                   type="button"
                   size="lg"
@@ -1125,10 +1121,6 @@ export function BookingForm() {
                 </div>
               </div>
               <div className="space-y-3">
-                <p className="text-center text-sm text-slate-600">
-                  We'll review and confirm your quote within 1–4 hours —{' '}
-                  <span className="font-medium text-slate-900">no payment until you approve.</span>
-                </p>
                 <Button type="button" size="lg" className="w-full" disabled={submitting} onClick={submitCommercial}>
                   {submitting ? <><Loader2 size={16} className="animate-spin" /> Submitting…</> : 'Request My Custom Quote'}
                 </Button>
