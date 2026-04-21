@@ -9,14 +9,15 @@ import type { Database } from '@/types/database'
 
 type JobRecord = Database['public']['Tables']['jobs']['Row']
 
-const STATUS_VARIANTS = {
+const STATUS_VARIANTS: Record<string, 'neutral' | 'warning' | 'default' | 'success' | 'danger'> = {
   new: 'neutral',
   under_review: 'warning',
   approved: 'default',
   scheduled: 'success',
   completed: 'neutral',
   cancelled: 'danger',
-} as const
+  partial: 'warning',
+}
 
 const FILTERS = ['all', 'new', 'under_review', 'approved', 'scheduled', 'completed'] as const
 
