@@ -16,8 +16,8 @@ type JobRecord = {
   availability_start: string | null
   availability_end: string | null
   availability_time_pref: string | null
-  estimated_price_low: number
-  estimated_price_high: number
+  estimated_price_low: number | null
+  estimated_price_high: number | null
   status: 'new' | 'under_review' | 'approved' | 'scheduled' | 'completed' | 'cancelled'
   deposit_paid: boolean
   satisfaction_score: number | null
