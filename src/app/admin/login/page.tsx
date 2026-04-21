@@ -1,7 +1,9 @@
 'use client'
 
 import * as React from 'react'
+import { useEffect } from 'react'
 import Image from 'next/image'
+import { useRouter } from 'next/navigation'
 import { supabaseBrowser } from '@/lib/supabase/client'
 import { ALLOWED_ADMIN_EMAILS } from '@/lib/allowed-emails'
 import { Button } from '@/components/ui/button'
@@ -16,6 +18,14 @@ export default function AdminLoginPage() {
   const [error, setError] = React.useState('')
   const [loading, setLoading] = React.useState(false)
   const [stage, setStage] = React.useState<Stage>('form')
+
+  const router = useRouter()
+
+  useEffect(() => {
+    supabaseBrowser.auth.getSession().then(({ data: { session } }) => {
+      if (session) router.replace('/admin')
+    })
+  }, [router])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

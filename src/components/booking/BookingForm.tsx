@@ -16,7 +16,6 @@ type Frequency = 'one_time' | 'weekly' | 'bi_weekly' | 'monthly'
 type FlowType = 'residential' | 'commercial'
 type PetOption = 'none' | 'cat' | 'dog' | 'other'
 type ConditionOption = 'maintained' | 'some_buildup' | 'heavy_buildup' | 'reset'
-type HomeEntryOption = 'home' | 'lockbox' | 'fob' | 'other'
 
 const frequencies: Array<{ id: Frequency; label: string }> = [
   { id: 'one_time', label: 'One-time' },
@@ -109,7 +108,6 @@ export function BookingForm() {
   const [resEndDate, setResEndDate] = React.useState('')
   const [resTimePref, setResTimePref] = React.useState<TimePreference | ''>('')
   const [resSchedulingMode, setResSchedulingMode] = React.useState<SchedulingMode>('specific')
-  const [resHomeEntry, setResHomeEntry] = React.useState<HomeEntryOption | ''>('')
 
   // Step 5 — final
   const [resPhone, setResPhone] = React.useState('')
@@ -161,7 +159,6 @@ export function BookingForm() {
     setResEndDate('')
     setResTimePref('')
     setResSchedulingMode('specific')
-    setResHomeEntry('')
     setResPhone('')
     setResNotes('')
     setResMediaUrls([])
@@ -256,7 +253,6 @@ export function BookingForm() {
       if (!resStartDate) nextErrors.resStartDate = 'Date is required'
       if (resSchedulingMode === 'flexible' && !resEndDate) nextErrors.resEndDate = 'Latest date is required'
       if (!resTimePref) nextErrors.resTimePref = 'Time preference is required'
-      if (!resHomeEntry) nextErrors.resHomeEntry = 'Please let us know how to get in'
     }
 
     if (resStep === 5) {
@@ -314,7 +310,6 @@ export function BookingForm() {
         add_ons: selectedAddOns,
         condition: resCondition || null,
         pets: resPets || null,
-        home_entry: resHomeEntry || null,
         estimated_price_low: 0,
         estimated_price_high: 0,
         availability_start: resStartDate,
@@ -659,10 +654,7 @@ export function BookingForm() {
 
               {/* Condition */}
               <div className="space-y-3">
-                <div>
-                  <p className="text-sm font-medium text-slate-900">What's the current condition?</p>
-                  <p className="text-xs text-slate-500">Be honest — this helps us send the right team and set accurate expectations.</p>
-                </div>
+                <p className="text-sm font-medium text-slate-900">What's the current condition?</p>
                 <div className="grid grid-cols-2 gap-2">
                   {([
                     {
@@ -857,30 +849,6 @@ export function BookingForm() {
                 <p className="text-sm text-red-600">Please complete all scheduling fields.</p>
               ) : null}
 
-              {/* Home entry */}
-              <div className="space-y-3">
-                <p className="text-sm font-medium text-slate-900">How will our team get in?</p>
-                <div className="grid grid-cols-2 gap-2">
-                  {([
-                    { id: 'home' as HomeEntryOption, label: "I'll be home", sub: "You'll let us in" },
-                    { id: 'lockbox' as HomeEntryOption, label: 'Lockbox / key', sub: 'Code shared in notes' },
-                    { id: 'fob' as HomeEntryOption, label: 'Building fob', sub: 'Access arranged by you' },
-                    { id: 'other' as HomeEntryOption, label: 'Other', sub: 'Explain in notes' },
-                  ]).map((option) => (
-                    <TileButton
-                      key={option.id}
-                      selected={resHomeEntry === option.id}
-                      onClick={() => setResHomeEntry(option.id)}
-                    >
-                      <p className={cn('text-sm font-semibold', resHomeEntry === option.id ? 'text-(--color-brand)' : 'text-slate-900')}>
-                        {option.label}
-                      </p>
-                      <p className="mt-0.5 text-xs text-slate-500">{option.sub}</p>
-                    </TileButton>
-                  ))}
-                </div>
-                {errors.resHomeEntry ? <p className="text-sm text-red-600">{errors.resHomeEntry}</p> : null}
-              </div>
             </div>
           ) : null}
 
@@ -911,7 +879,7 @@ export function BookingForm() {
                 <span className="text-sm font-medium text-slate-900">Anything else we should know?</span>
                 <textarea
                   className="flex min-h-[90px] w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 transition-colors duration-200 hover:border-slate-300 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-(--color-brand) focus:ring-offset-0"
-                  placeholder="Access code, gate instructions, areas to focus on, fragrance sensitivities..."
+                  placeholder="How do we get in? (lockbox code, building fob, I'll be home...) — plus any areas to focus on, sensitivities, or special requests."
                   value={resNotes}
                   onChange={(e) => setResNotes(e.target.value)}
                 />
@@ -977,10 +945,6 @@ export function BookingForm() {
 
               {/* Commitment copy + submit */}
               <div className="space-y-3">
-                <p className="text-center text-sm text-slate-600">
-                  We'll review your photos and confirm your exact price within 1–4 hours —{' '}
-                  <span className="font-medium text-slate-900">no payment until you approve.</span>
-                </p>
                 <Button
                   type="button"
                   size="lg"
@@ -1157,10 +1121,6 @@ export function BookingForm() {
                 </div>
               </div>
               <div className="space-y-3">
-                <p className="text-center text-sm text-slate-600">
-                  We'll review and confirm your quote within 1–4 hours —{' '}
-                  <span className="font-medium text-slate-900">no payment until you approve.</span>
-                </p>
                 <Button type="button" size="lg" className="w-full" disabled={submitting} onClick={submitCommercial}>
                   {submitting ? <><Loader2 size={16} className="animate-spin" /> Submitting…</> : 'Request My Custom Quote'}
                 </Button>
