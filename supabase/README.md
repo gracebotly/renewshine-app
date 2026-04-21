@@ -15,6 +15,8 @@
 | `job-media` storage bucket | ✅ Live (public) |
 | `missed_calls` table     | ✅ Live |
 | `reactivation_log` table | ✅ Live |
+| `automation_paused_until` column on `jobs` | ✅ Live |
+| `post_construction` service type | ✅ Live |
 | Row Level Security | ✅ Enabled on both tables |
 
 ---
@@ -31,6 +33,8 @@ with a timestamp prefix so they apply in order.
 | `20260413000001_add_pets_home_entry.sql` | Adds `pets`, `home_entry` columns; adds CHECK constraints to `condition` and `status`; expands `availability_time_pref`; corrects `service_type` value |
 | `20260415000001_add_satisfaction_score.sql` | Adds `satisfaction_score` integer column (1–5) to `jobs` — already applied via MCP |
 | `20260415000002_create_missed_calls_and_reactivation_log.sql` | Creates `missed_calls` and `reactivation_log` tables with RLS — already applied via MCP |
+| `20260416000001_rename_detailed_to_deep_service_type.sql` | Renames `service_type` value `'detailed'` → `'deep'` for SEO alignment. Drops and recreates the CHECK constraint. Applied via MCP on 2026-04-16. |
+| `20260421000001_add_post_construction_service_type.sql` | Adds `'post_construction'` to the `service_type` CHECK constraint. Also adds `automation_paused_until timestamptz` column to `jobs`. Applied via MCP on 2026-04-21. |
 
 ---
 
@@ -49,7 +53,7 @@ The core table. One row per booking request.
 | `client_email` | text | Required |
 | `client_phone` | text | Optional — collected on final step |
 | `address` | text | Service address |
-| `service_type` | text | `standard`, `detailed`, or `move_out` |
+| `service_type` | text | `standard`, `deep`, `move_out`, or `post_construction`. Residential jobs use `standard`, `deep`, or `move_out`. Commercial and post-construction jobs use `null` (commercial) or `post_construction`. |
 | `bedrooms` | int | Residential only |
 | `bathrooms` | int | Residential only |
 | `add_ons` | jsonb | Array of add-on IDs e.g. `["fridge", "oven"]` |
@@ -73,6 +77,7 @@ The core table. One row per booking request.
 | `stripe_payment_link` | text | URL of the Stripe Payment Link |
 | `stripe_session_id` | text | Set by Stripe webhook on payment |
 | `notes` | text | Free-text notes from customer |
+| `automation_paused_until` | timestamptz | Set by n8n WF-04b when a customer replies to any automated SMS. While this timestamp is in the future, WF-02 and WF-04 skip all automated follow-up messages for that job. Null by default. |
 | `created_at` | timestamp | Auto-set on insert |
 
 ### `job_media`

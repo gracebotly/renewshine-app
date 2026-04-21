@@ -1,7 +1,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // RenewShine — Supabase Database Types
 // Matches the live schema in project nueoothgsydbdrseinyu
-// Last synced: 2026-04-16
+// Last synced: 2026-04-21
 // Update this file whenever the schema changes.
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -24,7 +24,7 @@ export type JobStatus =
 
 export type JobType = 'residential' | 'commercial'
 
-export type ServiceType = 'standard' | 'deep' | 'move_out'
+export type ServiceType = 'standard' | 'deep' | 'move_out' | 'post_construction'
 
 // All 8 values accepted by the live CHECK constraint.
 // 'morning', 'afternoon', 'flexible' are legacy values kept for backwards
@@ -80,6 +80,7 @@ export interface Database {
           notes: string | null
           created_at: string
           satisfaction_score: number | null
+          automation_paused_until: string | null
         }
         Insert: {
           type?: JobType | null
@@ -112,6 +113,7 @@ export interface Database {
           stripe_session_id?: string | null
           notes?: string | null
           satisfaction_score?: number | null
+          automation_paused_until?: string | null
         }
         Update: Partial<Database['public']['Tables']['jobs']['Row']>
         Relationships: []

@@ -80,10 +80,12 @@ const services = [
   },
   {
     title: 'Deep Clean',
-    price: 'From $350',
+    price: 'From $400',
     tagline: 'Full reset. Recommended for first-time clients.',
     items: [
       'Everything in Standard Clean, plus:',
+      'Inside oven cleaned',
+      'Inside refrigerator cleaned',
       'Remove grease buildup — clean vent hood',
       'Wipe top of refrigerator & accessible cabinets',
       'Remove hard water stains, lime scale, rust & soap scum',
@@ -154,7 +156,7 @@ const faqs = [
   {
     question: "What's the difference between Standard and Deep Clean?",
     answer:
-      "Standard Clean is maintenance cleaning for homes that are regularly kept up — it covers all the essentials. Deep Clean goes further: double-scrub disinfection, ceiling fans, light fixtures, moldings, and every corner. We recommend Deep Clean for first-time clients or homes that haven't been professionally cleaned recently.",
+      "Standard Clean is maintenance cleaning for homes that are regularly kept up — it covers all the essentials. Deep Clean goes further: inside the oven, inside the refrigerator, grease buildup removal, hard water and lime scale treatment, mold and mildew, under and behind furniture, and every detail corner to corner. We recommend Deep Clean for first-time clients or homes that haven't been professionally cleaned recently.",
   },
 ]
 
@@ -406,7 +408,7 @@ export default function HomePage() {
               {
                 icon: Wrench,
                 title: 'Post-Construction Cleanup',
-                description: 'Dust, debris, and residue removal after renovation or construction work.',
+                description: 'Dust, debris, and residue removal after renovation or construction. Quoted after photo review.',
               },
             ].map((item) => {
               const Icon = item.icon
@@ -459,7 +461,7 @@ export default function HomePage() {
           <div className="mx-auto mb-12 max-w-2xl text-center">
             <p className="text-xs font-semibold uppercase tracking-wider text-(--color-brand)">Customize your clean</p>
             <h2 className="mt-2 font-display text-3xl font-bold text-slate-900">Add-on services</h2>
-            <p className="mt-3 text-slate-600">Available on Standard and Deep Cleans. Priced after review — select during booking.</p>
+            <p className="mt-3 text-slate-600">Available on Standard Cleans. Inside Refrigerator and Inside Oven are included at no charge on Deep Clean and Move-In/Move-Out.</p>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
