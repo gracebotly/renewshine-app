@@ -55,7 +55,7 @@ export default function Navbar() {
           {/* Desktop CTA */}
           <div className="hidden md:flex items-center gap-3">
             <Link
-              href="/admin/login"
+              href="/admin"
               className="text-sm font-medium text-[#A8D4B5] hover:text-white transition-colors duration-200 px-3 py-2 cursor-pointer"
             >
               Staff
@@ -94,7 +94,7 @@ export default function Navbar() {
                 <Link href="/booking">Get a Quote</Link>
               </Button>
               <Link
-                href="/admin/login"
+                href="/admin"
                 className="block w-full text-center px-4 py-2 text-sm font-medium text-[#A8D4B5] hover:text-white transition-colors duration-200 cursor-pointer"
               >
                 Staff

@@ -1,5 +1,6 @@
 import { createServerClient } from '@/lib/supabase/server'
 import { JobsTable, StaleAlert } from '@/components/admin/JobsTable'
+import { LogoutButton } from '@/components/admin/LogoutButton'
 
 export default async function AdminPage() {
   const supabase = createServerClient()
@@ -35,12 +36,15 @@ export default async function AdminPage() {
             <h1 className="font-display text-3xl font-bold text-slate-900">Admin Dashboard</h1>
             <p className="mt-1 text-slate-600">Manage bookings and quote requests.</p>
           </div>
-          <a
-            href="/admin/templates"
-            className="shrink-0 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition-colors duration-200 hover:bg-slate-50"
-          >
-            SMS Templates
-          </a>
+          <div className="flex shrink-0 items-center gap-2">
+            <a
+              href="/admin/templates"
+              className="inline-flex cursor-pointer items-center rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-600 transition-colors duration-200 hover:bg-slate-50 hover:text-slate-900"
+            >
+              SMS Templates
+            </a>
+            <LogoutButton />
+          </div>
         </div>
 
         <div className="mb-8 grid grid-cols-2 gap-4 sm:grid-cols-4">
