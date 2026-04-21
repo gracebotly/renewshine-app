@@ -65,6 +65,8 @@ export function QuoteCard({ job }: { job: any }) {
   const [loadingOverride, setLoadingOverride] = React.useState(false)
   const [loadingReminder, setLoadingReminder] = React.useState(false)
   const [reminderSent, setReminderSent] = React.useState(false)
+  const [loadingComplete, setLoadingComplete] = React.useState(false)
+  const [completedConfirm, setCompletedConfirm] = React.useState(false)
 
   const canApprove = Boolean(confirmedDate && approvedPrice && Number(approvedPrice) > 0 && !job.deposit_paid)
 
@@ -199,6 +201,25 @@ export function QuoteCard({ job }: { job: any }) {
       setOverrideStatus(job.status)
     }
     setLoadingOverride(false)
+  }
+
+  async function handleMarkComplete() {
+    setLoadingComplete(true)
+    setErrorMsg('')
+    setSuccessMsg('')
+    const res = await fetch('/api/admin/update-job-status', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ jobId: job.id, status: 'completed' }),
+    })
+    if (res.ok) {
+      setSuccessMsg('Job marked as complete ✓ — balance link and rating SMS will fire automatically.')
+      setCompletedConfirm(false)
+      setOverrideStatus('completed')
+    } else {
+      setErrorMsg('Failed to mark job as complete. Please try again.')
+    }
+    setLoadingComplete(false)
   }
 
   async function handleReminder() {
@@ -363,6 +384,39 @@ export function QuoteCard({ job }: { job: any }) {
             <Bell size={14} />
             {reminderSent ? 'Reminder sent ✓' : loadingReminder ? 'Sending…' : 'Send Day-Before Reminder'}
           </button>
+
+          {/* Mark as Complete — triggers n8n job-completed webhook (balance link + rating SMS) */}
+          {job.status === 'scheduled' &&
+            (!completedConfirm ? (
+              <button
+                onClick={() => setCompletedConfirm(true)}
+                className="w-full cursor-pointer rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-medium text-white transition-colors duration-200 hover:bg-emerald-700"
+              >
+                ✓ Mark as Complete
+              </button>
+            ) : (
+              <div className="space-y-3 rounded-lg border border-emerald-200 bg-emerald-50 p-4">
+                <p className="text-sm font-medium text-emerald-800">
+                  Mark this job as complete? This will automatically send the balance due link and the satisfaction
+                  rating SMS to the client.
+                </p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleMarkComplete}
+                    disabled={loadingComplete}
+                    className="flex-1 cursor-pointer rounded-lg bg-emerald-600 px-3 py-2 text-sm font-medium text-white transition-colors duration-200 hover:bg-emerald-700 disabled:opacity-50"
+                  >
+                    {loadingComplete ? 'Completing…' : 'Yes, Mark Complete'}
+                  </button>
+                  <button
+                    onClick={() => setCompletedConfirm(false)}
+                    className="flex-1 cursor-pointer rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition-colors duration-200 hover:bg-slate-50"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            ))}
         </div>
       )}
 
