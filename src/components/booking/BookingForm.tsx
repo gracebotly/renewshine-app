@@ -13,7 +13,7 @@ import { cn } from '@/lib/utils'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type Frequency = 'one_time' | 'weekly' | 'bi_weekly' | 'monthly'
-type FlowType = 'residential' | 'commercial'
+type FlowType = 'residential' | 'commercial' | 'post_construction'
 type PetOption = 'none' | 'cat' | 'dog' | 'other'
 type ConditionOption = 'maintained' | 'some_buildup' | 'heavy_buildup' | 'reset'
 
@@ -119,7 +119,7 @@ export function BookingForm() {
   const [contactName, setContactName] = React.useState('')
   const [comEmail, setComEmail] = React.useState('')
   const [comPhone, setComPhone] = React.useState('')
-  const [propertyType, setPropertyType] = React.useState<'office' | 'retail' | 'warehouse' | 'other'>('office')
+  const [propertyType, setPropertyType] = React.useState<'office' | 'retail' | 'warehouse' | 'other' | 'new_build' | 'renovation' | 'construction' | 'commercial'>('office')
   const [squareFootage, setSquareFootage] = React.useState('')
   const [comFrequency, setComFrequency] = React.useState<Frequency>('one_time')
   const [comAddress, setComAddress] = React.useState('')
@@ -164,13 +164,13 @@ export function BookingForm() {
     setResMediaUrls([])
   }
 
-  const resetCommercial = () => {
+  const resetCommercial = (nextFlow: FlowType = flowType) => {
     setComStep(1)
     setBusinessName('')
     setContactName('')
     setComEmail('')
     setComPhone('')
-    setPropertyType('office')
+    setPropertyType(nextFlow === 'post_construction' ? 'new_build' : 'office')
     setSquareFootage('')
     setComFrequency('one_time')
     setComAddress('')
@@ -195,9 +195,15 @@ export function BookingForm() {
 
   const confirmSwitch = () => {
     if (!pendingSwitch) return
+    const type = pendingSwitch
     if (flowType === 'residential') resetResidential()
-    else resetCommercial()
-    setFlowType(pendingSwitch)
+    else resetCommercial(type)
+    setFlowType(type)
+    if (type === 'post_construction') {
+      setPropertyType('new_build')
+    } else {
+      setPropertyType('office')
+    }
     setPendingSwitch(null)
     setErrors({})
     setSubmitError('')
@@ -378,7 +384,7 @@ export function BookingForm() {
           availability_time_pref: comTimePref,
           media_urls: comMediaUrls,
           notes: comNotes,
-          service_type: null,
+          service_type: flowType === 'post_construction' ? 'post_construction' : null,
           bedrooms: null,
           bathrooms: null,
           add_ons: [],
@@ -458,20 +464,20 @@ export function BookingForm() {
     <div className="space-y-6 rounded-xl border border-slate-200 p-5 sm:p-6">
 
       {/* Tab toggle */}
-      <div className="flex gap-2">
-        {(['residential', 'commercial'] as const).map((type) => (
+      <div className="flex gap-2 flex-wrap">
+        {(['residential', 'commercial', 'post_construction'] as const).map((type) => (
           <button
             key={type}
             type="button"
             onClick={() => handleTabClick(type)}
             className={cn(
-              'cursor-pointer rounded-lg px-6 py-2.5 text-sm font-medium transition-colors duration-200',
+              'cursor-pointer rounded-lg px-4 py-2.5 text-sm font-medium transition-colors duration-200',
               flowType === type
                 ? 'bg-(--color-brand) text-white'
                 : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
             )}
           >
-            {type === 'residential' ? 'Residential' : 'Commercial'}
+            {type === 'residential' ? 'Residential' : type === 'commercial' ? 'Commercial' : 'Post-Construction'}
           </button>
         ))}
       </div>
@@ -482,7 +488,7 @@ export function BookingForm() {
           <AlertTriangle size={18} className="mt-0.5 shrink-0 text-amber-500" />
           <div className="flex-1 min-w-0">
             <p className="text-sm font-semibold text-slate-900">
-              Switch to {pendingSwitch === 'residential' ? 'Residential' : 'Commercial'}?
+              Switch to {pendingSwitch === 'residential' ? 'Residential' : pendingSwitch === 'commercial' ? 'Commercial' : 'Post-Construction'}?
             </p>
             <p className="mt-0.5 text-xs text-slate-600">Your current entries will be cleared.</p>
           </div>
@@ -492,7 +498,7 @@ export function BookingForm() {
               onClick={() => setPendingSwitch(null)}
               className="cursor-pointer rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 transition-colors duration-200 hover:bg-slate-50"
             >
-              Keep {flowType === 'residential' ? 'Residential' : 'Commercial'}
+              Keep {flowType === 'residential' ? 'Residential' : flowType === 'commercial' ? 'Commercial' : 'Post-Construction'}
             </button>
             <button
               type="button"
@@ -997,7 +1003,9 @@ export function BookingForm() {
 
           {comStep === 1 ? (
             <div className="space-y-4">
-              <h2 className="font-display text-xl font-bold text-slate-900">Tell us about your business</h2>
+              <h2 className="font-display text-xl font-bold text-slate-900">
+                {flowType === 'post_construction' ? 'Tell us about your project' : 'Tell us about your business'}
+              </h2>
               <label className="block space-y-1">
                 <span className="text-sm font-medium text-slate-900">Business Name</span>
                 <Input value={businessName} onChange={(e) => setBusinessName(e.target.value)} error={Boolean(errors.businessName)} />
@@ -1029,21 +1037,28 @@ export function BookingForm() {
 
           {comStep === 2 ? (
             <div className="space-y-5">
-              <h2 className="font-display text-xl font-bold text-slate-900">About your space</h2>
+              <h2 className="font-display text-xl font-bold text-slate-900">
+                {flowType === 'post_construction' ? 'About your project' : 'About your space'}
+              </h2>
               <div>
                 <p className="mb-2 font-medium text-slate-900">Property Type</p>
                 <div className="grid gap-2 grid-cols-2 sm:grid-cols-4">
-                  {(['office', 'retail', 'warehouse', 'other'] as const).map((id) => (
+                  {(flowType === 'post_construction'
+                  ? ['new_build', 'renovation', 'commercial', 'other'] as const
+                  : ['office', 'retail', 'warehouse', 'other'] as const
+                ).map((id) => (
                     <TileButton key={id} selected={propertyType === id} onClick={() => setPropertyType(id)}>
                       <p className={cn('text-sm font-semibold capitalize', propertyType === id ? 'text-(--color-brand)' : 'text-slate-900')}>
-                        {id}
+                        {id.replace('_', ' ')}
                       </p>
                     </TileButton>
                   ))}
                 </div>
               </div>
               <label className="block space-y-1">
-                <span className="text-sm font-medium text-slate-900">Approximate Square Footage</span>
+                <span className="text-sm font-medium text-slate-900">
+                  {flowType === 'post_construction' ? 'Approximate Square Footage (Total Build/Reno Area)' : 'Approximate Square Footage'}
+                </span>
                 <Input type="number" placeholder="e.g. 2000" value={squareFootage} onChange={(e) => setSquareFootage(e.target.value)} />
                 <p className="text-xs text-slate-500">Estimate is fine — we confirm during walkthrough</p>
               </label>
@@ -1099,7 +1114,9 @@ export function BookingForm() {
                 <span className="text-sm font-medium text-slate-900">Notes</span>
                 <textarea
                   className="flex min-h-[100px] w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 transition-colors duration-200 hover:border-slate-300 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-(--color-brand) focus:ring-offset-0"
-                  placeholder="Access instructions, security codes, areas of focus, any special requirements..."
+                  placeholder={flowType === 'post_construction'
+                    ? 'Project scope, phases complete, dusty areas, access instructions, any special requirements...'
+                    : 'Access instructions, security codes, areas of focus, any special requirements...'}
                   value={comNotes}
                   onChange={(e) => setComNotes(e.target.value)}
                 />
@@ -1122,7 +1139,9 @@ export function BookingForm() {
               </div>
               <div className="space-y-3">
                 <Button type="button" size="lg" className="w-full" disabled={submitting} onClick={submitCommercial}>
-                  {submitting ? <><Loader2 size={16} className="animate-spin" /> Submitting…</> : 'Request My Custom Quote'}
+                  {submitting
+                    ? <><Loader2 size={16} className="animate-spin" /> Submitting…</>
+                    : flowType === 'post_construction' ? 'Request Post-Construction Quote' : 'Request My Custom Quote'}
                 </Button>
               </div>
             </div>

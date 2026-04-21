@@ -408,7 +408,7 @@ export default function HomePage() {
               {
                 icon: Wrench,
                 title: 'Post-Construction Cleanup',
-                description: 'Dust, debris, and residue removal after renovation or construction work.',
+                description: 'Dust, debris, and residue removal after renovation or construction. Quoted after photo review.',
               },
             ].map((item) => {
               const Icon = item.icon

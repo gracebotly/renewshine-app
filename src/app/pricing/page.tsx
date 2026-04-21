@@ -73,6 +73,22 @@ const tiers = [
     note: 'Always quoted after photo review — every property is different.',
     buttonVariant: 'outline' as const,
   },
+
+  {
+    title: 'Post-Construction Cleaning',
+    price: 'Custom Quote',
+    tagline: 'After renovation, new builds, and construction projects',
+    items: [
+      'Fine dust and debris removal — all surfaces',
+      'Window sills, ledges, and trim detail cleaned',
+      'Floor vacuuming and mopping (multiple passes)',
+      'Surface wipe-downs — walls, counters, fixtures',
+      'Bathroom and kitchen sanitation',
+      'Residue and adhesive cleanup',
+    ],
+    note: 'Always quoted after photo/video review — every project is different.',
+    buttonVariant: 'outline' as const,
+  },
 ]
 
 const addOns = [
@@ -120,7 +136,7 @@ export default function PricingPage() {
       </section>
 
       <section className="bg-slate-50 py-16">
-        <div className="mx-auto grid max-w-6xl gap-6 px-4 sm:px-6 lg:grid-cols-3 lg:px-8">
+        <div className="mx-auto grid max-w-6xl gap-6 px-4 sm:px-6 sm:grid-cols-2 lg:px-8">
           {tiers.map((tier) => (
             <Card key={tier.title} className={tier.popular ? 'border-(--color-brand) border-2 shadow-(--shadow-card-hover)' : ''}>
               <CardHeader>

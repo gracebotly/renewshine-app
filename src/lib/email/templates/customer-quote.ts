@@ -10,6 +10,7 @@ export function customerQuoteTemplate(job: Job, stripeUrl: string): { subject: s
     job.service_type === 'standard' ? 'Standard Clean'
     : job.service_type === 'deep' ? 'Deep Clean'
     : job.service_type === 'move_out' ? 'Move-In / Move-Out'
+    : job.service_type === 'post_construction' ? 'Post-Construction Cleaning'
     : 'Cleaning Service'
 
   let basePrice: number | null = null
