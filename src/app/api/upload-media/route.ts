@@ -62,7 +62,8 @@ export async function POST(request: Request) {
     return Response.json({ error: 'Upload failed' }, { status: 500 })
   }
 
-  // Return the storage path — NOT a public URL.
-  // The admin will generate a signed URL from this path at view time.
-  return Response.json({ path: data.path }, { status: 201 })
+  // Return the storage path and content type.
+  // The admin generates a signed URL from path at view time.
+  // contentType is passed through so callers don't have to guess from extension.
+  return Response.json({ path: data.path, contentType: file.type }, { status: 201 })
 }

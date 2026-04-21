@@ -61,15 +61,26 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
   const rawMedia: Array<{ id: string; file_url: string; file_type: string | null }> =
     job.job_media ?? []
 
-  const media = await Promise.all(
+  const mediaResults = await Promise.all(
     rawMedia.map(async (m) => {
       if (m.file_url.startsWith('http')) return m
-      const { data } = await supabase.storage
+      const { data, error } = await supabase.storage
         .from('job-media')
         .createSignedUrl(m.file_url, 3600)
-      return { ...m, file_url: data?.signedUrl ?? m.file_url }
+
+      if (error || !data?.signedUrl) {
+        console.error('Failed to create signed URL for job media:', {
+          mediaId: m.id,
+          path: m.file_url,
+          error: error?.message ?? 'Missing signed URL',
+        })
+        return null
+      }
+
+      return { ...m, file_url: data.signedUrl }
     })
   )
+  const media = mediaResults.filter((m): m is NonNullable<typeof m> => Boolean(m))
 
   const heroMedia = media[0] ?? null
   const thumbMedia = media.slice(1)
@@ -106,7 +117,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
 
               {media.length === 0 ? (
                 <div className="flex h-48 items-center justify-center rounded-lg border border-dashed border-slate-200 text-sm text-slate-400">
-                  No media uploaded
+                  No valid media available
                 </div>
               ) : (
                 <div className="space-y-3">
