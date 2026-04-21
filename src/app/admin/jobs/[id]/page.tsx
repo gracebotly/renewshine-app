@@ -7,13 +7,11 @@ import { QuoteCard } from '@/components/admin/QuoteCard'
 function EditableFields({ job }: { job: any }) {
   async function saveDetails(formData: FormData) {
     'use server'
+    const { createServerClient } = await import('@/lib/supabase/server')
+    const supabase = createServerClient()
     const address = String(formData.get('address') ?? '')
     const notes = String(formData.get('notes') ?? '')
-
-    await supabase
-      .from('jobs')
-      .update({ address, notes })
-      .eq('id', job.id)
+    await supabase.from('jobs').update({ address, notes }).eq('id', job.id)
   }
 
   return (
@@ -60,26 +58,21 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
 
   if (!job) notFound()
 
-  const rawMedia: Array<{ id: string; file_url: string; file_type: string }> =
+  const rawMedia: Array<{ id: string; file_url: string; file_type: string | null }> =
     job.job_media ?? []
 
-  // Generate signed URLs for private bucket media.
-  // Old rows may contain full public URLs (starts with 'http') — use as-is.
-  // New rows contain a storage path — generate a 1-hour signed URL.
   const media = await Promise.all(
     rawMedia.map(async (m) => {
-      if (m.file_url.startsWith('http')) {
-        return m // Legacy public URL — serve directly
-      }
+      if (m.file_url.startsWith('http')) return m
       const { data } = await supabase.storage
         .from('job-media')
         .createSignedUrl(m.file_url, 3600)
-      return {
-        ...m,
-        file_url: data?.signedUrl ?? m.file_url,
-      }
+      return { ...m, file_url: data?.signedUrl ?? m.file_url }
     })
   )
+
+  const heroMedia = media[0] ?? null
+  const thumbMedia = media.slice(1)
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -91,12 +84,76 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
           <ChevronLeft size={16} /> Back to Dashboard
         </Link>
 
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
-          <div className="space-y-6 lg:col-span-3">
-            <QuoteCard job={job} />
+        {/* Two-column layout: photos+details left, sticky decision panel right */}
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
 
+          {/* RIGHT COLUMN — sticky decision panel (mobile first) */}
+          <div className="w-full lg:w-80 xl:w-96 lg:sticky lg:top-8 shrink-0 lg:order-2">
+            <QuoteCard job={job} />
+          </div>
+
+          {/* LEFT COLUMN — photos + context */}
+          <div className="flex-1 min-w-0 space-y-6 lg:order-1">
+
+            {/* Photo Hero */}
+            <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+              <div className="mb-3 flex items-center justify-between">
+                <h3 className="font-semibold text-slate-900">
+                  📸 Photos & Videos
+                  <span className="ml-2 text-sm font-normal text-slate-500">({media.length})</span>
+                </h3>
+              </div>
+
+              {media.length === 0 ? (
+                <div className="flex h-48 items-center justify-center rounded-lg border border-dashed border-slate-200 text-sm text-slate-400">
+                  No media uploaded
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {/* Hero image */}
+                  {heroMedia && (
+                    <a
+                      href={heroMedia.file_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block cursor-pointer overflow-hidden rounded-lg border border-slate-200"
+                    >
+                      {heroMedia.file_type === 'video' ? (
+                        <video src={heroMedia.file_url} className="h-72 w-full object-cover" controls />
+                      ) : (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={heroMedia.file_url} alt="Job photo" className="h-72 w-full object-cover" />
+                      )}
+                    </a>
+                  )}
+                  {/* Thumbnail row */}
+                  {thumbMedia.length > 0 && (
+                    <div className="grid grid-cols-4 gap-2">
+                      {thumbMedia.map((m) => (
+                        <a
+                          key={m.id}
+                          href={m.file_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="block cursor-pointer overflow-hidden rounded-lg border border-slate-200"
+                        >
+                          {m.file_type === 'video' ? (
+                            <video src={m.file_url} className="h-20 w-full object-cover" />
+                          ) : (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={m.file_url} alt="Job photo" className="h-20 w-full object-cover" />
+                          )}
+                        </a>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Client Details */}
             <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-              <h3 className="mb-4 font-semibold text-slate-900">Client Details</h3>
+              <h3 className="mb-4 font-semibold text-slate-900">👤 Client Details</h3>
               <dl className="space-y-2 text-sm">
                 {[
                   ['Name', job.client_name],
@@ -119,7 +176,6 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
                   </div>
                 ))}
               </dl>
-
               <div className="mt-4 flex gap-2 border-t border-slate-100 pt-4">
                 <a
                   href={`mailto:${job.client_email}`}
@@ -140,10 +196,12 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
               </div>
             </div>
 
+            {/* Edit Notes / Address */}
             <EditableFields job={job} />
 
+            {/* Activity Timeline */}
             <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-              <h3 className="mb-4 font-semibold text-slate-900">Activity Timeline</h3>
+              <h3 className="mb-4 font-semibold text-slate-900">🕒 Activity Timeline</h3>
               <div className="space-y-3">
                 {[
                   {
@@ -220,90 +278,6 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
             </div>
           </div>
 
-          <div className="space-y-6 lg:col-span-2">
-            <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-              <h3 className="mb-4 font-semibold text-slate-900">
-                Photos & Videos <span className="ml-1 text-sm font-normal text-slate-500">({media.length})</span>
-              </h3>
-              {media.length === 0 ? (
-                <p className="text-sm text-slate-500">No media uploaded.</p>
-              ) : (
-                <div className="grid grid-cols-2 gap-3">
-                  {media.map((m: { id: string; file_url: string; file_type: string }) => (
-                    <a
-                      key={m.id}
-                      href={m.file_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="block cursor-pointer overflow-hidden rounded-lg border border-slate-200"
-                    >
-                      {m.file_type === 'video' ? (
-                        <video src={m.file_url} className="h-28 w-full object-cover" />
-                      ) : (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={m.file_url} alt="Job media" className="h-28 w-full object-cover" />
-                      )}
-                    </a>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-              <h3 className="mb-4 font-semibold text-slate-900">Payment Details</h3>
-              <dl className="space-y-2 text-sm">
-                <div className="flex gap-4">
-                  <dt className="w-32 shrink-0 text-slate-500">Deposit status</dt>
-                  <dd className={`font-medium ${job.deposit_paid ? 'text-emerald-600' : 'text-slate-400'}`}>
-                    {job.deposit_paid ? '✓ Paid' : '✗ Pending'}
-                  </dd>
-                </div>
-                {job.approved_price && (
-                  <div className="flex gap-4">
-                    <dt className="w-32 shrink-0 text-slate-500">Total approved</dt>
-                    <dd className="font-mono tabular-nums font-medium text-slate-900">
-                      ${Number(job.approved_price).toFixed(2)}
-                    </dd>
-                  </div>
-                )}
-                {job.deposit_paid && (
-                  <div className="flex gap-4">
-                    <dt className="w-32 shrink-0 text-slate-500">Deposit paid</dt>
-                    <dd className="font-mono tabular-nums text-slate-900">$100.00</dd>
-                  </div>
-                )}
-                {job.remaining_amount != null && (
-                  <div className="flex gap-4">
-                    <dt className="w-32 shrink-0 text-slate-500">Remaining</dt>
-                    <dd className="font-mono tabular-nums font-medium text-slate-900">
-                      ${Number(job.remaining_amount).toFixed(2)}
-                    </dd>
-                  </div>
-                )}
-                {job.stripe_payment_link && (
-                  <div className="flex gap-4">
-                    <dt className="w-32 shrink-0 text-slate-500">Payment link</dt>
-                    <dd>
-                      <a
-                        href={job.stripe_payment_link}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="cursor-pointer break-all text-xs text-(--color-brand) hover:underline"
-                      >
-                        View link ↗
-                      </a>
-                    </dd>
-                  </div>
-                )}
-                {job.stripe_session_id && (
-                  <div className="flex gap-4">
-                    <dt className="w-32 shrink-0 text-slate-500">Stripe session</dt>
-                    <dd className="break-all font-mono text-xs text-slate-600">{job.stripe_session_id}</dd>
-                  </div>
-                )}
-              </dl>
-            </div>
-          </div>
         </div>
       </div>
     </div>

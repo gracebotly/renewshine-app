@@ -65,6 +65,8 @@ export function QuoteCard({ job }: { job: any }) {
   const [loadingOverride, setLoadingOverride] = React.useState(false)
   const [loadingReminder, setLoadingReminder] = React.useState(false)
   const [reminderSent, setReminderSent] = React.useState(false)
+  const [loadingComplete, setLoadingComplete] = React.useState(false)
+  const [completedConfirm, setCompletedConfirm] = React.useState(false)
 
   const canApprove = Boolean(confirmedDate && approvedPrice && Number(approvedPrice) > 0 && !job.deposit_paid)
 
@@ -201,6 +203,24 @@ export function QuoteCard({ job }: { job: any }) {
     setLoadingOverride(false)
   }
 
+  async function handleMarkComplete() {
+    setLoadingComplete(true)
+    setErrorMsg('')
+    setSuccessMsg('')
+    const res = await fetch('/api/admin/update-job-status', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ jobId: job.id, status: 'completed' }),
+    })
+    if (res.ok) {
+      setSuccessMsg('Job marked as complete ✓ — balance link and rating SMS will fire automatically.')
+      setCompletedConfirm(false)
+    } else {
+      setErrorMsg('Failed to mark job as complete. Please try again.')
+    }
+    setLoadingComplete(false)
+  }
+
   async function handleReminder() {
     setLoadingReminder(true)
     try {
@@ -222,193 +242,278 @@ export function QuoteCard({ job }: { job: any }) {
   }
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-      <div className="mb-6 flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-slate-900">Quote Summary</h2>
-        <Badge variant={statusVariant}>{String(job.status ?? 'new').replace('_', ' ')}</Badge>
-      </div>
+    <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
 
-      {job.status === 'new' && (
-        <button
-          onClick={handleMarkUnderReview}
-          disabled={loadingReview}
-          className="mb-4 w-full cursor-pointer rounded-lg border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm font-medium text-amber-700 transition-colors duration-200 hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {loadingReview ? 'Updating…' : '👁 Mark as Under Review'}
-        </button>
+      {/* Decision state banner */}
+      {overrideStatus === 'new' && (
+        <div className="rounded-t-xl border-b border-red-100 bg-red-50 px-5 py-4">
+          <p className="text-sm font-bold text-red-700">🚨 Action Required</p>
+          <p className="mt-0.5 text-xs text-red-600">Review photos and send a quote</p>
+        </div>
+      )}
+      {overrideStatus === 'under_review' && (
+        <div className="rounded-t-xl border-b border-amber-100 bg-amber-50 px-5 py-4">
+          <p className="text-sm font-bold text-amber-700">⏳ Under Review</p>
+          <p className="mt-0.5 text-xs text-amber-600">Set price and confirmed date below</p>
+        </div>
+      )}
+      {overrideStatus === 'approved' && !job.deposit_paid && (
+        <div className="rounded-t-xl border-b border-blue-100 bg-blue-50 px-5 py-4">
+          <p className="text-sm font-bold text-blue-700">💳 Awaiting Deposit</p>
+          <p className="mt-0.5 text-xs text-blue-600">Quote sent — waiting for customer to pay</p>
+        </div>
+      )}
+      {job.deposit_paid && overrideStatus === 'scheduled' && (
+        <div className="rounded-t-xl border-b border-emerald-100 bg-emerald-50 px-5 py-4">
+          <p className="text-sm font-bold text-emerald-700">✅ Scheduled</p>
+          <p className="mt-0.5 text-xs text-emerald-600">Deposit received — job is on the calendar</p>
+        </div>
+      )}
+      {overrideStatus === 'completed' && (
+        <div className="rounded-t-xl border-b border-slate-100 bg-slate-50 px-5 py-4">
+          <p className="text-sm font-bold text-slate-700">✓ Completed</p>
+          <p className="mt-0.5 text-xs text-slate-500">Job is done</p>
+        </div>
+      )}
+      {overrideStatus === 'cancelled' && (
+        <div className="rounded-t-xl border-b border-red-100 bg-red-50 px-5 py-4">
+          <p className="text-sm font-bold text-red-700">✗ Declined</p>
+          <p className="mt-0.5 text-xs text-red-500">This request was declined</p>
+        </div>
       )}
 
-      <div className="mb-4 rounded-lg border border-slate-200 bg-slate-50 p-4">
-        <div className="flex items-center justify-between gap-3">
-          <p className="font-medium text-slate-900">
+      <div className="space-y-4 p-5">
+        {/* Client + job summary — scannable block */}
+        <div className="space-y-1">
+          <p className="text-base font-bold text-slate-900">{job.client_name}</p>
+          <p className="text-sm text-slate-600">
             {formatService(job.service_type)} · {bedrooms} bed / {bathrooms} bath
           </p>
-          {job.service_type === 'move_out' ? null : (
-            <p className="font-mono tabular-nums text-slate-900">${basePrice ?? 0}</p>
-          )}
+          <Badge variant="neutral">
+            {FREQUENCY_LABELS[job.service_frequency as keyof typeof FREQUENCY_LABELS] ?? 'One-time'}
+          </Badge>
         </div>
 
-        {job.service_type === 'move_out' ? (
-          <p className="mt-1 text-sm text-slate-600">Pricing confirmed after photo review</p>
-        ) : null}
+        {/* Availability */}
+        <div className="space-y-1 rounded-lg bg-slate-50 px-4 py-3 text-sm">
+          <p className="text-slate-700">📅 {formatDateRange(job.availability_start, job.availability_end)}</p>
+          <p className="text-slate-700">⏰ {TIME_LABELS[job.availability_time_pref as keyof typeof TIME_LABELS] ?? '—'}</p>
+          {job.address && <p className="text-slate-700">📍 {job.address}</p>}
+        </div>
 
-        <div className="mt-2 space-y-1">
+        {/* Pricing breakdown */}
+        <div className="overflow-hidden rounded-lg border border-slate-200 text-sm">
+          {job.service_type !== 'move_out' && (
+            <div className="flex justify-between bg-white px-4 py-2">
+              <span className="text-slate-600">Base</span>
+              <span className="font-mono tabular-nums text-slate-900">${basePrice ?? 0}</span>
+            </div>
+          )}
           {addOns.map((addon) => (
-            <div key={addon.id} className="flex justify-between text-sm">
-              <span className="text-slate-900">{addon.label}</span>
-              <span className="font-mono tabular-nums text-slate-600">${addon.price}</span>
+            <div key={addon.id} className="flex justify-between border-t border-slate-100 bg-white px-4 py-2">
+              <span className="text-slate-600">{addon.label}</span>
+              <span className="font-mono tabular-nums text-slate-600">+${addon.price}</span>
             </div>
           ))}
+          {job.service_type === 'move_out' && (
+            <div className="flex justify-between bg-white px-4 py-2">
+              <span className="text-slate-600">Move-Out</span>
+              <span className="text-xs text-slate-500">Manual quote</span>
+            </div>
+          )}
+          <div className="flex justify-between border-t border-slate-200 bg-slate-50 px-4 py-2.5 font-medium">
+            <span className="text-slate-700">💰 Estimated</span>
+            <span className="font-mono tabular-nums text-slate-900">
+              {job.service_type === 'move_out'
+                ? 'After review'
+                : `$${job.estimated_price_low ?? subtotal} – $${job.estimated_price_high ?? Math.round((subtotal ?? 0) * 1.15)}`}
+            </span>
+          </div>
         </div>
 
-        <div className="mt-2 flex justify-between border-t border-slate-200 pt-2 font-medium">
-          <span className="text-slate-900">Subtotal</span>
-          <span className="font-mono tabular-nums text-slate-900">
-            {job.service_type === 'move_out' ? 'Quoted after photo review' : `$${subtotal ?? 0}`}
-          </span>
+        {/* Approved price + date inputs — only show if not yet paid */}
+        {!job.deposit_paid && (
+          <div className="space-y-3">
+            <label className="block space-y-1">
+              <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Confirmed Date</span>
+              <p className="text-xs text-slate-400">Must fall within customer's window above</p>
+              <Input
+                type="date"
+                value={confirmedDate}
+                onChange={(e) => setConfirmedDate(e.target.value)}
+                min={job.availability_start ?? undefined}
+                max={job.availability_end ?? undefined}
+              />
+            </label>
+            <label className="block space-y-1">
+              <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Approved Price ($)</span>
+              <Input
+                type="number"
+                value={approvedPrice}
+                onChange={(e) => setApprovedPrice(e.target.value)}
+                min="100"
+                step="1"
+                className="font-mono tabular-nums"
+              />
+            </label>
+          </div>
+        )}
+
+        {/* Deposit / remaining summary */}
+        <div className="overflow-hidden rounded-lg border border-slate-200 text-sm">
+          <div className="flex justify-between bg-(--color-brand) px-4 py-3 font-medium text-white">
+            <span>Deposit due now</span>
+            <span className="font-mono font-bold tabular-nums">$100</span>
+          </div>
+          <div className="flex justify-between bg-slate-50 px-4 py-2.5 text-slate-600">
+            <span>Remaining balance</span>
+            <span className="font-mono tabular-nums font-medium text-slate-900">
+              ${Math.max(Number(approvedPrice || 0) - 100, 0)}
+            </span>
+          </div>
         </div>
-      </div>
 
-      <div className="mt-4 space-y-1 text-sm text-slate-600">
-        <p>{formatDateRange(job.availability_start, job.availability_end)}</p>
-        <p>{TIME_LABELS[job.availability_time_pref as keyof typeof TIME_LABELS] ?? '—'}</p>
-        <Badge variant="neutral">
-          {FREQUENCY_LABELS[job.service_frequency as keyof typeof FREQUENCY_LABELS] ?? 'One-time'}
-        </Badge>
-      </div>
-
-      {!job.deposit_paid ? (
-        <>
-          <label className="mt-4 block space-y-1">
-            <span className="text-sm font-medium text-slate-900">Confirmed Date</span>
-            <p className="text-xs text-slate-500">Must be within the customer's availability window above.</p>
-            <Input
-              type="date"
-              value={confirmedDate}
-              onChange={(e) => setConfirmedDate(e.target.value)}
-              min={job.availability_start ?? undefined}
-              max={job.availability_end ?? undefined}
-            />
-          </label>
-
-          <label className="mt-3 block space-y-1">
-            <span className="text-sm font-medium text-slate-900">Approved Price ($)</span>
-            <Input
-              type="number"
-              value={approvedPrice}
-              onChange={(e) => setApprovedPrice(e.target.value)}
-              min="100"
-              step="1"
-              className="font-mono tabular-nums"
-            />
-          </label>
-        </>
-      ) : null}
-
-      <div className="mt-4 overflow-hidden rounded-lg border border-slate-200">
-        <div className="flex justify-between bg-(--color-brand) px-4 py-3 text-white">
-          <span>Deposit (due now)</span>
-          <span className="font-mono text-lg font-bold tabular-nums">$100</span>
-        </div>
-        <div className="flex justify-between bg-slate-50 px-4 py-3 text-sm">
-          <span className="text-slate-600">Remaining balance</span>
-          <span className="font-mono font-medium tabular-nums text-slate-900">
-            ${Math.max(Number(approvedPrice || 0) - 100, 0)}
-          </span>
-        </div>
-      </div>
-
-      {job.status === 'approved' && !job.deposit_paid && job.stripe_payment_link && (
-        <div className="mt-3 flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
-          <p className="text-xs text-slate-600">Link sent. Customer hasn't paid yet.</p>
+        {/* Mark as Under Review — only for new jobs */}
+        {overrideStatus === 'new' && (
           <button
-            onClick={handleResendLink}
-            disabled={loadingResend}
-            className="shrink-0 cursor-pointer rounded-lg border border-(--color-brand) px-3 py-1.5 text-xs font-medium text-(--color-brand) transition-colors duration-200 hover:bg-(--color-brand-muted) disabled:opacity-50"
+            onClick={handleMarkUnderReview}
+            disabled={loadingReview}
+            className="w-full cursor-pointer rounded-lg border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm font-medium text-amber-700 transition-colors duration-200 hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {loadingResend ? 'Resending…' : 'Resend Link'}
+            {loadingReview ? 'Updating…' : '👁 Mark as Under Review'}
           </button>
-        </div>
-      )}
+        )}
 
-      {!job.deposit_paid ? (
-        <div className="mt-4 flex gap-3">
+        {/* Resend link notice */}
+        {overrideStatus === 'approved' && !job.deposit_paid && job.stripe_payment_link && (
+          <div className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
+            <p className="text-xs text-slate-600">Link sent. Customer hasn't paid yet.</p>
+            <button
+              onClick={handleResendLink}
+              disabled={loadingResend}
+              className="shrink-0 cursor-pointer rounded-lg border border-(--color-brand) px-3 py-1.5 text-xs font-medium text-(--color-brand) transition-colors duration-200 hover:bg-(--color-brand-muted) disabled:opacity-50"
+            >
+              {loadingResend ? 'Resending…' : 'Resend Link'}
+            </button>
+          </div>
+        )}
+
+        {/* PRIMARY ACTION — full width, dominant */}
+        {!job.deposit_paid && (
           <Button
             onClick={handleStripe}
             disabled={!canApprove || loadingStripe || loadingCash}
-            className="flex-1"
+            className="w-full py-3 text-base font-semibold"
           >
-            {loadingStripe ? 'Sending…' : 'Approve & Send Deposit Link'}
+            {loadingStripe ? 'Sending…' : '✉️ Approve & Send Deposit Link'}
           </Button>
+        )}
+
+        {/* SECONDARY ACTIONS */}
+        {!job.deposit_paid && (
           <Button
             variant="brand-outline"
             onClick={handleCash}
             disabled={!canApprove || loadingStripe || loadingCash}
-            className="flex-1"
+            className="w-full"
           >
-            {loadingCash ? 'Recording…' : 'Mark as Cash Paid'}
+            {loadingCash ? 'Recording…' : '💵 Mark as Cash Paid'}
           </Button>
-        </div>
-      ) : (
-        <div className="mt-4 space-y-3">
-          <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">
-            ✓ Deposit received — job is scheduled
-          </div>
-          {/* Manual day-before reminder — only show for scheduled jobs */}
-          <button
-            onClick={handleReminder}
-            disabled={loadingReminder || reminderSent}
-            className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition-colors duration-200 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            <Bell size={14} />
-            {reminderSent ? 'Reminder sent ✓' : loadingReminder ? 'Sending…' : 'Send Day-Before Reminder'}
-          </button>
-        </div>
-      )}
+        )}
 
-      {!job.deposit_paid && job.status !== 'cancelled' && job.status !== 'completed' && (
-        <div className="mt-3">
-          {!showDeclineConfirm ? (
+        {/* Scheduled job actions */}
+        {job.deposit_paid && (
+          <div className="space-y-3">
             <button
-              onClick={() => setShowDeclineConfirm(true)}
-              className="w-full cursor-pointer rounded-lg border border-red-200 px-4 py-2 text-sm font-medium text-red-600 transition-colors duration-200 hover:bg-red-50"
+              onClick={handleReminder}
+              disabled={loadingReminder || reminderSent}
+              className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition-colors duration-200 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              Decline Request
+              <Bell size={14} />
+              {reminderSent ? 'Reminder sent ✓' : loadingReminder ? 'Sending…' : 'Send Day-Before Reminder'}
             </button>
-          ) : (
-            <div className="space-y-3 rounded-lg border border-red-200 bg-red-50 p-4">
-              <p className="text-sm font-medium text-red-700">Decline this request? This cannot be undone.</p>
-              <div className="flex gap-2">
+
+            {overrideStatus === 'scheduled' &&
+              (!completedConfirm ? (
                 <button
-                  onClick={handleDecline}
-                  disabled={loadingDecline}
-                  className="flex-1 cursor-pointer rounded-lg bg-red-600 px-3 py-2 text-sm font-medium text-white transition-colors duration-200 hover:bg-red-700 disabled:opacity-50"
+                  onClick={() => setCompletedConfirm(true)}
+                  className="w-full cursor-pointer rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors duration-200 hover:bg-emerald-700"
                 >
-                  {loadingDecline ? 'Declining…' : 'Yes, Decline'}
+                  ✓ Mark as Complete
                 </button>
-                <button
-                  onClick={() => setShowDeclineConfirm(false)}
-                  className="flex-1 cursor-pointer rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition-colors duration-200 hover:bg-slate-50"
-                >
-                  Cancel
-                </button>
+              ) : (
+                <div className="space-y-3 rounded-lg border border-emerald-200 bg-emerald-50 p-4">
+                  <p className="text-sm font-medium text-emerald-800">
+                    Mark complete? This sends the balance link and rating SMS automatically.
+                  </p>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleMarkComplete}
+                      disabled={loadingComplete}
+                      className="flex-1 cursor-pointer rounded-lg bg-emerald-600 px-3 py-2 text-sm font-medium text-white transition-colors duration-200 hover:bg-emerald-700 disabled:opacity-50"
+                    >
+                      {loadingComplete ? 'Completing…' : 'Yes, Complete'}
+                    </button>
+                    <button
+                      onClick={() => setCompletedConfirm(false)}
+                      className="flex-1 cursor-pointer rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition-colors duration-200 hover:bg-slate-50"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ))}
+          </div>
+        )}
+
+        {/* Decline — tertiary, text-only style */}
+        {!job.deposit_paid && overrideStatus !== 'cancelled' && overrideStatus !== 'completed' && (
+          <div>
+            {!showDeclineConfirm ? (
+              <button
+                onClick={() => setShowDeclineConfirm(true)}
+                className="w-full cursor-pointer rounded-lg border border-red-200 px-4 py-2 text-sm font-medium text-red-600 transition-colors duration-200 hover:bg-red-50"
+              >
+                Decline Request
+              </button>
+            ) : (
+              <div className="space-y-3 rounded-lg border border-red-200 bg-red-50 p-4">
+                <p className="text-sm font-medium text-red-700">Decline this request? This cannot be undone.</p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleDecline}
+                    disabled={loadingDecline}
+                    className="flex-1 cursor-pointer rounded-lg bg-red-600 px-3 py-2 text-sm font-medium text-white transition-colors duration-200 hover:bg-red-700 disabled:opacity-50"
+                  >
+                    {loadingDecline ? 'Declining…' : 'Yes, Decline'}
+                  </button>
+                  <button
+                    onClick={() => setShowDeclineConfirm(false)}
+                    className="flex-1 cursor-pointer rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition-colors duration-200 hover:bg-slate-50"
+                  >
+                    Cancel
+                  </button>
+                </div>
               </div>
-            </div>
-          )}
-        </div>
-      )}
+            )}
+          </div>
+        )}
 
-      {!canApprove && !job.deposit_paid ? (
-        <p className="mt-3 text-xs text-slate-500">Set confirmed date and approved price to enable actions.</p>
-      ) : null}
+        {/* Helper text */}
+        {!canApprove && !job.deposit_paid && overrideStatus !== 'cancelled' && (
+          <p className="text-center text-xs text-slate-400">Set confirmed date and price to enable actions</p>
+        )}
 
-      {successMsg && <p className="mt-3 text-sm font-medium text-emerald-600">{successMsg}</p>}
-      {errorMsg && <p className="mt-3 text-sm font-medium text-red-600">{errorMsg}</p>}
+        {/* Feedback messages */}
+        {successMsg && <p className="text-sm font-medium text-emerald-600">{successMsg}</p>}
+        {errorMsg && <p className="text-sm font-medium text-red-600">{errorMsg}</p>}
 
-      <div className="mt-6 border-t border-slate-100 pt-4">
-        <label className="block space-y-1.5">
-          <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Manual Status Override</span>
-          <div className="flex gap-2">
+        {/* Manual status override — collapsed by default */}
+        <details className="border-t border-slate-100 pt-4">
+          <summary className="cursor-pointer text-xs font-semibold uppercase tracking-wide text-slate-400 transition-colors duration-200 hover:text-slate-600">
+            Manual Status Override
+          </summary>
+          <div className="mt-3 flex gap-2">
             <select
               value={overrideStatus}
               onChange={(e) => handleStatusOverride(e.target.value)}
@@ -424,8 +529,9 @@ export function QuoteCard({ job }: { job: any }) {
             </select>
             {loadingOverride && <div className="flex items-center px-2 text-xs text-slate-500">Saving…</div>}
           </div>
-        </label>
+        </details>
       </div>
     </div>
   )
+
 }
