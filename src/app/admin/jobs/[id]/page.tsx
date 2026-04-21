@@ -62,7 +62,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
 
   if (!job) notFound()
 
-  const rawMedia: Array<{ id: string; file_url: string; file_type: string }> =
+  const rawMedia: Array<{ id: string; file_url: string; file_type: string | null }> =
     job.job_media ?? []
 
   // Generate signed URLs for private bucket media.
