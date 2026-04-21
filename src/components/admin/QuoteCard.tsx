@@ -215,7 +215,6 @@ export function QuoteCard({ job }: { job: any }) {
     if (res.ok) {
       setSuccessMsg('Job marked as complete ✓ — balance link and rating SMS will fire automatically.')
       setCompletedConfirm(false)
-      setOverrideStatus('completed')
     } else {
       setErrorMsg('Failed to mark job as complete. Please try again.')
     }

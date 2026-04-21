@@ -231,7 +231,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
                 <p className="text-sm text-slate-500">No media uploaded.</p>
               ) : (
                 <div className="grid grid-cols-2 gap-3">
-                  {media.map((m: { id: string; file_url: string; file_type: string }) => (
+                  {media.map((m: { id: string; file_url: string; file_type: string | null }) => (
                     <a
                       key={m.id}
                       href={m.file_url}
