@@ -9,7 +9,7 @@ import { customerQuoteReminderTemplate } from './templates/customer-quote-remind
 import { customerLinkExpiredTemplate } from './templates/customer-link-expired'
 
 const resend = new Resend(process.env.RESEND_API_KEY!)
-const FROM = 'RenewShine <renewshinedmv@gmail.com>'
+const FROM = 'RenewShine <noreply@renewshine.co>'
 const OWNER_EMAIL = 'renewshinedmv@gmail.com'
 
 /** Template 1 — fires when customer submits booking form. To: owner. */

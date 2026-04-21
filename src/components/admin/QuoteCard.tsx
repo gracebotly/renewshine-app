@@ -337,13 +337,11 @@ export function QuoteCard({ job }: { job: any }) {
             <label className="block space-y-1">
               <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Confirmed Date</span>
               <p className="text-xs text-slate-400">Must fall within customer's window above</p>
-              <Input
-                type="date"
-                value={confirmedDate}
-                onChange={(e) => setConfirmedDate(e.target.value)}
-                min={job.availability_start ?? undefined}
-                max={job.availability_end ?? undefined}
-              />
+            <Input
+              type="date"
+              value={confirmedDate}
+              onChange={(e) => setConfirmedDate(e.target.value)}
+            />
             </label>
             <label className="block space-y-1">
               <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Approved Price ($)</span>
