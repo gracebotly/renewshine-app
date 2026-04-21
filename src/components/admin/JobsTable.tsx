@@ -51,6 +51,50 @@ function formatService(serviceType: JobRecord['service_type']) {
   return '—'
 }
 
+function SubmittedCell({ createdAt, status }: { createdAt: string; status: JobRecord['status'] }) {
+  const now = new Date()
+  const created = new Date(createdAt)
+  const diffMs = now.getTime() - created.getTime()
+  const diffHours = diffMs / (1000 * 60 * 60)
+  const diffDays = diffMs / (1000 * 60 * 60 * 24)
+
+  const dateLabel = created.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+
+  if (status === 'new') {
+    if (diffHours < 4) {
+      return (
+        <div>
+          <span className="inline-flex items-center gap-1 rounded-md border border-red-100 bg-red-50 px-2 py-0.5 text-xs font-semibold text-red-600">
+            🔥 New
+          </span>
+          <p className="mt-1 text-xs text-slate-400">
+            {diffHours < 1 ? 'Just now' : `${Math.floor(diffHours)}h ago`}
+          </p>
+        </div>
+      )
+    }
+    if (diffDays >= 1) {
+      return (
+        <div>
+          <span className="inline-flex items-center gap-1 rounded-md border border-amber-100 bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-600">
+            ⚠️ Waiting
+          </span>
+          <p className="mt-1 text-xs text-slate-400">{Math.floor(diffDays)}d ago</p>
+        </div>
+      )
+    }
+  }
+
+  return (
+    <div>
+      <p className="text-sm text-slate-700">{dateLabel}</p>
+      <p className="text-xs text-slate-400">
+        {diffHours < 1 ? 'Just now' : diffDays >= 1 ? `${Math.floor(diffDays)}d ago` : `${Math.floor(diffHours)}h ago`}
+      </p>
+    </div>
+  )
+}
+
 export function StaleAlert({ count }: { count: number }) {
   const [dismissed, setDismissed] = React.useState(false)
   if (dismissed || count === 0) return null
@@ -162,7 +206,9 @@ export function JobsTable({ jobs }: { jobs: JobRecord[] }) {
                 const high = Number(job.estimated_price_high ?? 0)
                 return (
                   <tr key={job.id} className="border-b border-slate-100 transition-colors duration-200 hover:bg-slate-50">
-                    <td className="px-4 py-3">{new Date(job.created_at).toLocaleDateString()}</td>
+                  <td className="px-4 py-3">
+                    <SubmittedCell createdAt={job.created_at} status={job.status} />
+                  </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-medium text-slate-900">{job.client_name}</span>
