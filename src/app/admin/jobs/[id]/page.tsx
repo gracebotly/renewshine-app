@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { createServerClient } from '@/lib/supabase/server'
-import { ChevronLeft, Mail, Phone } from 'lucide-react'
+import { ChevronLeft } from 'lucide-react'
 import { notFound } from 'next/navigation'
 import { QuoteCard } from '@/components/admin/QuoteCard'
 
@@ -176,22 +176,10 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
                   </div>
                 ))}
               </dl>
-              <div className="mt-4 flex gap-2 border-t border-slate-100 pt-4">
-                <a
-                  href={`mailto:${job.client_email}`}
-                  className="inline-flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition-colors duration-200 hover:border-slate-300 hover:bg-slate-50"
-                >
-                  <Mail size={14} />
-                  Email Client
-                </a>
+              <div className="mt-4 space-y-1 border-t border-slate-100 pt-4 text-sm">
+                <p className="select-all text-slate-900">{job.client_email}</p>
                 {job.client_phone && (
-                  <a
-                    href={`tel:${job.client_phone}`}
-                    className="inline-flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition-colors duration-200 hover:border-slate-300 hover:bg-slate-50"
-                  >
-                    <Phone size={14} />
-                    Call Client
-                  </a>
+                  <p className="select-all text-slate-900">{job.client_phone}</p>
                 )}
               </div>
             </div>
