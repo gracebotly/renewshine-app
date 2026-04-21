@@ -1,28 +1,46 @@
+import { createServerClient } from '@supabase/ssr'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
-  // Login page itself — always allow (prevent redirect loop)
-  if (pathname === '/admin/login') return NextResponse.next()
+  if (pathname === '/admin/login' || pathname.startsWith('/auth/')) {
+    return NextResponse.next()
+  }
 
-  // Check for a Supabase session cookie.
-  // Supabase JS v2 names its session cookie: sb-<project-ref>-auth-token
-  const cookieHeader = request.headers.get('cookie') ?? ''
-  const hasSession = cookieHeader
-    .split(';')
-    .some((c) => c.trim().startsWith('sb-') && c.includes('-auth-token'))
+  let supabaseResponse = NextResponse.next({ request })
 
-  if (!hasSession) {
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll()
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value }) =>
+            request.cookies.set(name, value)
+          )
+          supabaseResponse = NextResponse.next({ request })
+          cookiesToSet.forEach(({ name, value, options }) =>
+            supabaseResponse.cookies.set(name, value, options)
+          )
+        },
+      },
+    }
+  )
+
+  const { data: { user } } = await supabase.auth.getUser()
+
+  if (!user) {
     return NextResponse.redirect(new URL('/admin/login', request.url))
   }
 
-  return NextResponse.next()
+  return supabaseResponse
 }
 
 export const config = {
-  // Only guard admin routes. Auth callback must NOT be in this matcher
-  // or the middleware will intercept it before the route handler runs.
   matcher: ['/admin/:path*', '/api/admin/:path*'],
 }
