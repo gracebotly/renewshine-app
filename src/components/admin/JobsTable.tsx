@@ -5,23 +5,9 @@ import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { AlertTriangle, Search, X } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
+import type { Database } from '@/types/database'
 
-type JobRecord = {
-  id: string
-  created_at: string
-  client_name: string
-  client_email: string
-  type: 'residential' | 'commercial' | null
-  service_type: 'standard' | 'deep' | 'move_out' | null
-  availability_start: string | null
-  availability_end: string | null
-  availability_time_pref: string | null
-  estimated_price_low: number | null
-  estimated_price_high: number | null
-  status: 'new' | 'under_review' | 'approved' | 'scheduled' | 'completed' | 'cancelled'
-  deposit_paid: boolean
-  satisfaction_score: number | null
-}
+type JobRecord = Database['public']['Tables']['jobs']['Row']
 
 const STATUS_VARIANTS = {
   new: 'neutral',
