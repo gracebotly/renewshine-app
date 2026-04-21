@@ -4,21 +4,11 @@ import type { NextRequest } from 'next/server'
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
-  const isAdminRoute =
-    pathname.startsWith('/admin') || pathname.startsWith('/api/admin')
-
-  // Not an admin route — pass through
-  if (!isAdminRoute) return NextResponse.next()
-
   // Login page itself — always allow (prevent redirect loop)
   if (pathname === '/admin/login') return NextResponse.next()
 
-  // Auth callback — always allow
-  if (pathname.startsWith('/auth/')) return NextResponse.next()
-
   // Check for a Supabase session cookie.
-  // Supabase names its session cookie: sb-<project-ref>-auth-token
-  // We check for any cookie matching that pattern.
+  // Supabase JS v2 names its session cookie: sb-<project-ref>-auth-token
   const cookieHeader = request.headers.get('cookie') ?? ''
   const hasSession = cookieHeader
     .split(';')
@@ -32,5 +22,7 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/admin/:path*', '/api/admin/:path*', '/auth/:path*'],
+  // Only guard admin routes. Auth callback must NOT be in this matcher
+  // or the middleware will intercept it before the route handler runs.
+  matcher: ['/admin/:path*', '/api/admin/:path*'],
 }
