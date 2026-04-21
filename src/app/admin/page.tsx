@@ -1,12 +1,9 @@
-import { createClient } from '@supabase/supabase-js'
+import { createServerClient } from '@/lib/supabase/server'
 import { JobsTable, StaleAlert } from '@/components/admin/JobsTable'
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
-
 export default async function AdminPage() {
+  const supabase = createServerClient()
+
   const { data: jobs } = await supabase
     .from('jobs')
     .select('*')
@@ -21,7 +18,6 @@ export default async function AdminPage() {
     scheduled: allJobs.filter((j) => j.status === 'scheduled').length,
   }
 
-  // Stale jobs: status 'new' and created more than 4 hours ago
   const fourHoursAgoDate = new Date()
   fourHoursAgoDate.setHours(fourHoursAgoDate.getHours() - 4)
   const fourHoursAgo = fourHoursAgoDate.toISOString()

@@ -1,13 +1,8 @@
 import Link from 'next/link'
-import { createClient } from '@supabase/supabase-js'
+import { createServerClient } from '@/lib/supabase/server'
 import { ChevronLeft, Mail, Phone } from 'lucide-react'
 import { notFound } from 'next/navigation'
 import { QuoteCard } from '@/components/admin/QuoteCard'
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
 
 function EditableFields({ job }: { job: any }) {
   async function saveDetails(formData: FormData) {
@@ -55,6 +50,7 @@ function EditableFields({ job }: { job: any }) {
 }
 
 export default async function JobDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const supabase = createServerClient()
   const { id } = await params
   const { data: job } = await supabase
     .from('jobs')

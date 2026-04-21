@@ -2,6 +2,7 @@
 
 import * as React from 'react'
 import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
 import { AlertTriangle, Search, X } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 
@@ -80,7 +81,10 @@ export function StaleAlert({ count }: { count: number }) {
 }
 
 export function JobsTable({ jobs }: { jobs: JobRecord[] }) {
-  const [activeFilter, setActiveFilter] = React.useState<Filter>('all')
+  const searchParams = useSearchParams()
+  const initialFilter = (searchParams.get('filter') as Filter) ?? 'all'
+  const validInitialFilter = FILTERS.includes(initialFilter) ? initialFilter : 'all'
+  const [activeFilter, setActiveFilter] = React.useState<Filter>(validInitialFilter)
   const [query, setQuery] = React.useState('')
 
   const filteredJobs = React.useMemo(() => {
