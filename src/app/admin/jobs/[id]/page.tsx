@@ -7,6 +7,8 @@ import { QuoteCard } from '@/components/admin/QuoteCard'
 function EditableFields({ job }: { job: any }) {
   async function saveDetails(formData: FormData) {
     'use server'
+    const { createServerClient } = await import('@/lib/supabase/server')
+    const supabase = createServerClient()
     const address = String(formData.get('address') ?? '')
     const notes = String(formData.get('notes') ?? '')
 
