@@ -33,6 +33,9 @@ function SubmissionCard({ job }: { job: any }) {
     'use server'
     const { createServerClient } = await import('@/lib/supabase/server')
     const supabase = createServerClient()
+    // Collect checked add-on IDs from checkboxes
+    const allAddonIds = ['fridge', 'oven', 'dishes', 'linen', 'laundry', 'windows', 'organization', 'walls', 'basement']
+    const selectedAddOns = allAddonIds.filter((id) => formData.get(`addon_${id}`) === 'on')
     await supabase
       .from('jobs')
       .update({
@@ -42,10 +45,15 @@ function SubmissionCard({ job }: { job: any }) {
         address: String(formData.get('address') ?? '') || null,
         bedrooms: Number(formData.get('bedrooms')) || null,
         bathrooms: Number(formData.get('bathrooms')) || null,
+        service_type: (String(formData.get('service_type') ?? '') || null) as any,
         service_frequency: String(formData.get('service_frequency') ?? '') || null,
+        add_ons: selectedAddOns,
         notes: String(formData.get('notes') ?? '') || null,
       })
       .eq('id', job.id)
+    // Reload the page after save so the right panel re-reads updated job data
+    const { redirect } = await import('next/navigation')
+    redirect(`/admin/jobs/${job.id}`)
   }
 
   const timePrefMap: Record<string, string> = {
@@ -66,16 +74,6 @@ function SubmissionCard({ job }: { job: any }) {
     monthly: 'Monthly',
   }
 
-  const serviceMap: Record<string, string> = {
-    standard: 'Standard Clean',
-    deep: 'Deep Clean',
-    move_out: 'Move-In / Move-Out',
-    post_construction: 'Post-Construction',
-  }
-
-  const selectedAddOns = ADD_ONS.filter((a) =>
-    Array.isArray(job.add_ons) && job.add_ons.includes(a.id)
-  )
 
   const availStr = (() => {
     if (!job.availability_start) return '—'
@@ -158,7 +156,23 @@ function SubmissionCard({ job }: { job: any }) {
         {/* ── SERVICE ── */}
         <Section title="Service" />
 
-        <Row label="Type" value={serviceMap[job.service_type ?? ''] ?? job.service_type} />
+        <div className="flex min-h-[32px] items-start gap-4 py-1">
+          <dt className="w-32 shrink-0 pt-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
+            Type
+          </dt>
+          <dd className="flex-1">
+            <select
+              name="service_type"
+              defaultValue={job.service_type ?? 'standard'}
+              className={inputClass}
+            >
+              <option value="standard">Standard Clean</option>
+              <option value="deep">Deep Clean</option>
+              <option value="move_out">Move-In / Move-Out</option>
+              <option value="post_construction">Post-Construction</option>
+            </select>
+          </dd>
+        </div>
 
         {job.service_type !== 'post_construction' && (
           <>
@@ -182,10 +196,26 @@ function SubmissionCard({ job }: { job: any }) {
           </>
         )}
 
-        <Row
-          label="Add-ons"
-          value={selectedAddOns.length > 0 ? selectedAddOns.map((a) => a.label).join(', ') : 'None'}
-        />
+        <div className="flex items-start gap-4 py-1">
+          <dt className="w-32 shrink-0 pt-1 text-xs font-semibold uppercase tracking-wide text-slate-400">
+            Add-ons
+          </dt>
+          <dd className="flex-1">
+            <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
+              {ADD_ONS.map((addon) => (
+                <label key={addon.id} className="flex cursor-pointer items-center gap-2">
+                  <input
+                    type="checkbox"
+                    name={`addon_${addon.id}`}
+                    defaultChecked={Array.isArray(job.add_ons) && job.add_ons.includes(addon.id)}
+                    className="h-4 w-4 cursor-pointer rounded border-slate-300 text-(--color-brand) focus:ring-(--color-brand)"
+                  />
+                  <span className="text-sm text-slate-700">{addon.label}</span>
+                </label>
+              ))}
+            </div>
+          </dd>
+        </div>
 
         <div className="flex min-h-[32px] items-start gap-4 py-1">
           <dt className="w-32 shrink-0 text-xs font-semibold uppercase tracking-wide text-slate-400 pt-2">
