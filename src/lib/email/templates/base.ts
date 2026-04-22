@@ -1,14 +1,24 @@
-// ─────────────────────────────────────────────────────────────────────────────
-// RenewShine — Base Email Template
-// All 5 templates import from here. Never send raw HTML without this wrapper.
-// ─────────────────────────────────────────────────────────────────────────────
-
-const BRAND_NAVY = '#1e3a5f'
-const BRAND_MUTED = '#e8eef7'
+const BRAND = '#4A7C59'
+const BRAND_DARK = '#3d6b4a'
+const BRAND_DEEP = '#1A2E1F'
+const BRAND_SAGE = '#A8D4B5'
+const BRAND_MUTED = '#e8f3ec'
 const TEXT_DARK = '#0f172a'
 const TEXT_MUTED = '#64748b'
 const BORDER = '#e2e8f0'
-const BG_PAGE = '#f8fafc'
+const BG_PAGE = '#f4f7f5'
+
+const LOGO_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 120" width="135" height="90" style="display:block;">
+  <rect x="14" y="38" width="44" height="44" rx="10" fill="#ffffff" fill-opacity="0.2"/>
+  <path d="M22 60 Q36 46 50 60" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round"/>
+  <path d="M22 60 Q36 74 50 60" fill="none" stroke="#A8D4B5" stroke-width="1.5" stroke-linecap="round"/>
+  <circle cx="36" cy="53" r="3" fill="#ffffff"/>
+  <circle cx="36" cy="67" r="3" fill="#A8D4B5"/>
+  <text x="68" y="53" font-family="Arial, sans-serif" font-size="17" font-weight="700" fill="#ffffff" letter-spacing="-0.3">renew</text>
+  <text x="68" y="72" font-family="Arial, sans-serif" font-size="17" font-weight="300" fill="#A8D4B5" letter-spacing="-0.3">shine</text>
+  <line x1="68" y1="80" x2="156" y2="80" stroke="#A8D4B5" stroke-opacity="0.3" stroke-width="1"/>
+  <text x="68" y="92" font-family="Arial, sans-serif" font-size="7.5" font-weight="400" fill="#A8D4B5" letter-spacing="2">PREMIUM CLEANING</text>
+</svg>`
 
 export function baseTemplate(content: string, previewText: string): string {
   return `<!DOCTYPE html>
@@ -26,9 +36,8 @@ export function baseTemplate(content: string, previewText: string): string {
         <table width="600" cellpadding="0" cellspacing="0" role="presentation"
           style="max-width:600px;width:100%;background:#ffffff;border-radius:12px;overflow:hidden;border:1px solid ${BORDER};">
           <tr>
-            <td style="background:${BRAND_NAVY};padding:28px 32px;">
-              <p style="margin:0;font-size:22px;font-weight:700;color:#ffffff;letter-spacing:-0.3px;">RenewShine</p>
-              <p style="margin:4px 0 0;font-size:13px;color:rgba(255,255,255,0.7);font-weight:400;">Premium Cleaning. No Surprises. · DMV Area</p>
+            <td style="background:${BRAND};padding:20px 28px;">
+              ${LOGO_SVG}
             </td>
           </tr>
           <tr>
@@ -36,11 +45,9 @@ export function baseTemplate(content: string, previewText: string): string {
           </tr>
           <tr>
             <td style="background:${BG_PAGE};padding:20px 32px;border-top:1px solid ${BORDER};">
-              <p style="margin:0;font-size:12px;color:${TEXT_MUTED};text-align:center;">RenewShine · DMV Area · DC, Maryland & Virginia</p>
+              <p style="margin:0;font-size:12px;color:${TEXT_MUTED};text-align:center;">RenewShine · DMV Area · DC, Maryland &amp; Virginia</p>
               <p style="margin:6px 0 0;font-size:12px;color:${TEXT_MUTED};text-align:center;">
-                <a href="tel:[PHONE]" style="color:${TEXT_MUTED};text-decoration:none;">[PHONE]</a>
-                &nbsp;·&nbsp;
-                <a href="mailto:[EMAIL]" style="color:${TEXT_MUTED};text-decoration:none;">[EMAIL]</a>
+                <a href="mailto:renewshinedmv@gmail.com" style="color:${TEXT_MUTED};text-decoration:none;">renewshinedmv@gmail.com</a>
               </p>
               <p style="margin:6px 0 0;font-size:11px;color:#94a3b8;text-align:center;">© ${new Date().getFullYear()} RenewShine. All rights reserved.</p>
             </td>
@@ -61,7 +68,7 @@ export function ctaButton(text: string, url: string): string {
   <tr>
     <td align="center">
       <a href="${url}" target="_blank"
-        style="display:inline-block;background:${BRAND_NAVY};color:#ffffff;font-size:15px;font-weight:600;text-decoration:none;padding:14px 32px;border-radius:8px;">
+        style="display:inline-block;background:${BRAND};color:#ffffff;font-size:15px;font-weight:600;text-decoration:none;padding:14px 32px;border-radius:8px;">
         ${text}
       </a>
     </td>
@@ -78,7 +85,7 @@ export function infoRow(label: string, value: string): string {
 }
 
 export function lineItem(label: string, amount: string, highlight = false): string {
-  const bg = highlight ? BRAND_NAVY : 'transparent'
+  const bg = highlight ? BRAND : 'transparent'
   const color = highlight ? '#ffffff' : TEXT_DARK
   const padding = highlight ? '10px 12px' : '8px 0'
   return `
@@ -91,9 +98,9 @@ export function lineItem(label: string, amount: string, highlight = false): stri
 export function badge(text: string, color: 'amber' | 'green' | 'blue' | 'navy'): string {
   const map = {
     amber: { bg: '#fef3c7', text: '#92400e' },
-    green: { bg: '#d1fae5', text: '#065f46' },
-    blue: { bg: '#dbeafe', text: '#1e40af' },
-    navy: { bg: BRAND_MUTED, text: BRAND_NAVY },
+    green: { bg: BRAND_MUTED, text: BRAND_DEEP },
+    blue:  { bg: '#dbeafe', text: '#1e40af' },
+    navy:  { bg: BRAND_MUTED, text: BRAND },
   }
   const c = map[color]
   return `<span style="display:inline-block;background:${c.bg};color:${c.text};font-size:12px;font-weight:600;padding:4px 12px;border-radius:99px;letter-spacing:0.02em;margin-bottom:16px;">${text}</span>`
@@ -118,7 +125,7 @@ export function step(num: number, title: string, desc: string): string {
   return `
 <tr>
   <td style="padding:12px 16px 12px 0;vertical-align:top;width:36px;">
-    <div style="width:28px;height:28px;border-radius:50%;background:${BRAND_NAVY};color:#fff;font-size:13px;font-weight:700;text-align:center;line-height:28px;">${num}</div>
+    <div style="width:28px;height:28px;border-radius:50%;background:${BRAND};color:#fff;font-size:13px;font-weight:700;text-align:center;line-height:28px;">${num}</div>
   </td>
   <td style="padding:12px 0;vertical-align:top;">
     <p style="margin:0;font-size:14px;font-weight:600;color:${TEXT_DARK};">${title}</p>
@@ -127,17 +134,16 @@ export function step(num: number, title: string, desc: string): string {
 </tr>`
 }
 
-/** Trust strip — insert above CTAs to reduce payment hesitation */
 export function trustStrip(): string {
   return `
 <table width="100%" cellpadding="0" cellspacing="0" role="presentation"
-  style="margin:20px 0;border-top:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0;padding:12px 0;">
+  style="margin:20px 0;border-top:1px solid ${BORDER};border-bottom:1px solid ${BORDER};padding:12px 0;">
   <tr>
     <td align="center">
       <p style="margin:0;font-size:12px;color:#64748b;letter-spacing:0.01em;">
-        🔒&nbsp; Insured &amp; background-checked &nbsp;·&nbsp;
-        📷&nbsp; Photo-reviewed pricing &nbsp;·&nbsp;
-        ✓&nbsp; No surprise charges — ever
+        Insured &amp; background-checked &nbsp;·&nbsp;
+        Photo-reviewed pricing &nbsp;·&nbsp;
+        No surprise charges
       </p>
     </td>
   </tr>

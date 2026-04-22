@@ -301,28 +301,16 @@ export function QuoteCard({ job }: { job: any }) {
           {job.address && <p className="text-slate-700">📍 {job.address}</p>}
         </div>
 
-        {/* Pricing breakdown */}
+        {/* Pricing breakdown — no per-item prices, names only */}
         <div className="overflow-hidden rounded-lg border border-slate-200 text-sm">
-          {job.service_type !== 'move_out' && (
-            <div className="flex justify-between bg-white px-4 py-2">
-              <span className="text-slate-600">Base</span>
-              <span className="font-mono tabular-nums text-slate-900">${basePrice ?? 0}</span>
+          {addOns.length > 0 && (
+            <div className="bg-white px-4 py-3">
+              <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-400">Add-ons</p>
+              <p className="text-slate-700">{addOns.map((a) => a.label).join(' · ')}</p>
             </div>
           )}
-          {addOns.map((addon) => (
-            <div key={addon.id} className="flex justify-between border-t border-slate-100 bg-white px-4 py-2">
-              <span className="text-slate-600">{addon.label}</span>
-              <span className="font-mono tabular-nums text-slate-600">+${addon.price}</span>
-            </div>
-          ))}
-          {job.service_type === 'move_out' && (
-            <div className="flex justify-between bg-white px-4 py-2">
-              <span className="text-slate-600">Move-Out</span>
-              <span className="text-xs text-slate-500">Manual quote</span>
-            </div>
-          )}
-          <div className="flex justify-between border-t border-slate-200 bg-slate-50 px-4 py-2.5 font-medium">
-            <span className="text-slate-700">💰 Estimated</span>
+          <div className={`flex justify-between px-4 py-2.5 font-medium ${addOns.length > 0 ? 'border-t border-slate-200' : ''} bg-slate-50`}>
+            <span className="text-slate-700">Estimated</span>
             <span className="font-mono tabular-nums text-slate-900">
               {job.service_type === 'move_out'
                 ? 'After review'
@@ -371,17 +359,6 @@ export function QuoteCard({ job }: { job: any }) {
           </div>
         </div>
 
-        {/* Mark as Under Review — only for new jobs */}
-        {overrideStatus === 'new' && (
-          <button
-            onClick={handleMarkUnderReview}
-            disabled={loadingReview}
-            className="w-full cursor-pointer rounded-lg border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm font-medium text-amber-700 transition-colors duration-200 hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {loadingReview ? 'Updating…' : '👁 Mark as Under Review'}
-          </button>
-        )}
-
         {/* Resend link notice */}
         {overrideStatus === 'approved' && !job.deposit_paid && job.stripe_payment_link && (
           <div className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
@@ -403,7 +380,7 @@ export function QuoteCard({ job }: { job: any }) {
             disabled={!canApprove || loadingStripe || loadingCash}
             className="w-full py-3 text-base font-semibold"
           >
-            {loadingStripe ? 'Sending…' : '✉️ Approve & Send Deposit Link'}
+            {loadingStripe ? 'Sending…' : 'Send Quote'}
           </Button>
         )}
 
@@ -506,28 +483,6 @@ export function QuoteCard({ job }: { job: any }) {
         {successMsg && <p className="text-sm font-medium text-emerald-600">{successMsg}</p>}
         {errorMsg && <p className="text-sm font-medium text-red-600">{errorMsg}</p>}
 
-        {/* Manual status override — collapsed by default */}
-        <details className="border-t border-slate-100 pt-4">
-          <summary className="cursor-pointer text-xs font-semibold uppercase tracking-wide text-slate-400 transition-colors duration-200 hover:text-slate-600">
-            Manual Status Override
-          </summary>
-          <div className="mt-3 flex gap-2">
-            <select
-              value={overrideStatus}
-              onChange={(e) => handleStatusOverride(e.target.value)}
-              disabled={loadingOverride}
-              className="flex-1 cursor-pointer rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 transition-colors duration-200 hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-(--color-brand) focus:ring-offset-0 disabled:opacity-50"
-            >
-              <option value="new">New</option>
-              <option value="under_review">Under Review</option>
-              <option value="approved">Approved</option>
-              <option value="scheduled">Scheduled</option>
-              <option value="completed">Completed</option>
-              <option value="cancelled">Cancelled</option>
-            </select>
-            {loadingOverride && <div className="flex items-center px-2 text-xs text-slate-500">Saving…</div>}
-          </div>
-        </details>
       </div>
     </div>
   )
