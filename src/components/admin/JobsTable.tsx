@@ -9,13 +9,14 @@ import type { Database } from '@/types/database'
 type JobRecord = Database['public']['Tables']['jobs']['Row']
 
 // ── Stage mapping — UI only, never touches DB ────────────────────────────────
-type Stage = 'needs_quote' | 'quote_pending' | 'scheduled' | 'completed'
+type Stage = 'needs_quote' | 'quote_pending' | 'scheduled' | 'completed' | 'declined'
 
 function mapStatusToStage(status: JobRecord['status']): Stage {
   if (status === 'new' || status === 'under_review') return 'needs_quote'
   if (status === 'approved') return 'quote_pending'
   if (status === 'scheduled') return 'scheduled'
   if (status === 'completed') return 'completed'
+  if (status === 'cancelled') return 'declined'
   return 'needs_quote'
 }
 
@@ -24,15 +25,17 @@ const STAGE_CONFIG: Record<Stage, { label: string; dot: string; text: string }> 
   quote_pending: { label: 'Quote Pending', dot: 'bg-orange-400', text: 'text-orange-700' },
   scheduled:     { label: 'Scheduled', dot: 'bg-emerald-500', text: 'text-emerald-700' },
   completed:     { label: 'Completed', dot: 'bg-slate-400', text: 'text-slate-500' },
+  declined:      { label: 'Declined', dot: 'bg-red-400', text: 'text-red-500' },
 }
 
 type TabFilter = 'all' | Stage
 const TABS: { id: TabFilter; label: string }[] = [
-  { id: 'all', label: 'All' },
-  { id: 'needs_quote', label: 'Needs Quote' },
+  { id: 'all',           label: 'All' },
+  { id: 'needs_quote',   label: 'Needs Quote' },
   { id: 'quote_pending', label: 'Quote Pending' },
-  { id: 'scheduled', label: 'Scheduled' },
-  { id: 'completed', label: 'Completed' },
+  { id: 'scheduled',     label: 'Scheduled' },
+  { id: 'completed',     label: 'Completed' },
+  { id: 'declined',      label: 'Declined' },
 ]
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -150,7 +153,9 @@ export function JobsTable({ jobs }: { jobs: JobRecord[] }) {
   const filteredJobs = React.useMemo(() => {
     return jobs
       .filter((j) => {
-        if (j.status === 'cancelled' || j.status === 'partial') return false
+        if (j.status === 'partial') return false
+        // Hide cancelled from All tab — only show in Declined tab
+        if (j.status === 'cancelled' && activeTab !== 'declined') return false
         if (activeTab === 'all') return true
         return mapStatusToStage(j.status) === activeTab
       })

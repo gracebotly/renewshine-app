@@ -7,6 +7,7 @@ import { customerBookedTemplate } from './templates/customer-booked'
 import { ownerBookedTemplate } from './templates/owner-booked'
 import { customerQuoteReminderTemplate } from './templates/customer-quote-reminder'
 import { customerLinkExpiredTemplate } from './templates/customer-link-expired'
+import { customerDeclinedTemplate } from './templates/customer-declined'
 
 const resend = new Resend(process.env.RESEND_API_KEY!)
 const FROM = 'RenewShine <noreply@renewshine.co>'
@@ -60,5 +61,15 @@ export async function sendQuoteReminder(job: Job, newStripeUrl: string): Promise
  */
 export async function sendExpiredLinkRecovery(job: Job, newStripeUrl: string): Promise<void> {
   const { subject, html } = customerLinkExpiredTemplate(job, newStripeUrl)
+  await resend.emails.send({ from: FROM, to: job.client_email, subject, html })
+}
+
+/** Decline email — fires when owner clicks "Send Decline & Email Customer". To: customer. */
+export async function sendCustomerDeclined(
+  job: Job,
+  reason: string,
+  referral: string | null
+): Promise<void> {
+  const { subject, html } = customerDeclinedTemplate(job, reason, referral)
   await resend.emails.send({ from: FROM, to: job.client_email, subject, html })
 }
