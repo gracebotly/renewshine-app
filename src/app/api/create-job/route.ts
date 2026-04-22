@@ -87,6 +87,30 @@ export async function POST(request: Request) {
     await supabase.from('job_media').insert(mediaRows)
   }
 
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? ''
+  const webhookSecret = process.env.N8N_WEBHOOK_SECRET ?? ''
+
+  // ── Fire partial-job-saved webhook for n8n abandoned form flow ───────────
+  // Fires for partial saves only — n8n waits 1 hour, checks if still partial,
+  // then calls /api/webhooks/partial-job-saved to send the reminder email.
+  if (isPartial) {
+    const firstName = (job.client_name ?? '').split(' ')[0] || 'there'
+    const resumeUrl = `${siteUrl}/booking`
+    fetch(`${siteUrl}/api/webhooks/partial-job-saved`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-webhook-secret': webhookSecret,
+      },
+      body: JSON.stringify({
+        jobId: job.id,
+        firstName,
+        clientEmail: job.client_email,
+        resumeUrl,
+      }),
+    }).catch(err => console.error('partial-job-saved webhook failed (non-blocking):', err))
+  }
+
   // Send Templates 1 + 2 — never block job creation on email failure
   // Skip for partial saves — emails fire when the full form is submitted
   if (job.status !== 'partial') {
@@ -121,8 +145,6 @@ export async function POST(request: Request) {
     ).catch(err => console.error('Owner alert SMS failed:', err))
 
     // Fire job-submitted webhook — non-blocking, n8n uses this for audit trail
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? ''
-    const webhookSecret = process.env.N8N_WEBHOOK_SECRET ?? ''
     fetch(`${siteUrl}/api/webhooks/job-submitted`, {
       method: 'POST',
       headers: {

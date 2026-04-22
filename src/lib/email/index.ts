@@ -8,6 +8,7 @@ import { ownerBookedTemplate } from './templates/owner-booked'
 import { customerQuoteReminderTemplate } from './templates/customer-quote-reminder'
 import { customerLinkExpiredTemplate } from './templates/customer-link-expired'
 import { customerDeclinedTemplate } from './templates/customer-declined'
+import { customerAbandonedTemplate } from './templates/customer-abandoned'
 
 const resend = new Resend(process.env.RESEND_API_KEY!)
 const FROM = 'RenewShine <noreply@renewshine.co>'
@@ -72,4 +73,24 @@ export async function sendCustomerDeclined(
 ): Promise<void> {
   const { subject, html } = customerDeclinedTemplate(job, reason, referral)
   await resend.emails.send({ from: FROM, to: job.client_email, subject, html })
+}
+
+
+/**
+ * Abandoned form reminder — fired by n8n (WF-07) 1 hour after a partial job
+ * is saved if the job status is still 'partial'. Never fires if the customer
+ * completed the form. To: customer.
+ *
+ * NOTE: This function is called directly from the webhook endpoint
+ * (api/webhooks/partial-job-saved/route.ts), not from this index file,
+ * because the webhook receives the payload from n8n directly.
+ * This export exists for testing and future admin use.
+ */
+export async function sendAbandonedFormReminder(
+  firstName: string,
+  clientEmail: string,
+  resumeUrl: string
+): Promise<void> {
+  const { subject, html } = customerAbandonedTemplate({ firstName, clientEmail, resumeUrl })
+  await resend.emails.send({ from: FROM, to: clientEmail, subject, html })
 }
