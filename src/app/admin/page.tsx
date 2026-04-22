@@ -14,16 +14,17 @@ export default async function AdminPage() {
 
   const counts = {
     total: allJobs.length,
-    needsReview: allJobs.filter((j) => j.status === 'new' || j.status === 'under_review').length,
-    approved: allJobs.filter((j) => j.status === 'approved').length,
+    needsQuote: allJobs.filter((j) => j.status === 'new' || j.status === 'under_review').length,
+    quotePending: allJobs.filter((j) => j.status === 'approved').length,
     scheduled: allJobs.filter((j) => j.status === 'scheduled').length,
+    completed: allJobs.filter((j) => j.status === 'completed').length,
   }
 
   const fourHoursAgoDate = new Date()
   fourHoursAgoDate.setHours(fourHoursAgoDate.getHours() - 4)
   const fourHoursAgo = fourHoursAgoDate.toISOString()
   const staleCount = allJobs.filter(
-    (j) => j.status === 'new' && j.created_at < fourHoursAgo
+    (j) => (j.status === 'new' || j.status === 'under_review') && j.created_at < fourHoursAgo
   ).length
 
   return (
@@ -49,18 +50,40 @@ export default async function AdminPage() {
 
         <div className="mb-8 grid grid-cols-2 gap-4 sm:grid-cols-4">
           {[
-            { label: 'Total Jobs', value: counts.total, highlight: false },
-            { label: 'Needs Review', value: counts.needsReview, highlight: counts.needsReview > 0 },
-            { label: 'Awaiting Payment', value: counts.approved, highlight: false },
-            { label: 'Scheduled', value: counts.scheduled, highlight: false },
+            {
+              label: 'Needs Quote',
+              value: counts.needsQuote,
+              highlight: counts.needsQuote > 0,
+              color: 'border-amber-200 bg-amber-50',
+              textColor: 'text-amber-700',
+            },
+            {
+              label: 'Quote Pending',
+              value: counts.quotePending,
+              highlight: false,
+              color: 'border-orange-200 bg-orange-50',
+              textColor: 'text-orange-700',
+            },
+            {
+              label: 'Scheduled',
+              value: counts.scheduled,
+              highlight: false,
+              color: 'border-emerald-200 bg-emerald-50',
+              textColor: 'text-emerald-700',
+            },
+            {
+              label: 'Completed',
+              value: counts.completed,
+              highlight: false,
+              color: 'border-slate-200 bg-white',
+              textColor: 'text-slate-700',
+            },
           ].map((card) => (
             <div
               key={card.label}
-              className={`rounded-xl border bg-white p-5 shadow-sm ${
-                card.highlight ? 'border-amber-200 bg-amber-50' : 'border-slate-200'
-              }`}
+              className={`rounded-xl border p-5 shadow-sm ${card.color}`}
             >
-              <p className="font-mono text-2xl font-bold tabular-nums text-slate-900">{card.value}</p>
+              <p className={`font-mono text-2xl font-bold tabular-nums ${card.textColor}`}>{card.value}</p>
               <p className="mt-1 text-sm text-slate-600">{card.label}</p>
             </div>
           ))}
