@@ -18,6 +18,7 @@ export default async function AdminPage() {
     quotePending: allJobs.filter((j) => j.status === 'approved').length,
     scheduled: allJobs.filter((j) => j.status === 'scheduled').length,
     completed: allJobs.filter((j) => j.status === 'completed').length,
+    declined: allJobs.filter((j) => j.status === 'cancelled').length,
   }
 
   const fourHoursAgoDate = new Date()
@@ -48,7 +49,7 @@ export default async function AdminPage() {
           </div>
         </div>
 
-        <div className="mb-8 grid grid-cols-2 gap-4 sm:grid-cols-4">
+        <div className="mb-8 grid grid-cols-2 gap-4 sm:grid-cols-5">
           {[
             {
               label: 'Needs Quote',
@@ -77,6 +78,13 @@ export default async function AdminPage() {
               highlight: false,
               color: 'border-slate-200 bg-white',
               textColor: 'text-slate-700',
+            },
+            {
+              label: 'Declined',
+              value: counts.declined,
+              highlight: false,
+              color: 'border-red-100 bg-white',
+              textColor: 'text-red-400',
             },
           ].map((card) => (
             <div

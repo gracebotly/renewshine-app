@@ -60,6 +60,8 @@ export function QuoteCard({ job }: { job: any }) {
   const [loadingReview, setLoadingReview] = React.useState(false)
   const [loadingDecline, setLoadingDecline] = React.useState(false)
   const [showDeclineConfirm, setShowDeclineConfirm] = React.useState(false)
+  const [declineReason, setDeclineReason] = React.useState('')
+  const [declineReferral, setDeclineReferral] = React.useState('')
   const [loadingResend, setLoadingResend] = React.useState(false)
   const [overrideStatus, setOverrideStatus] = React.useState(job.status)
   const [loadingOverride, setLoadingOverride] = React.useState(false)
@@ -144,20 +146,25 @@ export function QuoteCard({ job }: { job: any }) {
   }
 
   const handleDecline = async () => {
+    if (!declineReason.trim()) return
     setLoadingDecline(true)
     setErrorMsg('')
     setSuccessMsg('')
-    const res = await fetch('/api/admin/update-job-status', {
-      method: 'PATCH',
+    const res = await fetch('/api/admin/decline-job', {
+      method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ jobId: job.id, status: 'cancelled' }),
+      body: JSON.stringify({
+        jobId: job.id,
+        reason: declineReason.trim(),
+        referral: declineReferral.trim() || null,
+      }),
     })
     if (res.ok) {
-      setSuccessMsg('Request declined — status set to Cancelled.')
+      setSuccessMsg('Request declined — decline email sent to customer.')
       setShowDeclineConfirm(false)
       setOverrideStatus('cancelled')
     } else {
-      setErrorMsg('Failed to decline request.')
+      setErrorMsg('Failed to decline request. Please try again.')
     }
     setLoadingDecline(false)
   }
@@ -441,7 +448,7 @@ export function QuoteCard({ job }: { job: any }) {
           </div>
         )}
 
-        {/* Decline — tertiary, text-only style */}
+        {/* Decline */}
         {!job.deposit_paid && overrideStatus !== 'cancelled' && overrideStatus !== 'completed' && (
           <div>
             {!showDeclineConfirm ? (
@@ -453,17 +460,49 @@ export function QuoteCard({ job }: { job: any }) {
               </button>
             ) : (
               <div className="space-y-3 rounded-lg border border-red-200 bg-red-50 p-4">
-                <p className="text-sm font-medium text-red-700">Decline this request? This cannot be undone.</p>
-                <div className="flex gap-2">
+                <p className="text-sm font-semibold text-red-700">Decline this request</p>
+                <p className="text-xs text-red-600">A decline email will be sent to the customer automatically.</p>
+
+                <label className="block space-y-1">
+                  <span className="text-xs font-semibold uppercase tracking-wide text-red-700">
+                    Reason <span className="normal-case font-normal">(required — shown to customer)</span>
+                  </span>
+                  <textarea
+                    value={declineReason}
+                    onChange={(e) => setDeclineReason(e.target.value)}
+                    rows={3}
+                    placeholder="After reviewing your photos, the level of buildup is beyond what our team is equipped to handle safely."
+                    className="w-full resize-none rounded-lg border border-red-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-offset-0"
+                  />
+                </label>
+
+                <label className="block space-y-1">
+                  <span className="text-xs font-semibold uppercase tracking-wide text-red-700">
+                    Referral <span className="normal-case font-normal">(optional — e.g. "ServiceMaster Clean 301-555-0100")</span>
+                  </span>
+                  <input
+                    type="text"
+                    value={declineReferral}
+                    onChange={(e) => setDeclineReferral(e.target.value)}
+                    placeholder="Leave blank for a generic referral line"
+                    className="w-full rounded-lg border border-red-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-offset-0"
+                  />
+                </label>
+
+                <div className="flex gap-2 pt-1">
                   <button
                     onClick={handleDecline}
-                    disabled={loadingDecline}
-                    className="flex-1 cursor-pointer rounded-lg bg-red-600 px-3 py-2 text-sm font-medium text-white transition-colors duration-200 hover:bg-red-700 disabled:opacity-50"
+                    disabled={loadingDecline || !declineReason.trim()}
+                    className="flex-1 cursor-pointer rounded-lg bg-red-600 px-3 py-2 text-sm font-medium text-white transition-colors duration-200 hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    {loadingDecline ? 'Declining…' : 'Yes, Decline'}
+                    {loadingDecline ? 'Sending…' : 'Send Decline & Email Customer'}
                   </button>
                   <button
-                    onClick={() => setShowDeclineConfirm(false)}
+                    onClick={() => {
+                      setShowDeclineConfirm(false)
+                      setDeclineReason('')
+                      setDeclineReferral('')
+                    }}
                     className="flex-1 cursor-pointer rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition-colors duration-200 hover:bg-slate-50"
                   >
                     Cancel
