@@ -89,6 +89,10 @@ export function BookingForm() {
   // Step 1 — contact
   const [resName, setResName] = React.useState('')
   const [resEmail, setResEmail] = React.useState('')
+  const [resPhone, setResPhone] = React.useState('')
+  // Consent checkboxes — shared across all flows
+  const [smsOptIn, setSmsOptIn] = React.useState(false)
+  const [termsAgreed, setTermsAgreed] = React.useState(false)
 
   // Step 2 — home details
   const [resHomeType, setResHomeType] = React.useState<'apartment' | 'townhouse' | 'single_family' | 'condo' | ''>('')
@@ -110,7 +114,6 @@ export function BookingForm() {
   const [resSchedulingMode, setResSchedulingMode] = React.useState<SchedulingMode>('specific')
 
   // Step 5 — final
-  const [resPhone, setResPhone] = React.useState('')
   const [resNotes, setResNotes] = React.useState('')
   const [resMediaEncoded, setResMediaEncoded] = React.useState<string[]>([])
   const [resPreferredContact, setResPreferredContact] = React.useState<'email' | 'phone' | ''>('')
@@ -161,6 +164,8 @@ export function BookingForm() {
     setResTimePref('')
     setResSchedulingMode('specific')
     setResPhone('')
+    setSmsOptIn(false)
+    setTermsAgreed(false)
     setResNotes('')
     setResMediaEncoded([])
   }
@@ -171,6 +176,8 @@ export function BookingForm() {
     setContactName('')
     setComEmail('')
     setComPhone('')
+    setSmsOptIn(false)
+    setTermsAgreed(false)
     setPropertyType(nextFlow === 'post_construction' ? 'new_build' : 'office')
     setSquareFootage('')
     setComFrequency('one_time')
@@ -224,6 +231,7 @@ export function BookingForm() {
           status: 'partial',
           client_name: resName || 'Unknown',
           client_email: resEmail,
+          client_phone: rawPhone(resPhone) || null,
         }),
       })
       const data = await response.json()
@@ -247,6 +255,8 @@ export function BookingForm() {
       if (!resName.trim()) nextErrors.resName = 'Name is required'
       if (!resEmail.trim()) nextErrors.resEmail = 'Email is required'
       else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(resEmail)) nextErrors.resEmail = 'Enter a valid email address'
+      if (rawPhone(resPhone).length < 10) nextErrors.resPhone = 'Enter a valid 10-digit phone number'
+      if (!termsAgreed) nextErrors.termsAgreed = 'You must agree to the Terms and Privacy Policy to continue'
     }
 
     if (resStep === 2) {
@@ -263,7 +273,6 @@ export function BookingForm() {
     }
 
     if (resStep === 5) {
-      if (rawPhone(resPhone).length < 10) nextErrors.resPhone = 'Enter a valid 10-digit phone number'
       if (!resPreferredContact) nextErrors.resPreferredContact = 'Please select a contact preference'
     }
 
@@ -278,6 +287,7 @@ export function BookingForm() {
       if (!contactName.trim()) nextErrors.contactName = 'Contact name is required'
       if (!comEmail.trim()) nextErrors.comEmail = 'Email is required'
       if (rawPhone(comPhone).length < 10) nextErrors.comPhone = 'Enter a valid 10-digit phone number'
+      if (!termsAgreed) nextErrors.termsAgreed = 'You must agree to the Terms and Privacy Policy to continue'
     }
     if (comStep === 2 && !comAddress.trim()) nextErrors.comAddress = 'Address is required'
     if (comStep === 3) {
@@ -560,11 +570,60 @@ export function BookingForm() {
                   error={Boolean(errors.resEmail)}
                 />
                 {errors.resEmail ? <p className="text-sm text-red-600">{errors.resEmail}</p> : null}
-                {/* Progress save microcopy */}
-                <p className="text-xs text-slate-400">
-                  Your quote saves automatically — finish anytime.
-                </p>
+                <p className="text-xs text-slate-400">Your quote saves automatically — finish anytime.</p>
               </label>
+
+              <label className="block space-y-1.5">
+                <span className="text-sm font-medium text-slate-900">Phone Number</span>
+                <Input
+                  type="tel"
+                  placeholder="(301) 555-1234"
+                  value={resPhone}
+                  onChange={(e) => setResPhone(formatPhone(e.target.value))}
+                  error={Boolean(errors.resPhone)}
+                />
+                {errors.resPhone ? <p className="text-sm text-red-600">{errors.resPhone}</p> : null}
+                <p className="text-xs text-slate-400">We'll text you when your quote is ready.</p>
+              </label>
+
+              {/* Consent checkboxes */}
+              <div className="space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-4">
+                <label className="flex items-start gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={smsOptIn}
+                    onChange={(e) => setSmsOptIn(e.target.checked)}
+                    className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer rounded border-slate-300 accent-[hsl(var(--color-brand))]"
+                  />
+                  <span className="text-xs text-slate-600 leading-relaxed">
+                    I agree to receive text messages from RenewShine about my booking and quote. Reply STOP to opt out at any time. Message and data rates may apply.
+                  </span>
+                </label>
+
+                <label className="flex items-start gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={termsAgreed}
+                    onChange={(e) => setTermsAgreed(e.target.checked)}
+                    className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer rounded border-slate-300 accent-[hsl(var(--color-brand))]"
+                  />
+                  <span className="text-xs text-slate-600 leading-relaxed">
+                    I have read and agree to the{' '}
+                    <a href="/terms" target="_blank" className="underline text-slate-900 hover:text-(--color-brand) transition-colors duration-200">
+                      Terms of Service
+                    </a>{' '}
+                    and{' '}
+                    <a href="/privacy" target="_blank" className="underline text-slate-900 hover:text-(--color-brand) transition-colors duration-200">
+                      Privacy Policy
+                    </a>
+                    . <span className="text-red-500">*</span>
+                  </span>
+                </label>
+
+                {errors.termsAgreed ? (
+                  <p className="text-sm text-red-600">{errors.termsAgreed}</p>
+                ) : null}
+              </div>
             </div>
           ) : null}
 
@@ -869,20 +928,6 @@ export function BookingForm() {
                 <p className="mt-1 text-sm text-slate-600">One last thing, then we'll take it from here.</p>
               </div>
 
-              {/* Phone */}
-              <label className="block space-y-1.5">
-                <span className="text-sm font-medium text-slate-900">Phone Number</span>
-                <Input
-                  type="tel"
-                  placeholder="(301) 555-1234"
-                  value={resPhone}
-                  onChange={(e) => setResPhone(formatPhone(e.target.value))}
-                  error={Boolean(errors.resPhone)}
-                />
-                <p className="text-xs text-slate-400">We'll text you when your quote is confirmed.</p>
-                {errors.resPhone ? <p className="text-sm text-red-600">{errors.resPhone}</p> : null}
-              </label>
-
               {/* Notes */}
               <label className="block space-y-1.5">
                 <span className="text-sm font-medium text-slate-900">Anything else we should know?</span>
@@ -1077,6 +1122,45 @@ export function BookingForm() {
                 />
                 {errors.comPhone ? <p className="text-sm text-red-600">{errors.comPhone}</p> : null}
               </label>
+
+              {/* Consent checkboxes — add after the phone label block */}
+              <div className="space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-4">
+                <label className="flex items-start gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={smsOptIn}
+                    onChange={(e) => setSmsOptIn(e.target.checked)}
+                    className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer rounded border-slate-300 accent-[hsl(var(--color-brand))]"
+                  />
+                  <span className="text-xs text-slate-600 leading-relaxed">
+                    I agree to receive text messages from RenewShine about my booking and quote. Reply STOP to opt out at any time. Message and data rates may apply.
+                  </span>
+                </label>
+
+                <label className="flex items-start gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={termsAgreed}
+                    onChange={(e) => setTermsAgreed(e.target.checked)}
+                    className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer rounded border-slate-300 accent-[hsl(var(--color-brand))]"
+                  />
+                  <span className="text-xs text-slate-600 leading-relaxed">
+                    I have read and agree to the{' '}
+                    <a href="/terms" target="_blank" className="underline text-slate-900 hover:text-(--color-brand) transition-colors duration-200">
+                      Terms of Service
+                    </a>{' '}
+                    and{' '}
+                    <a href="/privacy" target="_blank" className="underline text-slate-900 hover:text-(--color-brand) transition-colors duration-200">
+                      Privacy Policy
+                    </a>
+                    . <span className="text-red-500">*</span>
+                  </span>
+                </label>
+
+                {errors.termsAgreed ? (
+                  <p className="text-sm text-red-600">{errors.termsAgreed}</p>
+                ) : null}
+              </div>
             </div>
           ) : null}
 
