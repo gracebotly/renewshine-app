@@ -8,15 +8,27 @@ const TEXT_MUTED = '#64748b'
 const BORDER = '#e2e8f0'
 const BG_PAGE = '#f4f7f5'
 
-const LOGO_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 120" width="135" height="90" style="display:block;">
-  <rect x="14" y="38" width="44" height="44" rx="10" fill="#ffffff" fill-opacity="0.2"/>
+// Logo rendered on brand-green header (#4A7C59).
+// All wordmark text uses white/sage so it reads on the dark background.
+// Geometry matches /public/logo-primary.svg exactly.
+const LOGO_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 120" width="180" height="60" style="display:block;">
+  <!-- Icon mark: green rounded square — rendered on green bg so use white/20 fill -->
+  <rect x="14" y="38" width="44" height="44" rx="10" fill="#ffffff" fill-opacity="0.15"/>
+  <!-- White arc (curves up) -->
   <path d="M22 60 Q36 46 50 60" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round"/>
+  <!-- Sage arc (curves down) -->
   <path d="M22 60 Q36 74 50 60" fill="none" stroke="#A8D4B5" stroke-width="1.5" stroke-linecap="round"/>
+  <!-- White dot (inside upper arc) -->
   <circle cx="36" cy="53" r="3" fill="#ffffff"/>
+  <!-- Sage dot (inside lower arc) -->
   <circle cx="36" cy="67" r="3" fill="#A8D4B5"/>
+  <!-- Wordmark: "renew" in white bold -->
   <text x="68" y="53" font-family="Arial, sans-serif" font-size="17" font-weight="700" fill="#ffffff" letter-spacing="-0.3">renew</text>
+  <!-- Wordmark: "shine" in sage light -->
   <text x="68" y="72" font-family="Arial, sans-serif" font-size="17" font-weight="300" fill="#A8D4B5" letter-spacing="-0.3">shine</text>
-  <line x1="68" y1="80" x2="156" y2="80" stroke="#A8D4B5" stroke-opacity="0.3" stroke-width="1"/>
+  <!-- Thin rule -->
+  <line x1="68" y1="80" x2="156" y2="80" stroke="#ffffff" stroke-opacity="0.2" stroke-width="0.75"/>
+  <!-- Subtitle -->
   <text x="68" y="92" font-family="Arial, sans-serif" font-size="7.5" font-weight="400" fill="#A8D4B5" letter-spacing="2">PREMIUM CLEANING</text>
 </svg>`
 
