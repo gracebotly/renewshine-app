@@ -8,12 +8,16 @@ const TEXT_MUTED = '#64748b'
 const BORDER = '#e2e8f0'
 const BG_PAGE = '#f4f7f5'
 
-const LOGO_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 72 72" width="36" height="36" style="display:block;">
-  <rect x="4" y="4" width="64" height="64" rx="14" fill="#ffffff" fill-opacity="0.2"/>
-  <path d="M16 36 Q36 18 56 36" fill="none" stroke="#ffffff" stroke-width="2.8" stroke-linecap="round"/>
-  <path d="M16 36 Q36 54 56 36" fill="none" stroke="#A8D4B5" stroke-width="2" stroke-linecap="round"/>
-  <circle cx="36" cy="26" r="4.4" fill="#ffffff"/>
-  <circle cx="36" cy="46" r="4.4" fill="#A8D4B5"/>
+const LOGO_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 120" width="135" height="90" style="display:block;">
+  <rect x="14" y="38" width="44" height="44" rx="10" fill="#ffffff" fill-opacity="0.2"/>
+  <path d="M22 60 Q36 46 50 60" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round"/>
+  <path d="M22 60 Q36 74 50 60" fill="none" stroke="#A8D4B5" stroke-width="1.5" stroke-linecap="round"/>
+  <circle cx="36" cy="53" r="3" fill="#ffffff"/>
+  <circle cx="36" cy="67" r="3" fill="#A8D4B5"/>
+  <text x="68" y="53" font-family="Arial, sans-serif" font-size="17" font-weight="700" fill="#ffffff" letter-spacing="-0.3">renew</text>
+  <text x="68" y="72" font-family="Arial, sans-serif" font-size="17" font-weight="300" fill="#A8D4B5" letter-spacing="-0.3">shine</text>
+  <line x1="68" y1="80" x2="156" y2="80" stroke="#A8D4B5" stroke-opacity="0.3" stroke-width="1"/>
+  <text x="68" y="92" font-family="Arial, sans-serif" font-size="7.5" font-weight="400" fill="#A8D4B5" letter-spacing="2">PREMIUM CLEANING</text>
 </svg>`
 
 export function baseTemplate(content: string, previewText: string): string {
@@ -32,16 +36,8 @@ export function baseTemplate(content: string, previewText: string): string {
         <table width="600" cellpadding="0" cellspacing="0" role="presentation"
           style="max-width:600px;width:100%;background:#ffffff;border-radius:12px;overflow:hidden;border:1px solid ${BORDER};">
           <tr>
-            <td style="background:${BRAND};padding:24px 28px;">
-              <table cellpadding="0" cellspacing="0" role="presentation">
-                <tr>
-                  <td style="vertical-align:middle;padding-right:14px;">${LOGO_SVG}</td>
-                  <td style="vertical-align:middle;">
-                    <p style="margin:0;font-size:10px;font-weight:700;color:#ffffff;letter-spacing:0.12em;text-transform:uppercase;">renew</p>
-                    <p style="margin:0;font-size:10px;font-weight:300;color:${BRAND_SAGE};letter-spacing:0.12em;text-transform:uppercase;">shine</p>
-                  </td>
-                </tr>
-              </table>
+            <td style="background:${BRAND};padding:20px 28px;">
+              ${LOGO_SVG}
             </td>
           </tr>
           <tr>
