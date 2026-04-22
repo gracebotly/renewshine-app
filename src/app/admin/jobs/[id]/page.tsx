@@ -289,23 +289,26 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
   const rawMedia: Array<{ id: string; file_url: string; file_type: string | null }> =
     job.job_media ?? []
 
-  const mediaResults = await Promise.all(
-    rawMedia.map(async (m) => {
-      if (m.file_url.startsWith('http')) return m
-      const { data, error } = await supabase.storage
-        .from('job-media')
-        .createSignedUrl(m.file_url, 3600)
-      if (error || !data?.signedUrl) {
-        console.error('Failed to create signed URL for job media:', {
-          mediaId: m.id,
-          path: m.file_url,
-          error: error?.message ?? 'Missing signed URL',
-        })
-        return null
-      }
-      return { ...m, file_url: data.signedUrl }
-    })
-  )
+  const mediaResults = rawMedia.map((m) => {
+    // If already a full URL (legacy records stored before path-only migration), use as-is
+    if (m.file_url.startsWith('http')) return m
+
+    // Bucket is PUBLIC — getPublicUrl() is synchronous, no expiry, no API call needed.
+    // createSignedUrl() is for private buckets only and causes inconsistent rendering on public buckets.
+    const { data } = supabase.storage
+      .from('job-media')
+      .getPublicUrl(m.file_url)
+
+    if (!data?.publicUrl) {
+      console.error('Failed to get public URL for job media:', {
+        mediaId: m.id,
+        path: m.file_url,
+      })
+      return null
+    }
+
+    return { ...m, file_url: data.publicUrl }
+  })
   const media = mediaResults.filter((m): m is NonNullable<typeof m> => Boolean(m))
 
   const heroMedia = media[0] ?? null
@@ -355,7 +358,15 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
                       className="block cursor-pointer overflow-hidden rounded-lg border border-slate-200"
                     >
                       {heroMedia.file_type === 'video' ? (
-                        <video src={heroMedia.file_url} className="h-64 w-full object-cover" controls />
+                        <video
+                          className="h-64 w-full object-cover"
+                          controls
+                          preload="metadata"
+                          playsInline
+                        >
+                          <source src={heroMedia.file_url} type="video/mp4" />
+                          <source src={heroMedia.file_url} type="video/quicktime" />
+                        </video>
                       ) : (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img src={heroMedia.file_url} alt="Job photo" className="h-64 w-full object-cover" />
@@ -373,7 +384,15 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
                           className="block cursor-pointer overflow-hidden rounded-lg border border-slate-200"
                         >
                           {m.file_type === 'video' ? (
-                            <video src={m.file_url} className="h-20 w-full object-cover" />
+                            <video
+                              className="h-20 w-full object-cover"
+                              preload="metadata"
+                              muted
+                              playsInline
+                            >
+                              <source src={m.file_url} type="video/mp4" />
+                              <source src={m.file_url} type="video/quicktime" />
+                            </video>
                           ) : (
                             // eslint-disable-next-line @next/next/no-img-element
                             <img src={m.file_url} alt="Job photo" className="h-20 w-full object-cover" />
