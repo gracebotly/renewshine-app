@@ -5,7 +5,7 @@ import { Suspense } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { motion } from 'motion/react'
-import { CheckCircle, Clock, Mail, Phone, MessageSquare, ClipboardCheck } from 'lucide-react'
+import { CheckCircle, Clock, Mail, Phone, ClipboardCheck } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import Image from 'next/image'
 
@@ -44,7 +44,7 @@ function SubmittedContent() {
             {firstName ? `Got it, ${firstName}!` : 'Request Received!'}
           </h1>
           <p className="text-slate-600">
-            We&apos;re reviewing your photos now. Your confirmed quote arrives within 1–4 hours.
+            We&apos;re reviewing your photos now. You&apos;ll hear from us as soon as possible — usually within a few hours.
           </p>
 
           {/* Contact confirmation card — check and balance for typos */}
@@ -84,15 +84,15 @@ function SubmittedContent() {
               What happens next
             </p>
             <div className="flex items-start gap-3">
-              <MessageSquare size={15} className="text-brand mt-0.5 shrink-0" />
-              <span className="text-sm text-slate-700">
-                You&apos;ll get a text confirmation within minutes
-              </span>
-            </div>
-            <div className="flex items-start gap-3">
               <ClipboardCheck size={15} className="text-brand mt-0.5 shrink-0" />
               <span className="text-sm text-slate-700">
                 We&apos;ll review your photos and confirm your exact price
+              </span>
+            </div>
+            <div className="flex items-start gap-3">
+              <Mail size={15} className="text-brand mt-0.5 shrink-0" />
+              <span className="text-sm text-slate-700">
+                We&apos;ll reach out by your preferred contact method with your quote
               </span>
             </div>
           </div>
@@ -114,7 +114,7 @@ function SubmittedContent() {
               </li>
               <li className="flex items-center gap-2">
                 <Clock size={16} className="text-amber-500 shrink-0" />
-                Quote incoming — check your text and email
+                Quote incoming — check your email
               </li>
             </ul>
           </div>

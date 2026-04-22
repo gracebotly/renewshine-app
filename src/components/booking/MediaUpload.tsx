@@ -2,46 +2,29 @@
 
 import * as React from 'react'
 import { useDropzone } from 'react-dropzone'
-import { CheckCircle2, Film, Loader2, Upload, X } from 'lucide-react'
+import { CheckCircle2, Loader2, Upload, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface MediaUploadProps {
-  onUpload: (urls: string[]) => void
-  uploadedUrls: string[]
+  // Encoded as "storagePath|contentType" — matches what create-job route expects
+  onUpload: (encoded: string[]) => void
+  uploadedEncoded: string[]
 }
 
 interface UploadItem {
   id: string
   name: string
-  url: string
+  previewUrl: string       // blob: URL for display — never replaced
+  storagePath: string      // returned by upload API — used in submit payload
+  contentType: string
   isVideo: boolean
   uploading: boolean
   done: boolean
 }
 
-export function MediaUpload({ onUpload, uploadedUrls }: MediaUploadProps) {
+export function MediaUpload({ onUpload, uploadedEncoded }: MediaUploadProps) {
   const [error, setError] = React.useState('')
   const [items, setItems] = React.useState<UploadItem[]>([])
-
-  React.useEffect(() => {
-    setItems((prev) => {
-      const existing = new Set(prev.map((p) => p.url))
-      const next = [...prev]
-      uploadedUrls.forEach((url) => {
-        if (!existing.has(url)) {
-          next.push({
-            id: crypto.randomUUID(),
-            name: url.split('/').pop() ?? 'uploaded-file',
-            url,
-            isVideo: /\.(mp4|mov|avi|webm)$/i.test(url),
-            uploading: false,
-            done: true,
-          })
-        }
-      })
-      return next
-    })
-  }, [uploadedUrls])
 
   const uploadFile = React.useCallback(
     async (file: File, id: string, previewUrl: string) => {
@@ -51,18 +34,26 @@ export function MediaUpload({ onUpload, uploadedUrls }: MediaUploadProps) {
         const response = await fetch('/api/upload-media', { method: 'POST', body: form })
         const data = await response.json()
         if (!response.ok) throw new Error(data.error ?? 'Upload failed')
+
+        // data.path = storage path, data.contentType = mime type
+        const encoded = `${data.path}|${data.contentType}`
+
         setItems((prev) =>
-          prev.map((i) => (i.id === id ? { ...i, url: data.path, uploading: false, done: true } : i))
+          prev.map((i) =>
+            i.id === id
+              ? { ...i, storagePath: data.path, contentType: data.contentType, uploading: false, done: true }
+              : i
+          )
         )
-        onUpload([...uploadedUrls, data.path])
-        if (previewUrl !== data.path) URL.revokeObjectURL(previewUrl)
+        // Notify parent with encoded storage path — previewUrl stays in local state only
+        onUpload([...uploadedEncoded, encoded])
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Upload failed')
         setItems((prev) => prev.filter((i) => i.id !== id))
         URL.revokeObjectURL(previewUrl)
       }
     },
-    [onUpload, uploadedUrls]
+    [onUpload, uploadedEncoded]
   )
 
   const onDrop = React.useCallback(
@@ -73,13 +64,23 @@ export function MediaUpload({ onUpload, uploadedUrls }: MediaUploadProps) {
         return
       }
       acceptedFiles.forEach((file) => {
-        const preview = URL.createObjectURL(file)
+        const previewUrl = URL.createObjectURL(file)
         const id = crypto.randomUUID()
+        const isVideo = file.type.startsWith('video/')
         setItems((prev) => [
           ...prev,
-          { id, name: file.name, url: preview, isVideo: file.type.startsWith('video/'), uploading: true, done: false },
+          {
+            id,
+            name: file.name,
+            previewUrl,         // This is what the img/video tag reads — never overwritten
+            storagePath: '',
+            contentType: file.type,
+            isVideo,
+            uploading: true,
+            done: false,
+          },
         ])
-        void uploadFile(file, id, preview)
+        void uploadFile(file, id, previewUrl)
       })
     },
     [items.length, uploadFile]
@@ -99,9 +100,11 @@ export function MediaUpload({ onUpload, uploadedUrls }: MediaUploadProps) {
     },
   })
 
-  const handleRemove = (url: string, id: string) => {
-    setItems((prev) => prev.filter((item) => item.id !== id))
-    onUpload(uploadedUrls.filter((u) => u !== url))
+  const handleRemove = (id: string, encoded: string) => {
+    const item = items.find((i) => i.id === id)
+    if (item) URL.revokeObjectURL(item.previewUrl)
+    setItems((prev) => prev.filter((i) => i.id !== id))
+    onUpload(uploadedEncoded.filter((e) => e !== encoded))
   }
 
   const doneCount = items.filter((i) => i.done).length
@@ -109,7 +112,6 @@ export function MediaUpload({ onUpload, uploadedUrls }: MediaUploadProps) {
 
   return (
     <div className="space-y-4">
-
       {/* Drop zone */}
       <div
         {...getRootProps()}
@@ -142,9 +144,7 @@ export function MediaUpload({ onUpload, uploadedUrls }: MediaUploadProps) {
       </div>
 
       {/* Error */}
-      {error ? (
-        <p className="text-sm text-red-600">{error}</p>
-      ) : null}
+      {error ? <p className="text-sm text-red-600">{error}</p> : null}
 
       {/* File count */}
       {totalCount > 0 ? (
@@ -167,17 +167,22 @@ export function MediaUpload({ onUpload, uploadedUrls }: MediaUploadProps) {
       {items.length > 0 ? (
         <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
           {items.map((item) => (
-            <div key={item.id} className="group relative aspect-square overflow-hidden rounded-lg border border-slate-200 bg-slate-100">
-
-              {/* Thumbnail */}
+            <div
+              key={item.id}
+              className="group relative aspect-square overflow-hidden rounded-lg border border-slate-200 bg-slate-100"
+            >
+              {/* Thumbnail — always uses previewUrl (blob:) */}
               {item.isVideo ? (
-                <div className="flex h-full w-full items-center justify-center bg-slate-800">
-                  <Film size={24} className="text-slate-400" />
-                </div>
+                <video
+                  src={item.previewUrl}
+                  className="h-full w-full object-cover"
+                  muted
+                  playsInline
+                />
               ) : (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
-                  src={item.url}
+                  src={item.previewUrl}
                   alt={item.name}
                   className="h-full w-full object-cover"
                 />
@@ -197,11 +202,13 @@ export function MediaUpload({ onUpload, uploadedUrls }: MediaUploadProps) {
                 </div>
               ) : null}
 
-              {/* Remove button — visible on hover */}
+              {/* Remove button */}
               {!item.uploading ? (
                 <button
                   type="button"
-                  onClick={() => handleRemove(item.url, item.id)}
+                  onClick={() =>
+                    handleRemove(item.id, `${item.storagePath}|${item.contentType}`)
+                  }
                   className="absolute right-1.5 top-1.5 flex h-6 w-6 cursor-pointer items-center justify-center rounded-full bg-slate-900/70 text-white opacity-0 transition-opacity duration-150 group-hover:opacity-100"
                   aria-label={`Remove ${item.name}`}
                 >

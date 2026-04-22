@@ -81,6 +81,7 @@ export interface Database {
           created_at: string
           satisfaction_score: number | null
           automation_paused_until: string | null
+          preferred_contact: 'email' | 'phone' | null
         }
         Insert: {
           type?: JobType | null
@@ -114,6 +115,7 @@ export interface Database {
           notes?: string | null
           satisfaction_score?: number | null
           automation_paused_until?: string | null
+          preferred_contact?: 'email' | 'phone' | null
         }
         Update: Partial<Database['public']['Tables']['jobs']['Row']>
         Relationships: []

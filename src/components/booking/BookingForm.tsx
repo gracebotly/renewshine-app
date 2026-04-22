@@ -112,7 +112,8 @@ export function BookingForm() {
   // Step 5 — final
   const [resPhone, setResPhone] = React.useState('')
   const [resNotes, setResNotes] = React.useState('')
-  const [resMediaUrls, setResMediaUrls] = React.useState<string[]>([])
+  const [resMediaEncoded, setResMediaEncoded] = React.useState<string[]>([])
+  const [resPreferredContact, setResPreferredContact] = React.useState<'email' | 'phone' | ''>('')
 
   // ── Commercial state ───────────────────────────────────────────────────────
   const [businessName, setBusinessName] = React.useState('')
@@ -127,14 +128,14 @@ export function BookingForm() {
   const [comEndDate, setComEndDate] = React.useState('')
   const [comTimePref, setComTimePref] = React.useState<TimePreference | ''>('')
   const [comNotes, setComNotes] = React.useState('')
-  const [comMediaUrls, setComMediaUrls] = React.useState<string[]>([])
+  const [comMediaEncoded, setComMediaEncoded] = React.useState<string[]>([])
 
   // ── Derived ────────────────────────────────────────────────────────────────
   const hasResData =
-    resStep > 1 || resName !== '' || resEmail !== '' || resMediaUrls.length > 0
+    resStep > 1 || resAddress !== '' || resName !== '' || resEmail !== '' || resPhone !== '' || resMediaEncoded.length > 0
 
   const hasComData =
-    comStep > 1 || businessName !== '' || contactName !== '' || comEmail !== '' || comMediaUrls.length > 0
+    comStep > 1 || businessName !== '' || contactName !== '' || comEmail !== '' || comPhone !== '' || comMediaEncoded.length > 0
 
   // ── Helpers ────────────────────────────────────────────────────────────────
   const toggleAddOn = (id: string) => {
@@ -161,7 +162,7 @@ export function BookingForm() {
     setResSchedulingMode('specific')
     setResPhone('')
     setResNotes('')
-    setResMediaUrls([])
+    setResMediaEncoded([])
   }
 
   const resetCommercial = (nextFlow: FlowType = flowType) => {
@@ -178,7 +179,7 @@ export function BookingForm() {
     setComEndDate('')
     setComTimePref('')
     setComNotes('')
-    setComMediaUrls([])
+    setComMediaEncoded([])
   }
 
   const handleTabClick = (target: FlowType) => {
@@ -263,6 +264,7 @@ export function BookingForm() {
 
     if (resStep === 5) {
       if (rawPhone(resPhone).length < 10) nextErrors.resPhone = 'Enter a valid 10-digit phone number'
+      if (!resPreferredContact) nextErrors.resPreferredContact = 'Please select a contact preference'
     }
 
     setErrors(nextErrors)
@@ -321,7 +323,8 @@ export function BookingForm() {
         availability_start: resStartDate,
         availability_end: resEndDate,
         availability_time_pref: resTimePref,
-        media_urls: resMediaUrls,
+        media_urls: resMediaEncoded,
+        preferred_contact: resPreferredContact,
         notes: resHomeType
           ? `[${resHomeType.replace('_', ' ')}]${resNotes ? ' ' + resNotes : ''}`.trim()
           : resNotes,
@@ -382,7 +385,7 @@ export function BookingForm() {
           availability_start: comStartDate,
           availability_end: comEndDate,
           availability_time_pref: comTimePref,
-          media_urls: comMediaUrls,
+          media_urls: comMediaEncoded,
           notes: comNotes,
           service_type: flowType === 'post_construction' ? 'post_construction' : null,
           bedrooms: null,
@@ -897,7 +900,43 @@ export function BookingForm() {
                 <p className="text-xs text-slate-500">
                   The more we can see, the more accurate your quote. A 60-second walkthrough video works best.
                 </p>
-                <MediaUpload onUpload={setResMediaUrls} uploadedUrls={resMediaUrls} />
+                <MediaUpload onUpload={setResMediaEncoded} uploadedEncoded={resMediaEncoded} />
+              </div>
+
+              {/* Preferred contact method */}
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-slate-900">
+                  How would you prefer we contact you?
+                </p>
+                <div className="grid grid-cols-2 gap-2">
+                  {([
+                    { id: 'email' as const, label: 'Email', sub: 'Quote and updates by email' },
+                    { id: 'phone' as const, label: 'Phone / Text', sub: 'We\'ll call or text you' },
+                  ]).map((option) => (
+                    <button
+                      key={option.id}
+                      type="button"
+                      onClick={() => setResPreferredContact(option.id)}
+                      className={cn(
+                        'cursor-pointer rounded-xl border px-4 py-3 text-left transition-colors duration-200',
+                        resPreferredContact === option.id
+                          ? 'border-(--color-brand) bg-(--color-brand-muted)/40 ring-1 ring-(--color-brand)'
+                          : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'
+                      )}
+                    >
+                      <p className={cn(
+                        'text-sm font-semibold',
+                        resPreferredContact === option.id ? 'text-(--color-brand)' : 'text-slate-900'
+                      )}>
+                        {option.label}
+                      </p>
+                      <p className="mt-0.5 text-xs text-slate-500">{option.sub}</p>
+                    </button>
+                  ))}
+                </div>
+                {errors.resPreferredContact ? (
+                  <p className="text-sm text-red-600">{errors.resPreferredContact}</p>
+                ) : null}
               </div>
 
               {/* Booking summary */}
@@ -935,6 +974,12 @@ export function BookingForm() {
                   <div>
                     <p className="text-xs text-slate-500">Arrival window</p>
                     <p className="font-medium text-slate-900">{timeLabel}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-slate-500">Preferred contact</p>
+                    <p className="font-medium text-slate-900">
+                      {resPreferredContact === 'email' ? 'Email' : resPreferredContact === 'phone' ? 'Phone / Text' : '—'}
+                    </p>
                   </div>
                   <div className="col-span-2">
                     <p className="text-xs text-slate-500">Address</p>
@@ -1121,7 +1166,7 @@ export function BookingForm() {
                   onChange={(e) => setComNotes(e.target.value)}
                 />
               </label>
-              <MediaUpload onUpload={setComMediaUrls} uploadedUrls={comMediaUrls} />
+              <MediaUpload onUpload={setComMediaEncoded} uploadedEncoded={comMediaEncoded} />
               <div className="rounded-xl border border-slate-200 bg-slate-50 p-5 space-y-3">
                 <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Submission Summary</p>
                 <div className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
