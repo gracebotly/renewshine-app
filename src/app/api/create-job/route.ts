@@ -71,11 +71,18 @@ export async function POST(request: Request) {
   }
 
   if (media_urls.length > 0) {
-    const mediaRows = media_urls.map((url: string) => ({
-      job_id: job.id,
-      file_url: url,
-      file_type: url?.match(/\.(mp4|mov|avi|webm)$/i) ? 'video' : 'image',
-    }))
+    const mediaRows = media_urls.map((encoded: string) => {
+      // Path may be encoded as "storagePath|contentType" from the upload response
+      const [storagePath, contentType] = encoded.includes('|')
+        ? encoded.split('|')
+        : [encoded, 'image/jpeg']
+      const isVideo = contentType.startsWith('video/')
+      return {
+        job_id: job.id,
+        file_url: storagePath,
+        file_type: isVideo ? 'video' : 'image',
+      }
+    })
     await supabase.from('job_media').insert(mediaRows)
   }
 

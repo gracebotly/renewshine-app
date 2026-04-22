@@ -3,50 +3,248 @@ import { createServerClient } from '@/lib/supabase/server'
 import { ChevronLeft } from 'lucide-react'
 import { notFound } from 'next/navigation'
 import { QuoteCard } from '@/components/admin/QuoteCard'
+import { ADD_ONS } from '@/lib/pricing'
 
-function EditableFields({ job }: { job: any }) {
+// ── Label/Value row — read-only display ──────────────────────────────────────
+function Row({ label, value }: { label: string; value: string | null | undefined }) {
+  return (
+    <div className="flex min-h-[32px] items-start gap-4 py-1">
+      <dt className="w-32 shrink-0 text-xs font-semibold uppercase tracking-wide text-slate-400">
+        {label}
+      </dt>
+      <dd className="flex-1 text-sm text-slate-900">{value || '—'}</dd>
+    </div>
+  )
+}
+
+// ── Section divider ───────────────────────────────────────────────────────────
+function Section({ title }: { title: string }) {
+  return (
+    <div className="mb-3 mt-6 first:mt-0 flex items-center gap-3">
+      <p className="text-xs font-bold uppercase tracking-widest text-slate-400">{title}</p>
+      <div className="flex-1 border-t border-slate-100" />
+    </div>
+  )
+}
+
+// ── Inline editable submission form ──────────────────────────────────────────
+function SubmissionCard({ job }: { job: any }) {
   async function saveDetails(formData: FormData) {
     'use server'
     const { createServerClient } = await import('@/lib/supabase/server')
     const supabase = createServerClient()
-    const address = String(formData.get('address') ?? '')
-    const notes = String(formData.get('notes') ?? '')
-    await supabase.from('jobs').update({ address, notes }).eq('id', job.id)
+    await supabase
+      .from('jobs')
+      .update({
+        client_name: String(formData.get('client_name') ?? ''),
+        client_phone: String(formData.get('client_phone') ?? '') || null,
+        client_email: String(formData.get('client_email') ?? ''),
+        address: String(formData.get('address') ?? '') || null,
+        bedrooms: Number(formData.get('bedrooms')) || null,
+        bathrooms: Number(formData.get('bathrooms')) || null,
+        service_frequency: String(formData.get('service_frequency') ?? '') || null,
+        notes: String(formData.get('notes') ?? '') || null,
+      })
+      .eq('id', job.id)
   }
 
+  const timePrefMap: Record<string, string> = {
+    morning: 'Morning (8am–12pm)',
+    afternoon: 'Afternoon (12pm–5pm)',
+    early_morning: '8am – 10am',
+    mid_morning: '10am – 12pm',
+    noon: '12pm – 2pm',
+    early_afternoon: '2pm – 4pm',
+    late_afternoon: '4pm – 6pm',
+    flexible: 'Flexible (Any Time)',
+  }
+
+  const frequencyMap: Record<string, string> = {
+    one_time: 'One-time',
+    weekly: 'Weekly',
+    bi_weekly: 'Bi-weekly',
+    monthly: 'Monthly',
+  }
+
+  const serviceMap: Record<string, string> = {
+    standard: 'Standard Clean',
+    deep: 'Deep Clean',
+    move_out: 'Move-In / Move-Out',
+    post_construction: 'Post-Construction',
+  }
+
+  const selectedAddOns = ADD_ONS.filter((a) =>
+    Array.isArray(job.add_ons) && job.add_ons.includes(a.id)
+  )
+
+  const availStr = (() => {
+    if (!job.availability_start) return '—'
+    const fmt = (d: string) =>
+      new Date(d).toLocaleDateString('en-US', {
+        weekday: 'short', month: 'short', day: 'numeric', year: 'numeric',
+      })
+    if (job.availability_end && job.availability_end !== job.availability_start) {
+      return `${fmt(job.availability_start)} – ${fmt(job.availability_end)}`
+    }
+    return fmt(job.availability_start)
+  })()
+
+  const inputClass =
+    'w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 transition-colors duration-200 hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-(--color-brand) focus:ring-offset-0'
+
   return (
-    <form action={saveDetails} className="space-y-4 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-      <h3 className="font-semibold text-slate-900">Edit Job Details</h3>
-      <label className="block space-y-1">
-        <span className="text-sm font-medium text-slate-900">Address</span>
-        <input
-          type="text"
-          name="address"
-          defaultValue={job.address ?? ''}
-          className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 transition-colors duration-200 hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-(--color-brand) focus:ring-offset-0"
-          placeholder="Service address"
+    <form
+      action={saveDetails}
+      className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm"
+    >
+      <div className="mb-5 flex items-center justify-between">
+        <h2 className="text-base font-semibold text-slate-900">Booking Submission</h2>
+        <button
+          type="submit"
+          className="cursor-pointer rounded-lg bg-(--color-brand) px-4 py-1.5 text-sm font-medium text-white transition-colors duration-200 hover:bg-(--color-brand-hover)"
+        >
+          Save
+        </button>
+      </div>
+
+      <dl>
+        {/* ── CONTACT ── */}
+        <Section title="Contact" />
+
+        <div className="flex min-h-[32px] items-start gap-4 py-1">
+          <dt className="w-32 shrink-0 text-xs font-semibold uppercase tracking-wide text-slate-400 pt-2">
+            Name
+          </dt>
+          <dd className="flex-1">
+            <input name="client_name" defaultValue={job.client_name ?? ''} className={inputClass} />
+          </dd>
+        </div>
+
+        <div className="flex min-h-[32px] items-start gap-4 py-1">
+          <dt className="w-32 shrink-0 text-xs font-semibold uppercase tracking-wide text-slate-400 pt-2">
+            Email
+          </dt>
+          <dd className="flex-1">
+            <input name="client_email" type="email" defaultValue={job.client_email ?? ''} className={inputClass} />
+          </dd>
+        </div>
+
+        <div className="flex min-h-[32px] items-start gap-4 py-1">
+          <dt className="w-32 shrink-0 text-xs font-semibold uppercase tracking-wide text-slate-400 pt-2">
+            Phone
+          </dt>
+          <dd className="flex-1">
+            <input name="client_phone" defaultValue={job.client_phone ?? ''} className={`${inputClass} select-all`} />
+          </dd>
+        </div>
+
+        <div className="flex min-h-[32px] items-start gap-4 py-1">
+          <dt className="w-32 shrink-0 text-xs font-semibold uppercase tracking-wide text-slate-400 pt-2">
+            Address
+          </dt>
+          <dd className="flex-1">
+            <input name="address" defaultValue={job.address ?? ''} placeholder="Service address" className={inputClass} />
+          </dd>
+        </div>
+
+        {job.type === 'commercial' && (
+          <>
+            <Row label="Business" value={job.business_name} />
+            <Row label="Sq Footage" value={job.square_footage ? `${job.square_footage} sq ft` : null} />
+            <Row label="Condition" value={job.condition} />
+          </>
+        )}
+
+        {/* ── SERVICE ── */}
+        <Section title="Service" />
+
+        <Row label="Type" value={serviceMap[job.service_type ?? ''] ?? job.service_type} />
+
+        {job.service_type !== 'post_construction' && (
+          <>
+            <div className="flex min-h-[32px] items-start gap-4 py-1">
+              <dt className="w-32 shrink-0 text-xs font-semibold uppercase tracking-wide text-slate-400 pt-2">
+                Bedrooms
+              </dt>
+              <dd className="flex-1">
+                <input name="bedrooms" type="number" min="0" defaultValue={job.bedrooms ?? ''} className={`${inputClass} max-w-[80px]`} />
+              </dd>
+            </div>
+
+            <div className="flex min-h-[32px] items-start gap-4 py-1">
+              <dt className="w-32 shrink-0 text-xs font-semibold uppercase tracking-wide text-slate-400 pt-2">
+                Bathrooms
+              </dt>
+              <dd className="flex-1">
+                <input name="bathrooms" type="number" min="0" defaultValue={job.bathrooms ?? ''} className={`${inputClass} max-w-[80px]`} />
+              </dd>
+            </div>
+          </>
+        )}
+
+        <Row
+          label="Add-ons"
+          value={selectedAddOns.length > 0 ? selectedAddOns.map((a) => a.label).join(', ') : 'None'}
         />
-      </label>
-      <label className="block space-y-1">
-        <span className="text-sm font-medium text-slate-900">Notes</span>
-        <textarea
-          name="notes"
-          defaultValue={job.notes ?? ''}
-          rows={3}
-          className="w-full resize-none rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 transition-colors duration-200 hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-(--color-brand) focus:ring-offset-0"
-          placeholder="Internal notes visible only to you…"
+
+        <div className="flex min-h-[32px] items-start gap-4 py-1">
+          <dt className="w-32 shrink-0 text-xs font-semibold uppercase tracking-wide text-slate-400 pt-2">
+            Frequency
+          </dt>
+          <dd className="flex-1">
+            <select
+              name="service_frequency"
+              defaultValue={job.service_frequency ?? 'one_time'}
+              className={inputClass}
+            >
+              <option value="one_time">One-time</option>
+              <option value="weekly">Weekly</option>
+              <option value="bi_weekly">Bi-weekly</option>
+              <option value="monthly">Monthly</option>
+            </select>
+          </dd>
+        </div>
+
+        {/* ── AVAILABILITY ── */}
+        <Section title="Availability" />
+
+        <Row label="Window" value={availStr} />
+        <Row
+          label="Time"
+          value={timePrefMap[job.availability_time_pref ?? ''] ?? job.availability_time_pref}
         />
-      </label>
-      <button
-        type="submit"
-        className="cursor-pointer rounded-lg bg-(--color-brand) px-4 py-2 text-sm font-medium text-white transition-colors duration-200 hover:bg-(--color-brand-hover)"
-      >
-        Save Changes
-      </button>
+
+        {/* ── NOTES ── */}
+        <Section title="Notes" />
+
+        <div className="flex items-start gap-4 py-1">
+          <dt className="w-32 shrink-0 text-xs font-semibold uppercase tracking-wide text-slate-400 pt-2">
+            Notes
+          </dt>
+          <dd className="flex-1">
+            <textarea
+              name="notes"
+              defaultValue={job.notes ?? ''}
+              rows={3}
+              placeholder="Internal notes visible only to you…"
+              className={`${inputClass} resize-none`}
+            />
+          </dd>
+        </div>
+
+        {/* ── META ── */}
+        <Section title="Meta" />
+        <Row label="Submitted" value={new Date(job.created_at).toLocaleString('en-US', {
+          month: 'short', day: 'numeric', year: 'numeric',
+          hour: 'numeric', minute: '2-digit',
+        })} />
+        <Row label="Job Type" value={job.type ?? 'residential'} />
+      </dl>
     </form>
   )
 }
 
+// ── Page ─────────────────────────────────────────────────────────────────────
 export default async function JobDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const supabase = createServerClient()
   const { id } = await params
@@ -61,15 +259,24 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
   const rawMedia: Array<{ id: string; file_url: string; file_type: string | null }> =
     job.job_media ?? []
 
-  const media = await Promise.all(
+  const mediaResults = await Promise.all(
     rawMedia.map(async (m) => {
       if (m.file_url.startsWith('http')) return m
-      const { data } = await supabase.storage
+      const { data, error } = await supabase.storage
         .from('job-media')
         .createSignedUrl(m.file_url, 3600)
-      return { ...m, file_url: data?.signedUrl ?? m.file_url }
+      if (error || !data?.signedUrl) {
+        console.error('Failed to create signed URL for job media:', {
+          mediaId: m.id,
+          path: m.file_url,
+          error: error?.message ?? 'Missing signed URL',
+        })
+        return null
+      }
+      return { ...m, file_url: data.signedUrl }
     })
   )
+  const media = mediaResults.filter((m): m is NonNullable<typeof m> => Boolean(m))
 
   const heroMedia = media[0] ?? null
   const thumbMedia = media.slice(1)
@@ -84,33 +291,32 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
           <ChevronLeft size={16} /> Back to Dashboard
         </Link>
 
-        {/* Two-column layout: photos+details left, sticky decision panel right */}
         <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
 
-          {/* RIGHT COLUMN — sticky decision panel (mobile first) */}
+          {/* RIGHT — sticky decision panel */}
           <div className="w-full lg:w-80 xl:w-96 lg:sticky lg:top-8 shrink-0 lg:order-2">
             <QuoteCard job={job} />
           </div>
 
-          {/* LEFT COLUMN — photos + context */}
+          {/* LEFT — submission + media + timeline */}
           <div className="flex-1 min-w-0 space-y-6 lg:order-1">
 
-            {/* Photo Hero */}
-            <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-              <div className="mb-3 flex items-center justify-between">
-                <h3 className="font-semibold text-slate-900">
-                  📸 Photos & Videos
-                  <span className="ml-2 text-sm font-normal text-slate-500">({media.length})</span>
-                </h3>
-              </div>
+            {/* 1. Submission card — all wizard fields */}
+            <SubmissionCard job={job} />
+
+            {/* 2. Photos & Videos */}
+            <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+              <h3 className="mb-4 text-sm font-bold uppercase tracking-widest text-slate-400">
+                Photos & Videos
+                <span className="ml-2 normal-case font-normal text-slate-400">({media.length})</span>
+              </h3>
 
               {media.length === 0 ? (
-                <div className="flex h-48 items-center justify-center rounded-lg border border-dashed border-slate-200 text-sm text-slate-400">
+                <div className="flex h-40 items-center justify-center rounded-lg border border-dashed border-slate-200 text-sm text-slate-400">
                   No media uploaded
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {/* Hero image */}
                   {heroMedia && (
                     <a
                       href={heroMedia.file_url}
@@ -119,14 +325,13 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
                       className="block cursor-pointer overflow-hidden rounded-lg border border-slate-200"
                     >
                       {heroMedia.file_type === 'video' ? (
-                        <video src={heroMedia.file_url} className="h-72 w-full object-cover" controls />
+                        <video src={heroMedia.file_url} className="h-64 w-full object-cover" controls />
                       ) : (
                         // eslint-disable-next-line @next/next/no-img-element
-                        <img src={heroMedia.file_url} alt="Job photo" className="h-72 w-full object-cover" />
+                        <img src={heroMedia.file_url} alt="Job photo" className="h-64 w-full object-cover" />
                       )}
                     </a>
                   )}
-                  {/* Thumbnail row */}
                   {thumbMedia.length > 0 && (
                     <div className="grid grid-cols-4 gap-2">
                       {thumbMedia.map((m) => (
@@ -151,77 +356,38 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
               )}
             </div>
 
-            {/* Client Details */}
-            <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-              <h3 className="mb-4 font-semibold text-slate-900">👤 Client Details</h3>
-              <dl className="space-y-2 text-sm">
-                {[
-                  ['Name', job.client_name],
-                  ['Email', job.client_email],
-                  ['Phone', job.client_phone ?? '—'],
-                  ['Address', job.address ?? '—'],
-                  ['Type', job.type],
-                  ...(job.type === 'commercial'
-                    ? [
-                        ['Business', job.business_name ?? '—'],
-                        ['Sq Footage', job.square_footage ? `${job.square_footage} sq ft` : '—'],
-                        ['Condition', job.condition ?? '—'],
-                      ]
-                    : []),
-                  ['Submitted', new Date(job.created_at).toLocaleString()],
-                ].map(([label, value]) => (
-                  <div key={String(label)} className="flex gap-4">
-                    <dt className="w-24 shrink-0 text-slate-500">{label}</dt>
-                    <dd className="break-all text-slate-900">{value as string}</dd>
-                  </div>
-                ))}
-              </dl>
-              <div className="mt-4 space-y-1 border-t border-slate-100 pt-4 text-sm">
-                <p className="select-all text-slate-900">{job.client_email}</p>
-                {job.client_phone && (
-                  <p className="select-all text-slate-900">{job.client_phone}</p>
-                )}
-              </div>
-            </div>
-
-            {/* Edit Notes / Address */}
-            <EditableFields job={job} />
-
-            {/* Activity Timeline */}
-            <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-              <h3 className="mb-4 font-semibold text-slate-900">🕒 Activity Timeline</h3>
+            {/* 3. Activity Timeline */}
+            <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+              <h3 className="mb-4 text-sm font-bold uppercase tracking-widest text-slate-400">
+                Activity Timeline
+              </h3>
               <div className="space-y-3">
                 {[
                   {
                     label: 'Request submitted',
                     timestamp: job.created_at,
-                    color: 'bg-slate-400',
+                    color: 'bg-slate-300',
                     show: true,
                   },
                   {
                     label: 'Marked under review',
                     timestamp:
-                      job.status === 'under_review' ||
-                      job.status === 'approved' ||
-                      job.status === 'scheduled' ||
-                      job.status === 'completed'
+                      ['under_review', 'approved', 'scheduled', 'completed'].includes(job.status)
                         ? job.created_at
                         : null,
                     color: 'bg-amber-400',
-                    show: job.status !== 'new' && job.status !== 'cancelled',
+                    show: !['new', 'cancelled'].includes(job.status),
                   },
                   {
-                    label: 'Quote approved & sent',
+                    label: 'Quote sent',
                     timestamp: job.confirmed_date,
                     color: 'bg-(--color-brand)',
                     show:
                       !!job.stripe_payment_link ||
-                      job.status === 'approved' ||
-                      job.status === 'scheduled' ||
-                      job.status === 'completed',
+                      ['approved', 'scheduled', 'completed'].includes(job.status),
                   },
                   {
-                    label: 'Deposit paid — job scheduled',
+                    label: 'Deposit paid — scheduled',
                     timestamp: job.deposit_paid ? job.confirmed_date : null,
                     color: 'bg-emerald-500',
                     show: job.deposit_paid,
@@ -233,7 +399,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
                     show: job.status === 'completed',
                   },
                   {
-                    label: 'Request declined',
+                    label: 'Declined',
                     timestamp: job.status === 'cancelled' ? job.created_at : null,
                     color: 'bg-red-400',
                     show: job.status === 'cancelled',
@@ -244,12 +410,14 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
                     <div key={item.label} className="flex gap-3">
                       <div className="flex flex-col items-center">
                         <div className={`mt-1 h-2.5 w-2.5 shrink-0 rounded-full ${item.color}`} />
-                        {i < arr.length - 1 && <div className="mt-1 w-px flex-1 bg-slate-200" />}
+                        {i < arr.length - 1 && (
+                          <div className="mt-1 w-px flex-1 bg-slate-200" />
+                        )}
                       </div>
                       <div className="pb-3">
                         <p className="text-sm font-medium text-slate-900">{item.label}</p>
                         {item.timestamp && (
-                          <p className="text-xs text-slate-500">
+                          <p className="text-xs text-slate-400">
                             {new Date(item.timestamp).toLocaleString('en-US', {
                               month: 'short',
                               day: 'numeric',
@@ -264,8 +432,8 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
                   ))}
               </div>
             </div>
-          </div>
 
+          </div>
         </div>
       </div>
     </div>
