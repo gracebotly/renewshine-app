@@ -113,9 +113,24 @@ export function customerQuoteTemplate(job: Job, stripeUrl: string): { subject: s
     </tr>
   </table>
 
-  <p style="margin:0 0 20px;font-size:12px;color:#64748b;line-height:1.6;">
-    This is an estimate based on your photos. Final price is confirmed on the day based on actual scope.
-  </p>
+  <!-- Estimate disclaimer block -->
+  <table width="100%" cellpadding="0" cellspacing="0" role="presentation"
+    style="border:1px solid #e2e8f0;border-radius:8px;background:#f8fafc;margin:0 0 20px;overflow:hidden;">
+    <tr>
+      <td style="padding:16px 20px;">
+        <p style="margin:0 0 6px;font-size:12px;font-weight:700;color:#0f172a;text-transform:uppercase;letter-spacing:0.06em;">About this estimate</p>
+        <p style="margin:0 0 10px;font-size:13px;color:#475569;line-height:1.65;">
+          The price above is based on the photos and details you provided. It represents our best assessment
+          of your space before we arrive — not a final invoice.
+        </p>
+        <p style="margin:0;font-size:13px;color:#475569;line-height:1.65;">
+          If conditions on arrival differ meaningfully from what was shown — such as heavier buildup,
+          additional areas, or scope beyond what was visible in your submission — we will let you know
+          before proceeding and confirm any adjustment with you first. <strong style="color:#0f172a;">No surprise charges.</strong>
+        </p>
+      </td>
+    </tr>
+  </table>
 
   <p style="margin:0 0 6px;font-size:13px;color:#64748b;text-align:center;">Your date is not held until the deposit is paid. Estimate valid for 48 hours.</p>
 
