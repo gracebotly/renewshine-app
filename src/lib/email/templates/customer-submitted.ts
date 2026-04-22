@@ -3,7 +3,7 @@ import { baseTemplate, badge, heading, para, divider, infoTable, infoRow, step }
 
 export function customerSubmittedTemplate(job: Job): { subject: string; html: string } {
   const firstName = job.client_name.split(' ')[0]
-  const subject = `Got it, ${firstName}. We'll be in touch within 4 hours.`
+  const subject = `Got it, ${firstName}. We're reviewing your request now.`
 
   const serviceLabel =
     job.service_type === 'standard' ? 'Standard Clean'
@@ -31,12 +31,12 @@ export function customerSubmittedTemplate(job: Job): { subject: string; html: st
   const content = `
     ${badge('Request Received', 'green')}
     ${heading(`Thanks, ${firstName}.`)}
-    ${para(`Your request is in. We are reviewing your photos now and will confirm your price and date within 4 hours. No payment is needed until you approve the quote.`)}
+    ${para(`Your request is in. We&apos;re reviewing your photos now and will be in touch as soon as possible — usually within a few hours. No payment is needed until you approve the quote.`)}
 
     <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="margin:0 0 20px;">
       <tbody>
         ${step(1, 'Request received', 'Your photos and details are with us now.')}
-        ${step(2, 'We review and send your quote', 'We confirm the price and your date. Usually within 4 hours.')}
+        ${step(2, 'We reach out with your quote', 'We\'ll contact you by your preferred method — email or phone — to confirm the price and date. We may follow up with a question or two if we need more detail.')}
         ${step(3, 'You approve and pay a $100 deposit', 'Nothing is charged until you see the quote and agree.')}
       </tbody>
     </table>
@@ -55,5 +55,5 @@ export function customerSubmittedTemplate(job: Job): { subject: string; html: st
     )}
   `
 
-  return { subject, html: baseTemplate(content, `Got it! We'll review your home and confirm your price within 1–4 hours.`) }
+  return { subject, html: baseTemplate(content, `We're reviewing your request now and will be in touch soon with your confirmed quote.`) }
 }
