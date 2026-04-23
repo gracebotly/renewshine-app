@@ -171,7 +171,7 @@ export default function HomePage() {
             transition={{ duration: 0.25, ease: 'easeOut' }}
           >
         <div className="flex justify-center mb-6">
-          <Image src="/logo-stacked.svg" alt="RenewShine" width={120} height={90} priority className="w-28 h-auto" />
+          <Image src="/logo-mark.svg" alt="RenewShine" width={64} height={64} priority className="w-16 h-16" />
         </div>
             <span className="mb-6 inline-flex items-center gap-1.5 rounded-full bg-(--color-brand-muted) px-3 py-1 text-xs font-semibold uppercase tracking-wide text-(--color-brand)">
               DMV&apos;s photo-reviewed cleaning service
