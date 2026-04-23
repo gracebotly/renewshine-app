@@ -244,6 +244,7 @@ export default function PrivacyPage() {
             <div className="rounded-xl border border-slate-200 bg-slate-50 p-5 text-sm text-slate-700">
               <p className="font-semibold text-slate-900">RenewShine</p>
               <p className="mt-1">Email: <a href="mailto:renewshinedmv@gmail.com" className="text-(--color-brand) underline underline-offset-2">renewshinedmv@gmail.com</a></p>
+              <p className="mt-1">Phone: <a href="tel:+13024927197" className="text-(--color-brand) underline underline-offset-2">(302) 492-7197</a></p>
               <p className="mt-1">Website: <a href="https://renewshine.co" className="text-(--color-brand) underline underline-offset-2">renewshine.co</a></p>
               <p className="mt-1">State of operation: Maryland, USA</p>
             </div>

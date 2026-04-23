@@ -140,7 +140,8 @@ export function customerQuoteTemplate(job: Job, stripeUrl: string): { subject: s
 
   <p style="margin:0;font-size:12px;color:#94a3b8;text-align:center;line-height:1.6;">
     The remaining balance is due only after the clean is complete.<br/>
-    Questions? Reply to this email.
+    Questions? Reply to this email.<br/>
+    Call or text us: (302) 492-7197
   </p>
 `
 
