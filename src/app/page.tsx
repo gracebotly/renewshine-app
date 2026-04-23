@@ -182,7 +182,7 @@ export default function HomePage() {
               confirmed before you pay.
             </h1>
             <p className="mx-auto mt-5 max-w-xl text-lg text-slate-600">
-              Tell us about your space. We review your submission and confirm your price within 1–4 hours. No surprises — ever.
+              Tell us about your space. We review your submission and confirm your price within 1–4 hours.
             </p>
 
             <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
