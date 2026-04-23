@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import Image from 'next/image'
-import { Mail, Shield } from 'lucide-react'
+import { Mail, Phone, Shield } from 'lucide-react'
 
 const footerLinks = {
   Services: [
@@ -48,6 +48,13 @@ export default function Footer() {
               >
                 <Mail size={14} />
                 renewshinedmv@gmail.com
+              </a>
+              <a
+                href="tel:+13024927197"
+                className="inline-flex items-center gap-2 text-sm text-slate-600 hover:text-(--color-brand) transition-colors duration-200"
+              >
+                <Phone size={14} aria-hidden="true" />
+                (302) 492-7197
               </a>
             </div>
             <div className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-700">
