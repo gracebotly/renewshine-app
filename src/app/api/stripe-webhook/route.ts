@@ -3,7 +3,6 @@ import { createServerClient } from '@/lib/supabase/server'
 import { sendCustomerBooked, sendOwnerBooked } from '@/lib/email'
 import { notifyDepositPaid } from '@/lib/slack'
 
-// Required: raw body for Stripe signature verification
 export const runtime = 'nodejs'
 
 export async function POST(request: Request) {
@@ -27,41 +26,57 @@ export async function POST(request: Request) {
     return Response.json({ error: 'Invalid signature' }, { status: 400 })
   }
 
-  // Only handle checkout.session.completed for MVP
-  // This is the correct event for Payment Links — it contains metadata.jobId
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object as {
       id: string
-      metadata?: { jobId?: string }
-    }
-
-    const jobId = session.metadata?.jobId
-
-    if (!jobId) {
-      console.error('Webhook: no jobId in session metadata', session.id)
-      return Response.json({ received: true }) // Return 200 — don't retry
+      payment_link?: string | null
+      metadata?: Record<string, string>
     }
 
     const supabase = createServerClient()
+    let job: any = null
 
-    // Fetch job first — idempotency check
-    const { data: job } = await supabase
-      .from('jobs')
-      .select('*')
-      .eq('id', jobId)
-      .single()
-
-    if (!job) {
-      console.error('Webhook: job not found for jobId', jobId)
-      return Response.json({ received: true }) // Return 200 — don't retry
+    // PRIMARY: jobId in session metadata (future-proof once fixed)
+    const jobId = session.metadata?.jobId
+    if (jobId) {
+      const { data } = await supabase
+        .from('jobs')
+        .select('*')
+        .eq('id', jobId)
+        .single()
+      job = data
     }
 
-    // Idempotency: if already paid, skip processing — Stripe retries events
+    // FALLBACK: session.metadata is empty (current behavior with Payment Links)
+    // Use session.payment_link ID -> retrieve PaymentLink from Stripe -> get URL -> find job by URL
+    if (!job && session.payment_link) {
+      try {
+        const paymentLink = await stripe.paymentLinks.retrieve(session.payment_link)
+        const linkUrl = paymentLink.url
+        if (linkUrl) {
+          const { data } = await supabase
+            .from('jobs')
+            .select('*')
+            .eq('stripe_payment_link', linkUrl)
+            .single()
+          job = data
+        }
+      } catch (lookupErr) {
+        console.error('Webhook: payment link lookup failed:', lookupErr)
+      }
+    }
+
+    if (!job) {
+      console.error('Webhook: could not resolve job for session', session.id)
+      return Response.json({ received: true })
+    }
+
+    // Idempotency: already processed
     if (job.deposit_paid) {
       return Response.json({ received: true })
     }
 
-    // Mark deposit paid and job as scheduled
+    // Mark deposit paid and schedule job
     const { error: updateError } = await supabase
       .from('jobs')
       .update({
@@ -69,11 +84,10 @@ export async function POST(request: Request) {
         status: 'scheduled',
         stripe_session_id: session.id,
       })
-      .eq('id', jobId)
+      .eq('id', job.id)
 
     if (updateError) {
       console.error('Webhook: failed to update job', updateError)
-      // Return 500 so Stripe retries — the idempotency check above prevents double-processing
       return Response.json({ error: 'DB update failed' }, { status: 500 })
     }
 
@@ -81,10 +95,10 @@ export async function POST(request: Request) {
     const { data: updatedJob } = await supabase
       .from('jobs')
       .select('*')
-      .eq('id', jobId)
+      .eq('id', job.id)
       .single()
 
-    // Send Templates 4 + 5 — never block webhook response on email
+    // Send Templates 4 + 5
     try {
       if (updatedJob) {
         await Promise.all([sendCustomerBooked(updatedJob), sendOwnerBooked(updatedJob)])
@@ -93,18 +107,26 @@ export async function POST(request: Request) {
       console.error('Webhook: confirmation emails failed (non-blocking):', emailError)
     }
 
-    // Slack alert — deposit received
+    // Slack alert
     if (updatedJob) {
       notifyDepositPaid(
         `💰 *Deposit paid — Stripe*
 *${updatedJob.client_name}* paid $100 deposit
-🗓️ ${updatedJob.confirmed_date ? new Date(updatedJob.confirmed_date).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }) : 'Date TBD'}
+🗓️ ${
+          updatedJob.confirmed_date
+            ? new Date(updatedJob.confirmed_date).toLocaleDateString('en-US', {
+              weekday: 'long', month: 'long', day: 'numeric',
+            })
+            : 'Date TBD'
+        }
 💵 Remaining balance: $${updatedJob.remaining_amount ?? 0}
-🔗 ${process.env.NEXT_PUBLIC_SITE_URL}/admin/jobs/${updatedJob.id}`
-      ).catch(() => {})
+🔗 ${
+          process.env.NEXT_PUBLIC_SITE_URL
+        }/admin/jobs/${updatedJob.id}`
+      ).catch(() => { })
     }
 
-    // Fire job-scheduled webhook — n8n uses this to schedule day-before reminder
+    // Fire job-scheduled webhook for n8n day-before reminder
     if (updatedJob) {
       const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? ''
       const webhookSecret = process.env.N8N_WEBHOOK_SECRET ?? ''
@@ -126,6 +148,5 @@ export async function POST(request: Request) {
     }
   }
 
-  // Always return 200 — Stripe interprets anything else as a failure and retries
   return Response.json({ received: true })
 }
