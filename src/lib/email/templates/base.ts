@@ -8,28 +8,16 @@ const TEXT_MUTED = '#64748b'
 const BORDER = '#e2e8f0'
 const BG_PAGE = '#f4f7f5'
 
-// Logo rendered on brand-green header (#4A7C59).
-// All wordmark text uses white/sage so it reads on the dark background.
-// Geometry matches /public/logo-primary.svg exactly.
-const LOGO_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 120" width="180" height="60" style="display:block;">
-  <!-- Icon mark: green rounded square — rendered on green bg so use white/20 fill -->
-  <rect x="14" y="38" width="44" height="44" rx="10" fill="#ffffff" fill-opacity="0.15"/>
-  <!-- White arc (curves up) -->
-  <path d="M22 60 Q36 46 50 60" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round"/>
-  <!-- Sage arc (curves down) -->
-  <path d="M22 60 Q36 74 50 60" fill="none" stroke="#A8D4B5" stroke-width="1.5" stroke-linecap="round"/>
-  <!-- White dot (inside upper arc) -->
-  <circle cx="36" cy="53" r="3" fill="#ffffff"/>
-  <!-- Sage dot (inside lower arc) -->
-  <circle cx="36" cy="67" r="3" fill="#A8D4B5"/>
-  <!-- Wordmark: "renew" in white bold -->
-  <text x="68" y="53" font-family="Arial, sans-serif" font-size="17" font-weight="700" fill="#ffffff" letter-spacing="-0.3">renew</text>
-  <!-- Wordmark: "shine" in sage light -->
-  <text x="68" y="72" font-family="Arial, sans-serif" font-size="17" font-weight="300" fill="#A8D4B5" letter-spacing="-0.3">shine</text>
-  <!-- Thin rule -->
-  <line x1="68" y1="80" x2="156" y2="80" stroke="#ffffff" stroke-opacity="0.2" stroke-width="0.75"/>
-  <!-- Subtitle -->
-  <text x="68" y="92" font-family="Arial, sans-serif" font-size="7.5" font-weight="400" fill="#A8D4B5" letter-spacing="2">PREMIUM CLEANING</text>
+const LOGO_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 172 44" width="172" height="44" style="display:block;">
+  <rect x="0" y="0" width="44" height="44" rx="10" fill="#FFFFFF" fill-opacity="0.15" stroke="#A8D4B5" stroke-width="1"/>
+  <path d="M8 22 Q22 8 36 22" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round"/>
+  <path d="M8 22 Q22 36 36 22" fill="none" stroke="#A8D4B5" stroke-width="1.5" stroke-linecap="round"/>
+  <circle cx="22" cy="15" r="3" fill="#FFFFFF"/>
+  <circle cx="22" cy="29" r="3" fill="#A8D4B5"/>
+  <text x="54" y="16" font-family="Arial, sans-serif" font-size="17" font-weight="700" fill="#FFFFFF" letter-spacing="-0.3">renew</text>
+  <text x="54" y="33" font-family="Arial, sans-serif" font-size="17" font-weight="300" fill="#A8D4B5" letter-spacing="-0.3">shine</text>
+  <line x1="54" y1="38" x2="172" y2="38" stroke="#A8D4B5" stroke-opacity="0.3" stroke-width="0.75"/>
+  <text x="54" y="43" font-family="Arial, sans-serif" font-size="6.5" font-weight="400" fill="#A8D4B5" letter-spacing="2">PREMIUM CLEANING</text>
 </svg>`
 
 export function baseTemplate(content: string, previewText: string): string {
@@ -60,6 +48,8 @@ export function baseTemplate(content: string, previewText: string): string {
               <p style="margin:0;font-size:12px;color:${TEXT_MUTED};text-align:center;">RenewShine · DMV Area · DC, Maryland &amp; Virginia</p>
               <p style="margin:6px 0 0;font-size:12px;color:${TEXT_MUTED};text-align:center;">
                 <a href="mailto:renewshinedmv@gmail.com" style="color:${TEXT_MUTED};text-decoration:none;">renewshinedmv@gmail.com</a>
+                &nbsp;·&nbsp;
+                <a href="tel:+13024927197" style="color:${TEXT_MUTED};text-decoration:none;">(302) 492-7197</a>
               </p>
               <p style="margin:6px 0 0;font-size:11px;color:#94a3b8;text-align:center;">© ${new Date().getFullYear()} RenewShine. All rights reserved.</p>
             </td>

@@ -2,7 +2,7 @@ import type { Job } from '@/types/database'
 import { baseTemplate, badge, heading, para, divider, infoTable, infoRow, trustStrip } from './base'
 
 export function customerBookedTemplate(job: Job): { subject: string; html: string } {
-  const subject = `You're booked — RenewShine is confirmed`
+  const subject = `You're booked: RenewShine is confirmed`
   const firstName = job.client_name.split(' ')[0]
 
   const serviceLabel =
@@ -15,17 +15,17 @@ export function customerBookedTemplate(job: Job): { subject: string; html: strin
     ? new Date(job.confirmed_date).toLocaleDateString('en-US', {
         weekday: 'long', month: 'long', day: 'numeric', year: 'numeric',
       })
-    : '—'
+    : 'Not confirmed'
 
   const timePrefMap: Record<string, string> = {
-    morning:         'Morning (8am–12pm)',
-    afternoon:       'Afternoon (12pm–5pm)',
-    early_morning:   '8am – 10am',
-    mid_morning:     '10am – 12pm',
-    noon:            '12pm – 2pm',
-    early_afternoon: '2pm – 4pm',
-    late_afternoon:  '4pm – 6pm',
-    flexible:        'Flexible (Any Time)',
+    morning: 'Morning (8am to 12pm)',
+    afternoon: 'Afternoon (12pm to 5pm)',
+    early_morning: '8am to 10am',
+    mid_morning: '10am to 12pm',
+    noon: '12pm to 2pm',
+    early_afternoon: '2pm to 4pm',
+    late_afternoon: '4pm to 6pm',
+    flexible: 'Flexible (Any Time)',
   }
   const timePref = job.availability_time_pref
     ? (timePrefMap[job.availability_time_pref] ?? 'Flexible (Any Time)')
@@ -42,8 +42,8 @@ export function customerBookedTemplate(job: Job): { subject: string; html: strin
     infoRow('Confirmed date', confirmedDateStr) +
     infoRow('Arrival window', timePref) +
     infoRow('Service', serviceLabel) +
-    infoRow('Address', job.address ?? '—') +
-    infoRow('Deposit paid', '$100.00 ✓') +
+    infoRow('Address', job.address ?? 'Not set') +
+    infoRow('Deposit paid', '$100.00') +
     infoRow('Remaining balance', `$${remaining.toFixed(2)} (due after clean)`)
   )}
 
@@ -54,31 +54,31 @@ export function customerBookedTemplate(job: Job): { subject: string; html: strin
   <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="margin:0 0 20px;">
     <tbody>
       <tr>
-        <td style="padding:10px 0;vertical-align:top;width:28px;font-size:18px;">🕐</td>
-        <td style="padding:10px 0 10px 10px;vertical-align:top;">
+        <td style="padding:10px 0;vertical-align:top;width:24px;font-size:13px;font-weight:700;color:#4A7C59;">1.</td>
+        <td style="padding:10px 0 10px 8px;vertical-align:top;">
           <p style="margin:0;font-size:14px;font-weight:600;color:#0f172a;">We arrive in your confirmed window</p>
-          <p style="margin:4px 0 0;font-size:13px;color:#64748b;">${timePref} on ${confirmedDateStr}. No need to wait around — we'll get started the moment we arrive.</p>
+          <p style="margin:4px 0 0;font-size:13px;color:#64748b;">${timePref} on ${confirmedDateStr}.</p>
         </td>
       </tr>
       <tr>
-        <td style="padding:10px 0;vertical-align:top;width:28px;font-size:18px;">✅</td>
-        <td style="padding:10px 0 10px 10px;vertical-align:top;">
+        <td style="padding:10px 0;vertical-align:top;width:24px;font-size:13px;font-weight:700;color:#4A7C59;">2.</td>
+        <td style="padding:10px 0 10px 8px;vertical-align:top;">
           <p style="margin:0;font-size:14px;font-weight:600;color:#0f172a;">We handle everything on your service checklist</p>
-          <p style="margin:4px 0 0;font-size:13px;color:#64748b;">Every task included in your ${serviceLabel} will be completed. We reviewed your photos — we arrive prepared.</p>
+          <p style="margin:4px 0 0;font-size:13px;color:#64748b;">Every task included in your ${serviceLabel} will be completed. We reviewed your photos and arrive prepared.</p>
         </td>
       </tr>
       <tr>
-        <td style="padding:10px 0;vertical-align:top;width:28px;font-size:18px;">💳</td>
-        <td style="padding:10px 0 10px 10px;vertical-align:top;">
-          <p style="margin:0;font-size:14px;font-weight:600;color:#0f172a;">Pay the remaining balance only after the clean</p>
-          <p style="margin:4px 0 0;font-size:13px;color:#64748b;">You'll receive a payment link for $${remaining.toFixed(2)} once the job is complete. Not before.</p>
+        <td style="padding:10px 0;vertical-align:top;width:24px;font-size:13px;font-weight:700;color:#4A7C59;">3.</td>
+        <td style="padding:10px 0 10px 8px;vertical-align:top;">
+          <p style="margin:0;font-size:14px;font-weight:600;color:#0f172a;">Pay the remaining balance only after the clean is complete</p>
+          <p style="margin:4px 0 0;font-size:13px;color:#64748b;">You will receive a payment link for $${remaining.toFixed(2)} once the job is done. Not before.</p>
         </td>
       </tr>
       <tr>
-        <td style="padding:10px 0;vertical-align:top;width:28px;font-size:18px;">💬</td>
-        <td style="padding:10px 0 10px 10px;vertical-align:top;">
+        <td style="padding:10px 0;vertical-align:top;width:24px;font-size:13px;font-weight:700;color:#4A7C59;">4.</td>
+        <td style="padding:10px 0 10px 8px;vertical-align:top;">
           <p style="margin:0;font-size:14px;font-weight:600;color:#0f172a;">Questions before your appointment?</p>
-          <p style="margin:4px 0 0;font-size:13px;color:#64748b;">Just reply to this email. Call or text us at (302) 492-7197. We respond quickly.</p>
+          <p style="margin:4px 0 0;font-size:13px;color:#64748b;">Reply to this email or call us at (302) 492-7197. We respond quickly.</p>
         </td>
       </tr>
     </tbody>
