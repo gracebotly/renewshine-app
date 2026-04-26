@@ -11,10 +11,36 @@ import Image from 'next/image'
 
 function SubmittedContent() {
   const params = useSearchParams()
-  const name = params.get('name') ?? ''
-  const email = params.get('email') ?? ''
-  const phone = params.get('phone') ?? ''
+  const name    = params.get('name')  ?? ''
+  const email   = params.get('email') ?? ''
+  const phone   = params.get('phone') ?? ''
+  const jobId   = params.get('jobId') ?? ''
   const firstName = name.split(' ')[0] ?? 'there'
+
+  // Email correction state
+  const [showEmailFix, setShowEmailFix]   = React.useState(false)
+  const [newEmail, setNewEmail]           = React.useState('')
+  const [fixStatus, setFixStatus]         = React.useState<'idle' | 'loading' | 'done' | 'error'>('idle')
+  const [displayEmail, setDisplayEmail]   = React.useState(email)
+
+  const handleEmailFix = async () => {
+    if (!newEmail.trim() || !jobId) return
+    setFixStatus('loading')
+    try {
+      const res = await fetch('/api/update-job-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ jobId, newEmail: newEmail.trim() }),
+      })
+      if (!res.ok) throw new Error('Failed')
+      setDisplayEmail(newEmail.trim())
+      setFixStatus('done')
+      setShowEmailFix(false)
+      setNewEmail('')
+    } catch {
+      setFixStatus('error')
+    }
+  }
 
   return (
     <section className="min-h-screen bg-white py-20">
@@ -27,13 +53,7 @@ function SubmittedContent() {
         >
           {/* Logo mark */}
           <div className="flex justify-center mb-2">
-            <Image
-              src="/logo-mark.svg"
-              alt="RenewShine"
-              width={48}
-              height={48}
-              className="w-12 h-12"
-            />
+            <Image src="/logo-mark.svg" alt="RenewShine" width={48} height={48} className="w-12 h-12" />
           </div>
 
           {/* Success icon */}
@@ -47,17 +67,17 @@ function SubmittedContent() {
             We&apos;re reviewing your photos now. You&apos;ll hear from us as soon as possible — usually within a few hours.
           </p>
 
-          {/* Contact confirmation card — check and balance for typos */}
-          {(email || phone) && (
+          {/* Contact confirmation + email correction */}
+          {(displayEmail || phone) && (
             <div className="rounded-xl border border-slate-200 bg-slate-50 p-5 text-left space-y-3">
               <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
                 We&apos;ll reach you at
               </p>
 
-              {email && (
+              {displayEmail && (
                 <div className="flex items-center gap-2">
                   <Mail size={15} className="text-slate-400 shrink-0" />
-                  <span className="text-sm font-medium text-slate-900 break-all">{email}</span>
+                  <span className="text-sm font-medium text-slate-900 break-all">{displayEmail}</span>
                 </div>
               )}
 
@@ -68,17 +88,60 @@ function SubmittedContent() {
                 </div>
               )}
 
-              <p className="text-xs text-slate-500 pt-1">
-                Don&apos;t see a confirmation email within 5 minutes? Check your spam folder or{' '}
-                <Link href="/booking" className="underline text-slate-600 hover:text-slate-900 transition-colors duration-200">
-                  resubmit with the correct address
-                </Link>
-                .
-              </p>
+              {/* Email correction — inline, no wizard restart */}
+              {fixStatus === 'done' ? (
+                <p className="text-xs text-emerald-600 font-medium pt-1">
+                  ✓ Email updated — confirmation resent to {displayEmail}
+                </p>
+              ) : !showEmailFix ? (
+                <p className="text-xs text-slate-500 pt-1">
+                  Email look wrong?{' '}
+                  <button
+                    type="button"
+                    onClick={() => setShowEmailFix(true)}
+                    className="underline text-slate-600 hover:text-slate-900 transition-colors duration-200 cursor-pointer"
+                  >
+                    Fix it here
+                  </button>
+                </p>
+              ) : (
+                <div className="pt-1 space-y-2">
+                  <p className="text-xs font-medium text-slate-700">Enter the correct email:</p>
+                  <div className="flex gap-2">
+                    <input
+                      type="email"
+                      value={newEmail}
+                      onChange={(e) => setNewEmail(e.target.value)}
+                      placeholder="correct@email.com"
+                      autoFocus
+                      onKeyDown={(e) => { if (e.key === 'Enter') void handleEmailFix() }}
+                      className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-(--color-brand)"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => void handleEmailFix()}
+                      disabled={fixStatus === 'loading' || !newEmail.trim()}
+                      className="cursor-pointer rounded-lg bg-(--color-brand) px-3 py-2 text-sm font-medium text-white transition-colors duration-200 hover:bg-(--color-brand-hover) disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {fixStatus === 'loading' ? '…' : 'Update'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setShowEmailFix(false); setNewEmail(''); setFixStatus('idle') }}
+                      className="cursor-pointer rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-600 transition-colors duration-200 hover:bg-slate-50"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                  {fixStatus === 'error' && (
+                    <p className="text-xs text-red-600">Something went wrong. Please email us directly.</p>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
-          {/* What happens next card */}
+          {/* What happens next */}
           <div className="rounded-xl border border-slate-200 bg-slate-50 p-5 text-left space-y-3">
             <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
               What happens next
@@ -119,17 +182,12 @@ function SubmittedContent() {
             </ul>
           </div>
 
-          {/* Back to home */}
           <Button asChild variant="ghost">
             <Link href="/">Back to Home</Link>
           </Button>
 
-          {/* Admin access link — discreet, owner-only, at the bottom */}
           <p className="text-xs text-slate-300 pt-4">
-            <Link
-              href="/admin/login"
-              className="hover:text-slate-500 transition-colors duration-200"
-            >
+            <Link href="/admin/login" className="hover:text-slate-500 transition-colors duration-200">
               Admin login
             </Link>
           </p>

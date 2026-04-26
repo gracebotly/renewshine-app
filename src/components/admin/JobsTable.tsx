@@ -2,7 +2,7 @@
 
 import * as React from 'react'
 import Link from 'next/link'
-import { useSearchParams } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { AlertTriangle, Search, X } from 'lucide-react'
 import type { Database } from '@/types/database'
 
@@ -149,6 +149,15 @@ export function JobsTable({ jobs }: { jobs: JobRecord[] }) {
 
   const [activeTab, setActiveTab] = React.useState<TabFilter>(initialTab)
   const [query, setQuery] = React.useState('')
+  const router = useRouter()
+
+  // Refresh server data every 30 seconds — new bookings appear without manual reload
+  React.useEffect(() => {
+    const interval = setInterval(() => {
+      router.refresh()
+    }, 30_000)
+    return () => clearInterval(interval)
+  }, [router])
 
   const filteredJobs = React.useMemo(() => {
     return jobs

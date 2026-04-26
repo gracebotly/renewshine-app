@@ -2,19 +2,29 @@
  * Slack Incoming Webhook notifications — multi-channel.
  * Each function targets a specific channel via its own webhook URL.
  * Never throws — same non-blocking pattern as email.
- * Silently skips if the relevant env var is not set.
+ *
+ * IMPORTANT: Env var names in Vercel must be exactly:
+ *   SLACK_WEBHOOK_JOBS      (not SLACK_WEBHOOK_JOBS_URL)
+ *   SLACK_WEBHOOK_BILLING   (not SLACK_WEBHOOK_BILLING_URL)
+ *   SLACK_WEBHOOK_ERRORS
  */
 
 async function post(webhookUrl: string, text: string): Promise<void> {
-  if (!webhookUrl) return
+  if (!webhookUrl) {
+    console.warn('[Slack] Skipped — webhook URL not set. Check SLACK_WEBHOOK_* env vars in Vercel.')
+    return
+  }
   try {
-    await fetch(webhookUrl, {
+    const res = await fetch(webhookUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ text }),
     })
+    if (!res.ok) {
+      console.error('[Slack] Webhook returned non-200:', res.status, await res.text())
+    }
   } catch (err) {
-    console.error('Slack notification failed (non-blocking):', err)
+    console.error('[Slack] Notification failed (non-blocking):', err)
   }
 }
 
