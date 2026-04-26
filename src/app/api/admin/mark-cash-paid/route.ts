@@ -1,5 +1,6 @@
 import { createServerClient } from '@/lib/supabase/server'
 import { sendCustomerBooked, sendOwnerBooked } from '@/lib/email'
+import { notifyDepositPaid } from '@/lib/slack'
 
 export async function POST(request: Request) {
   const { jobId, approvedPrice, confirmedDate } = await request.json()
@@ -40,6 +41,17 @@ export async function POST(request: Request) {
     }
   } catch (emailError) {
     console.error('Booking confirmation emails failed (non-blocking):', emailError)
+  }
+
+  // Slack alert — cash deposit recorded
+  if (job) {
+    notifyDepositPaid(
+      `💵 *Deposit paid — Cash*
+*${job.client_name}* — $100 cash deposit recorded manually
+🗓️ ${job.confirmed_date ? new Date(job.confirmed_date).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }) : 'Date TBD'}
+💵 Remaining balance: $${job.remaining_amount ?? 0}
+🔗 ${process.env.NEXT_PUBLIC_SITE_URL}/admin/jobs/${job.id}`
+    ).catch(() => {})
   }
 
   // Fire job-scheduled webhook — n8n uses this to schedule day-before reminder

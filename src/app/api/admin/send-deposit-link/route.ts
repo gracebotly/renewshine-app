@@ -1,6 +1,7 @@
 import { createServerClient } from '@/lib/supabase/server'
 import { stripe } from '@/lib/stripe/client'
 import { sendCustomerQuote, sendQuoteReminder, sendExpiredLinkRecovery } from '@/lib/email'
+import { notifyQuoteSent } from '@/lib/slack'
 
 export async function POST(request: Request) {
   const { jobId, approvedPrice, confirmedDate, regenerate } = await request.json()
@@ -115,6 +116,14 @@ export async function POST(request: Request) {
       }),
     }).catch(err => console.error('quote-approved webhook failed:', err))
   }
+
+  // Slack alert — quote sent to customer
+  notifyQuoteSent(
+    `📋 *Quote sent*
+*${job.client_name}* — $${approvedPrice} approved
+📧 ${job.client_email}
+Deposit link sent. Waiting for $100 deposit.`
+  ).catch(() => {})
 
   return Response.json({ url: paymentLink.url })
 }

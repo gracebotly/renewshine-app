@@ -1,6 +1,7 @@
 import { stripe } from '@/lib/stripe/client'
 import { createServerClient } from '@/lib/supabase/server'
 import { sendCustomerBooked, sendOwnerBooked } from '@/lib/email'
+import { notifyDepositPaid } from '@/lib/slack'
 
 // Required: raw body for Stripe signature verification
 export const runtime = 'nodejs'
@@ -90,6 +91,17 @@ export async function POST(request: Request) {
       }
     } catch (emailError) {
       console.error('Webhook: confirmation emails failed (non-blocking):', emailError)
+    }
+
+    // Slack alert — deposit received
+    if (updatedJob) {
+      notifyDepositPaid(
+        `💰 *Deposit paid — Stripe*
+*${updatedJob.client_name}* paid $100 deposit
+🗓️ ${updatedJob.confirmed_date ? new Date(updatedJob.confirmed_date).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }) : 'Date TBD'}
+💵 Remaining balance: $${updatedJob.remaining_amount ?? 0}
+🔗 ${process.env.NEXT_PUBLIC_SITE_URL}/admin/jobs/${updatedJob.id}`
+      ).catch(() => {})
     }
 
     // Fire job-scheduled webhook — n8n uses this to schedule day-before reminder

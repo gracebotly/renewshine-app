@@ -12,12 +12,13 @@ import { customerAbandonedTemplate } from './templates/customer-abandoned'
 
 const resend = new Resend(process.env.RESEND_API_KEY!)
 const FROM = 'RenewShine <noreply@renewshine.co>'
+const REPLY_TO = 'renewshinedmv@gmail.com'
 const OWNER_EMAIL = 'renewshinedmv@gmail.com'
 
 /** Template 1 — fires when customer submits booking form. To: owner. */
 export async function sendOwnerNewJobAlert(job: Job): Promise<void> {
   const { subject, html } = ownerNewJobTemplate(job)
-  await resend.emails.send({ from: FROM, to: OWNER_EMAIL, subject, html })
+  await resend.emails.send({ from: FROM, to: OWNER_EMAIL, replyTo: REPLY_TO, subject, html })
 }
 
 /** Template 2 — fires when customer submits booking form. To: customer. */
@@ -41,7 +42,7 @@ export async function sendCustomerBooked(job: Job): Promise<void> {
 /** Template 5 — fires after deposit paid (Stripe webhook OR cash path). To: owner. */
 export async function sendOwnerBooked(job: Job): Promise<void> {
   const { subject, html } = ownerBookedTemplate(job)
-  await resend.emails.send({ from: FROM, to: OWNER_EMAIL, subject, html })
+  await resend.emails.send({ from: FROM, to: OWNER_EMAIL, replyTo: REPLY_TO, subject, html })
 }
 
 /**

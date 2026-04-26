@@ -1,5 +1,6 @@
 import { createServerClient } from '@/lib/supabase/server'
 import { sendOwnerNewJobAlert, sendCustomerSubmittedConfirmation } from '@/lib/email'
+import { notifyNewBooking } from '@/lib/slack'
 import { rateLimit, getClientIp } from '@/lib/ratelimit'
 
 // Rate limit: max 5 job submissions per IP per 15 minutes
@@ -123,25 +124,39 @@ export async function POST(request: Request) {
       console.error('Email send failed (non-blocking):', emailError)
     }
 
-    // SMS — non-blocking, fires after emails, skips for partial saves
-    const { sendSms } = await import('@/lib/sms')
-    const firstName = job.client_name.split(' ')[0]
+    // Slack alert — new booking submitted
     const serviceLabel =
       job.service_type === 'standard' ? 'Standard Clean'
       : job.service_type === 'deep' ? 'Deep Clean'
       : job.service_type === 'move_out' ? 'Move-In / Move-Out'
-      : 'cleaning request'
+      : 'Commercial / Custom'
 
+    notifyNewBooking(
+      `⚡ *New booking request*
+*${job.client_name}* — ${serviceLabel}, ${job.bedrooms ?? '?'}bd/${job.bathrooms ?? '?'}ba
+📍 ${job.address ?? 'No address yet'}
+📧 ${job.client_email}
+🔗 ${process.env.NEXT_PUBLIC_SITE_URL}/admin/jobs/${job.id}`
+    ).catch(() => {})
+
+    // SMS — non-blocking, fires after emails, skips for partial saves
+    const { sendSms } = await import('@/lib/sms')
+    const firstName = job.client_name.split(' ')[0]
+    const smsServiceLabel =
+      job.service_type === 'standard' ? 'Standard Clean'
+      : job.service_type === 'deep' ? 'Deep Clean'
+      : job.service_type === 'move_out' ? 'Move-In / Move-Out'
+      : 'cleaning request'
     // Customer confirmation text
     sendSms(
       job.client_phone,
-      `Hi ${firstName} 👋 We got your ${serviceLabel} request and we're already reviewing your photos. You'll have your confirmed quote within 1–4 hours. — RenewShine`
+      `Hi ${firstName} 👋 We got your ${smsServiceLabel} request and we're already reviewing your photos. You'll have your confirmed quote within 1–4 hours. — RenewShine`
     ).catch(err => console.error('Customer submission SMS failed:', err))
 
     // Owner alert text
     sendSms(
       process.env.OWNER_PHONE ?? null,
-      `⚡ New job — ${firstName} (${serviceLabel}, ${job.bedrooms ?? '?'}bd/${job.bathrooms ?? '?'}ba). Review: ${process.env.NEXT_PUBLIC_SITE_URL}/admin/jobs/${job.id}`
+      `⚡ New job — ${firstName} (${smsServiceLabel}, ${job.bedrooms ?? '?'}bd/${job.bathrooms ?? '?'}ba). Review: ${process.env.NEXT_PUBLIC_SITE_URL}/admin/jobs/${job.id}`
     ).catch(err => console.error('Owner alert SMS failed:', err))
 
     // Fire job-submitted webhook — non-blocking, n8n uses this for audit trail
