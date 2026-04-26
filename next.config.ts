@@ -11,14 +11,6 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  // Raise the body size limit for API routes — required for iPhone video uploads.
-  // Vercel's default is 4.5MB. iPhone videos are 15–100MB+.
-  // This applies globally; the upload route enforces its own per-file limit.
-  experimental: {
-    serverActions: {
-      bodySizeLimit: '100mb',
-    },
-  },
 }
 
 export default nextConfig
