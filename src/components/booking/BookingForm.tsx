@@ -476,632 +476,591 @@ export function BookingForm() {
 
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
-    <div className="space-y-6 rounded-xl border border-slate-200 p-5 sm:p-6">
+    <div className="flex h-full flex-col bg-white">
 
-      {/* Tab toggle */}
-      <div className="flex gap-2 flex-wrap">
-        {(['residential', 'commercial', 'post_construction'] as const).map((type) => (
-          <button
-            key={type}
-            type="button"
-            onClick={() => handleTabClick(type)}
-            className={cn(
-              'cursor-pointer rounded-lg px-4 py-2.5 text-sm font-medium transition-colors duration-200',
-              flowType === type
-                ? 'bg-(--color-brand) text-white'
-                : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
-            )}
-          >
-            {type === 'residential' ? 'Residential' : type === 'commercial' ? 'Commercial' : 'Post-Construction'}
-          </button>
-        ))}
+      {/* ── PINNED HEADER ─────────────────────────────────────────────── */}
+      <div className="shrink-0 border-b border-slate-100 bg-white px-4 pt-4 pb-3 sm:px-6">
+
+        {/* Flow type tabs — ONLY visible on Step 1 */}
+        {((flowType === 'residential' && resStep === 1) ||
+          (flowType !== 'residential' && comStep === 1)) && (
+          <div className="mb-3 flex gap-2 flex-wrap">
+            {(['residential', 'commercial', 'post_construction'] as const).map((type) => (
+              <button
+                key={type}
+                type="button"
+                onClick={() => handleTabClick(type)}
+                className={cn(
+                  'cursor-pointer rounded-lg px-4 py-2 text-sm font-medium transition-colors duration-200',
+                  flowType === type
+                    ? 'bg-(--color-brand) text-white'
+                    : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+                )}
+              >
+                {type === 'residential' ? 'Residential' : type === 'commercial' ? 'Commercial' : 'Post-Construction'}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Switch confirmation banner — shown in header when pending */}
+        {pendingSwitch ? (
+          <div className="mb-3 flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-3">
+            <AlertTriangle size={16} className="mt-0.5 shrink-0 text-amber-500" />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-slate-900">
+                Switch to {pendingSwitch === 'residential' ? 'Residential' : pendingSwitch === 'commercial' ? 'Commercial' : 'Post-Construction'}?
+              </p>
+              <p className="text-xs text-slate-600">Your current entries will be cleared.</p>
+            </div>
+            <div className="flex shrink-0 gap-2">
+              <button
+                type="button"
+                onClick={() => setPendingSwitch(null)}
+                className="cursor-pointer rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 transition-colors duration-200 hover:bg-slate-50"
+              >
+                Keep
+              </button>
+              <button
+                type="button"
+                onClick={confirmSwitch}
+                className="cursor-pointer rounded-lg bg-(--color-brand) px-3 py-1.5 text-xs font-medium text-white transition-colors duration-200 hover:bg-(--color-brand-hover)"
+              >
+                Switch
+              </button>
+            </div>
+          </div>
+        ) : null}
+
+        {/* Progress bar */}
+        <div className="flex items-center gap-3 mb-2">
+          <div className="flex-1 h-1.5 rounded-full bg-slate-100">
+            <div
+              className="h-1.5 rounded-full bg-(--color-brand) transition-all duration-300"
+              style={{
+                width: flowType === 'residential'
+                  ? `${(resStep / 5) * 100}%`
+                  : `${(comStep / 3) * 100}%`,
+              }}
+            />
+          </div>
+          <span className="shrink-0 text-xs font-medium text-slate-500">
+            {flowType === 'residential' ? `${resStep} / 5` : `${comStep} / 3`}
+          </span>
+        </div>
+
+        {/* Step title */}
+        {flowType === 'residential' ? (
+          <div>
+            <h2 className="font-display text-lg font-bold text-slate-900 leading-snug">
+              {resStep === 1 ? "Let's get started"
+                : resStep === 2 ? 'Tell us about your home'
+                : resStep === 3 ? 'Choose your service'
+                : resStep === 4 ? 'Where and when?'
+                : 'Almost done'}
+            </h2>
+            <p className="mt-0.5 text-xs text-slate-500">
+              {resStep === 1 ? "We'll send your confirmed quote to this email."
+                : resStep === 2 ? 'Helps us send the right team with the right supplies.'
+                : resStep === 3 ? 'Final price confirmed after we review your photos.'
+                : resStep === 4 ? "We'll confirm your exact appointment within 24 hours."
+                : "One last thing, then we'll take it from here."}
+            </p>
+          </div>
+        ) : (
+          <div>
+            <h2 className="font-display text-lg font-bold text-slate-900 leading-snug">
+              {comStep === 1
+                ? (flowType === 'post_construction' ? 'Tell us about your project' : 'Tell us about your business')
+                : comStep === 2
+                  ? (flowType === 'post_construction' ? 'About your project' : 'About your space')
+                  : 'Scheduling & details'}
+            </h2>
+            <p className="mt-0.5 text-xs text-slate-500">
+              {comStep === 1 ? "We'll reach out to confirm details within 24 hours."
+                : comStep === 2 ? 'Estimate is fine — we confirm during walkthrough.'
+                : "We'll confirm availability within 24 hours."}
+            </p>
+          </div>
+        )}
       </div>
 
-      {/* Switch confirmation banner */}
-      {pendingSwitch ? (
-        <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4">
-          <AlertTriangle size={18} className="mt-0.5 shrink-0 text-amber-500" />
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-slate-900">
-              Switch to {pendingSwitch === 'residential' ? 'Residential' : pendingSwitch === 'commercial' ? 'Commercial' : 'Post-Construction'}?
-            </p>
-            <p className="mt-0.5 text-xs text-slate-600">Your current entries will be cleared.</p>
-          </div>
-          <div className="flex shrink-0 gap-2">
-            <button
-              type="button"
-              onClick={() => setPendingSwitch(null)}
-              className="cursor-pointer rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 transition-colors duration-200 hover:bg-slate-50"
-            >
-              Keep {flowType === 'residential' ? 'Residential' : flowType === 'commercial' ? 'Commercial' : 'Post-Construction'}
-            </button>
-            <button
-              type="button"
-              onClick={confirmSwitch}
-              className="cursor-pointer rounded-lg bg-(--color-brand) px-3 py-1.5 text-xs font-medium text-white transition-colors duration-200 hover:bg-(--color-brand-hover)"
-            >
-              Yes, switch
-            </button>
-          </div>
-        </div>
-      ) : null}
-
-      {/* ═══════════════════════════════════════════════════════════════════ */}
-      {/* RESIDENTIAL FLOW — 5 steps                                         */}
-      {/* ═══════════════════════════════════════════════════════════════════ */}
-      {flowType === 'residential' ? (
-        <div className="space-y-6">
-
-          {/* Progress bar */}
-          <div>
-            <p className="text-sm font-medium text-slate-900">Step {resStep} of 5</p>
-            <div className="mt-2 h-1.5 w-full rounded-full bg-slate-100">
-              <div
-                className="h-1.5 rounded-full bg-(--color-brand) transition-all duration-300"
-                style={{ width: `${(resStep / 5) * 100}%` }}
-              />
-            </div>
-          </div>
-
-          {/* ── Step 1 — Contact info (lead capture) ── */}
-          {resStep === 1 ? (
-            <div className="space-y-5">
-              <div>
-                <h2 className="font-display text-xl font-bold text-slate-900">Let's get started</h2>
-                <p className="mt-1 text-sm text-slate-600">We'll send your confirmed quote to this email.</p>
-              </div>
-
-              <label className="block space-y-1.5">
-                <span className="text-sm font-medium text-slate-900">Your Name</span>
-                <Input
-                  placeholder="Jane Smith"
-                  value={resName}
-                  onChange={(e) => setResName(e.target.value)}
-                  error={Boolean(errors.resName)}
-                />
-                {errors.resName ? <p className="text-sm text-red-600">{errors.resName}</p> : null}
-              </label>
-
-              <label className="block space-y-1.5">
-                <span className="text-sm font-medium text-slate-900">Email Address</span>
-                <Input
-                  type="email"
-                  placeholder="jane@email.com"
-                  value={resEmail}
-                  onChange={(e) => setResEmail(e.target.value)}
-                  error={Boolean(errors.resEmail)}
-                />
-                {errors.resEmail ? <p className="text-sm text-red-600">{errors.resEmail}</p> : null}
-                <p className="text-xs text-slate-400">Your quote saves automatically — finish anytime.</p>
-              </label>
-
-              <label className="block space-y-1.5">
-                <span className="text-sm font-medium text-slate-900">Phone Number</span>
-                <Input
-                  type="tel"
-                  placeholder="(301) 555-1234"
-                  value={resPhone}
-                  onChange={(e) => setResPhone(formatPhone(e.target.value))}
-                  error={Boolean(errors.resPhone)}
-                />
-                {errors.resPhone ? <p className="text-sm text-red-600">{errors.resPhone}</p> : null}
-                <p className="text-xs text-slate-400">We'll text you when your quote is ready.</p>
-              </label>
-
-              {/* Consent checkboxes */}
-              <div className="space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-4">
-                <label className="flex items-start gap-3 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={smsOptIn}
-                    onChange={(e) => setSmsOptIn(e.target.checked)}
-                    className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer rounded border-slate-300 accent-[hsl(var(--color-brand))]"
+      {/* ── SCROLLABLE STEP CONTENT ────────────────────────────────────── */}
+      {/* This area scrolls independently — the header and footer never move */}
+      <div className="flex-1 overflow-y-auto px-4 py-5 sm:px-6">
+        {flowType === 'residential' ? (
+          <div className="space-y-5 pb-4">
+            {resStep === 1 ? (
+              <div className="space-y-5">
+                <label className="block space-y-1.5">
+                  <span className="text-sm font-medium text-slate-900">Your Name</span>
+                  <Input
+                    placeholder="Jane Smith"
+                    value={resName}
+                    onChange={(e) => setResName(e.target.value)}
+                    error={Boolean(errors.resName)}
                   />
-                  <span className="text-xs text-slate-600 leading-relaxed">
-                    I agree to receive text messages from RenewShine about my booking and quote. Reply STOP to opt out at any time. Message and data rates may apply.
-                  </span>
+                  {errors.resName ? <p className="text-sm text-red-600">{errors.resName}</p> : null}
                 </label>
 
-                <label className="flex items-start gap-3 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={termsAgreed}
-                    onChange={(e) => setTermsAgreed(e.target.checked)}
-                    className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer rounded border-slate-300 accent-[hsl(var(--color-brand))]"
+                <label className="block space-y-1.5">
+                  <span className="text-sm font-medium text-slate-900">Email Address</span>
+                  <Input
+                    type="email"
+                    placeholder="jane@email.com"
+                    value={resEmail}
+                    onChange={(e) => setResEmail(e.target.value)}
+                    error={Boolean(errors.resEmail)}
                   />
-                  <span className="text-xs text-slate-600 leading-relaxed">
-                    I have read and agree to the{' '}
-                    <a href="/terms" target="_blank" className="underline text-slate-900 hover:text-(--color-brand) transition-colors duration-200">
-                      Terms of Service
-                    </a>{' '}
-                    and{' '}
-                    <a href="/privacy" target="_blank" className="underline text-slate-900 hover:text-(--color-brand) transition-colors duration-200">
-                      Privacy Policy
-                    </a>
-                    . <span className="text-red-500">*</span>
-                  </span>
+                  {errors.resEmail ? <p className="text-sm text-red-600">{errors.resEmail}</p> : null}
+                  <p className="text-xs text-slate-400">Your quote saves automatically — finish anytime.</p>
                 </label>
 
-                {errors.termsAgreed ? (
-                  <p className="text-sm text-red-600">{errors.termsAgreed}</p>
-                ) : null}
-              </div>
-            </div>
-          ) : null}
+                <label className="block space-y-1.5">
+                  <span className="text-sm font-medium text-slate-900">Phone Number</span>
+                  <Input
+                    type="tel"
+                    placeholder="(301) 555-1234"
+                    value={resPhone}
+                    onChange={(e) => setResPhone(formatPhone(e.target.value))}
+                    error={Boolean(errors.resPhone)}
+                  />
+                  {errors.resPhone ? <p className="text-sm text-red-600">{errors.resPhone}</p> : null}
+                  <p className="text-xs text-slate-400">We'll text you when your quote is ready.</p>
+                </label>
 
-          {/* ── Step 2 — Home details ── */}
-          {resStep === 2 ? (
-            <div className="space-y-7">
-              <div>
-                <h2 className="font-display text-xl font-bold text-slate-900">Tell us about your home</h2>
-                <p className="mt-1 text-sm text-slate-600">This helps us send the right team with the right supplies.</p>
-              </div>
-
-              {/* Home type */}
-              <div className="space-y-3">
-                <p className="text-sm font-medium text-slate-900">What type of home?</p>
-                <div className="flex flex-wrap gap-2">
-                  {([
-                    { id: 'apartment' as const, label: 'Apartment' },
-                    { id: 'townhouse' as const, label: 'Townhouse' },
-                    { id: 'single_family' as const, label: 'Single Family' },
-                    { id: 'condo' as const, label: 'Condo' },
-                  ]).map((option) => (
-                    <button
-                      key={option.id}
-                      type="button"
-                      onClick={() => setResHomeType(option.id)}
-                      className={cn(
-                        'inline-flex cursor-pointer items-center gap-1.5 rounded-full border px-3.5 py-2 text-sm font-medium transition-all duration-150',
-                        resHomeType === option.id
-                          ? 'border-(--color-brand) bg-(--color-brand) text-white'
-                          : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50'
-                      )}
-                    >
-                      {option.label}
-                    </button>
-                  ))}
-                </div>
-                {errors.resHomeType ? <p className="text-sm text-red-600">{errors.resHomeType}</p> : null}
-              </div>
-
-              {/* Bedrooms + Bathrooms */}
-              <div className="space-y-3">
-                <p className="text-sm font-medium text-slate-900">Home size</p>
-                {[
-                  { label: 'Bedrooms', value: bedrooms, min: 1, max: 6, set: setBedrooms },
-                  { label: 'Bathrooms', value: bathrooms, min: 0, max: 8, set: setBathrooms },
-                ].map((item) => (
-                  <div key={item.label} className="flex items-center justify-between rounded-xl border border-slate-200 p-4">
-                    <p className="font-medium text-slate-900">{item.label}</p>
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => item.set((v) => Math.max(item.min, v - 1))}
-                        className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg border border-slate-200 transition-colors duration-200 hover:bg-slate-50"
-                      >
-                        <Minus size={16} />
-                      </button>
-                      <span className="w-10 text-center font-mono text-xl font-bold tabular-nums text-slate-900">
-                        {item.label === 'Bathrooms' && item.value >= 5 ? '5+' : item.value}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => item.set((v) => Math.min(item.max, v + 1))}
-                        disabled={item.label === 'Bathrooms' && item.value >= 8}
-                        className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg border border-slate-200 transition-colors duration-200 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
-                      >
-                        <Plus size={16} />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Pets */}
-              <div className="space-y-3">
-                <p className="text-sm font-medium text-slate-900">Any pets at home?</p>
-                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                  {([
-                    { id: 'none' as PetOption, label: 'No Pets', emoji: '🚫' },
-                    { id: 'cat' as PetOption, label: 'Cat', emoji: '🐱' },
-                    { id: 'dog' as PetOption, label: 'Dog', emoji: '🐶' },
-                    { id: 'other' as PetOption, label: 'Other', emoji: '🐾' },
-                  ]).map((option) => (
-                    <TileButton
-                      key={option.id}
-                      selected={resPets === option.id}
-                      onClick={() => setResPets(option.id)}
-                    >
-                      <p className="text-lg">{option.emoji}</p>
-                      <p className={cn('mt-1 text-sm font-semibold', resPets === option.id ? 'text-(--color-brand)' : 'text-slate-900')}>
-                        {option.label}
-                      </p>
-                    </TileButton>
-                  ))}
-                </div>
-                {errors.resPets ? <p className="text-sm text-red-600">{errors.resPets}</p> : null}
-              </div>
-
-              {/* Condition */}
-              <div className="space-y-3">
-                <p className="text-sm font-medium text-slate-900">What's the current condition?</p>
-                <div className="grid grid-cols-2 gap-2">
-                  {([
-                    {
-                      id: 'maintained' as ConditionOption,
-                      label: 'Well maintained',
-                      sub: 'Cleaned regularly, just needs upkeep',
-                      color: 'text-emerald-600',
-                      dot: 'bg-emerald-500',
-                    },
-                    {
-                      id: 'some_buildup' as ConditionOption,
-                      label: 'Some buildup',
-                      sub: "Hasn't been cleaned in a while",
-                      color: 'text-amber-600',
-                      dot: 'bg-amber-400',
-                    },
-                    {
-                      id: 'heavy_buildup' as ConditionOption,
-                      label: 'Heavy buildup',
-                      sub: 'Needs serious attention',
-                      color: 'text-orange-600',
-                      dot: 'bg-orange-500',
-                    },
-                    {
-                      id: 'reset' as ConditionOption,
-                      label: 'Full reset',
-                      sub: 'Never been professionally cleaned',
-                      color: 'text-red-600',
-                      dot: 'bg-red-500',
-                    },
-                  ]).map((option) => (
-                    <TileButton
-                      key={option.id}
-                      selected={resCondition === option.id}
-                      onClick={() => setResCondition(option.id)}
-                    >
-                      <div className="flex items-center gap-2">
-                        <span className={cn('h-2 w-2 rounded-full shrink-0', option.dot)} />
-                        <p className={cn('text-sm font-semibold', resCondition === option.id ? 'text-(--color-brand)' : 'text-slate-900')}>
-                          {option.label}
-                        </p>
-                      </div>
-                      <p className="mt-1 text-xs text-slate-500 pl-4">{option.sub}</p>
-                    </TileButton>
-                  ))}
-                </div>
-                {errors.resCondition ? <p className="text-sm text-red-600">{errors.resCondition}</p> : null}
-              </div>
-
-            </div>
-          ) : null}
-
-          {/* ── Step 3 — Service details ── */}
-          {resStep === 3 ? (
-            <div className="space-y-5">
-              <div>
-                <h2 className="font-display text-xl font-bold text-slate-900">How would you like your home to feel?</h2>
-                <p className="mt-1 text-sm text-slate-600">Choose a service — your quote is confirmed after we review your photos.</p>
-              </div>
-
-              {/* Service type — starting prices only, no estimate calculation */}
-              <div className="space-y-3">
-                {([
-                  {
-                    id: 'standard' as ServiceType,
-                    title: 'Standard Clean',
-                    price: 'from $200',
-                    desc: 'Maintenance cleaning for regularly kept homes',
-                  },
-                  {
-                    id: 'deep' as ServiceType,
-                    title: 'Deep Clean',
-                    price: 'from $400',
-                    desc: 'Full top-to-bottom clean — includes inside oven & fridge',
-                  },
-                  {
-                    id: 'move_out' as ServiceType,
-                    title: 'Move-In / Move-Out',
-                    price: 'from $500',
-                    desc: 'For vacant properties and tenant turnover',
-                  },
-                ]).map(({ id, title, price, desc }) => (
-                  <button
-                    key={id}
-                    type="button"
-                    onClick={() => setServiceType(id)}
-                    className={cn(
-                      'w-full cursor-pointer rounded-xl border p-4 text-left transition-colors duration-200',
-                      serviceType === id
-                        ? 'border-2 border-(--color-brand) bg-(--color-brand-muted)/30'
-                        : 'border-slate-200 hover:border-slate-300'
-                    )}
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <p className="font-semibold text-slate-900">{title}</p>
-                        <p className="mt-0.5 text-xs text-slate-500">{desc}</p>
-                      </div>
-                      <p className="shrink-0 font-mono text-sm font-semibold tabular-nums text-slate-900">{price}</p>
-                    </div>
-                  </button>
-                ))}
-              </div>
-
-              {/* Add-ons */}
-              <div className="space-y-2 rounded-xl border border-slate-200 p-4">
-                <p className="font-medium text-slate-900">Add-ons <span className="text-xs font-normal text-slate-400">(optional)</span></p>
-                {ADD_ONS_FOR_SERVICE(serviceType).map((addOn) => (
-                  <label key={addOn.id} className="flex cursor-pointer items-center gap-3 py-1">
-                    <span className="inline-flex items-center gap-2 text-sm text-slate-700">
-                      <Checkbox.Root
-                        checked={selectedAddOns.includes(addOn.id)}
-                        onCheckedChange={() => toggleAddOn(addOn.id)}
-                        className="flex h-4 w-4 items-center justify-center rounded border border-slate-300"
-                      >
-                        <Checkbox.Indicator>
-                          <Check size={12} className="text-(--color-brand)" />
-                        </Checkbox.Indicator>
-                      </Checkbox.Root>
-                      {addOn.label}
+                <div className="space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-4">
+                  <label className="flex items-start gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={smsOptIn}
+                      onChange={(e) => setSmsOptIn(e.target.checked)}
+                      className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer rounded border-slate-300 accent-[hsl(var(--color-brand))]"
+                    />
+                    <span className="text-xs text-slate-600 leading-relaxed">
+                      I agree to receive text messages from RenewShine about my booking and quote. Reply STOP to opt out at any time. Message and data rates may apply.
                     </span>
                   </label>
-                ))}
-              </div>
 
-              {/* Frequency */}
-              <div>
-                <p className="mb-2 font-medium text-slate-900">How often?</p>
-                <div className="grid gap-2 sm:grid-cols-4">
-                  {frequencies.map((f) => (
-                    <button
-                      key={f.id}
-                      type="button"
-                      onClick={() => setResFrequency(f.id)}
-                      className={cn(
-                        'cursor-pointer rounded-lg border px-4 py-2.5 text-sm font-medium transition-colors duration-200',
-                        resFrequency === f.id
-                          ? 'border-(--color-brand) bg-(--color-brand) text-white'
-                          : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50'
-                      )}
-                    >
-                      {f.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
+                  <label className="flex items-start gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={termsAgreed}
+                      onChange={(e) => setTermsAgreed(e.target.checked)}
+                      className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer rounded border-slate-300 accent-[hsl(var(--color-brand))]"
+                    />
+                    <span className="text-xs text-slate-600 leading-relaxed">
+                      I have read and agree to the{' '}
+                      <a href="/terms" target="_blank" className="underline text-slate-900 hover:text-(--color-brand) transition-colors duration-200">
+                        Terms of Service
+                      </a>{' '}
+                      and{' '}
+                      <a href="/privacy" target="_blank" className="underline text-slate-900 hover:text-(--color-brand) transition-colors duration-200">
+                        Privacy Policy
+                      </a>
+                      . <span className="text-red-500">*</span>
+                    </span>
+                  </label>
 
-              {/* Progress microcopy */}
-              <p className="text-center text-xs text-slate-400">
-                Almost halfway — just 2 more quick steps.
-              </p>
-            </div>
-          ) : null}
-
-          {/* ── Step 4 — Location + scheduling + home entry ── */}
-          {resStep === 4 ? (
-            <div className="space-y-6">
-              <div>
-                <h2 className="font-display text-xl font-bold text-slate-900">Where and when?</h2>
-                <p className="mt-1 text-sm text-slate-600">We'll confirm your exact appointment within 1–4 hours.</p>
-              </div>
-
-              {/* Address */}
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium text-slate-900" htmlFor="res-address">
-                  Service Address
-                </label>
-                <Input
-                  id="res-address"
-                  value={resAddress}
-                  onChange={(e) => setResAddress(e.target.value)}
-                  placeholder="Street address, City, State, ZIP"
-                  autoComplete="street-address"
-                  error={Boolean(errors.resAddress)}
-                />
-                <p className="text-xs text-slate-500">e.g. 4521 Oak Hill Dr, Bowie, MD 20715</p>
-                {errors.resAddress ? <p className="text-sm text-red-600">{errors.resAddress}</p> : null}
-              </div>
-
-              {/* Scheduling */}
-              <AvailabilityPicker
-                schedulingMode={resSchedulingMode}
-                onSchedulingModeChange={setResSchedulingMode}
-                startDate={resStartDate}
-                endDate={resEndDate}
-                timePreference={resTimePref}
-                onStartDateChange={setResStartDate}
-                onEndDateChange={setResEndDate}
-                onTimePreferenceChange={setResTimePref}
-              />
-              {errors.resStartDate || errors.resEndDate || errors.resTimePref ? (
-                <p className="text-sm text-red-600">Please complete all scheduling fields.</p>
-              ) : null}
-
-            </div>
-          ) : null}
-
-          {/* ── Step 5 — Final details + submit ── */}
-          {resStep === 5 ? (
-            <div className="space-y-5">
-              <div>
-                <h2 className="font-display text-xl font-bold text-slate-900">Almost done</h2>
-                <p className="mt-1 text-sm text-slate-600">One last thing, then we'll take it from here.</p>
-              </div>
-
-              {/* Notes */}
-              <label className="block space-y-1.5">
-                <span className="text-sm font-medium text-slate-900">Notes</span>
-                <textarea
-                  className="flex min-h-[80px] w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 transition-colors duration-200 hover:border-slate-300 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-(--color-brand) focus:ring-offset-0"
-                  placeholder="How do we get in?"
-                  value={resNotes}
-                  onChange={(e) => setResNotes(e.target.value)}
-                />
-              </label>
-
-              {/* Media upload */}
-              <div className="space-y-1.5">
-                <p className="text-sm font-medium text-slate-900">Show us your space</p>
-                <p className="text-xs text-slate-500">
-                  The more we can see, the more accurate your quote. A 60-second walkthrough video works best.
-                </p>
-                <MediaUpload onUpload={setResMediaEncoded} uploadedEncoded={resMediaEncoded} />
-              </div>
-
-              {/* Preferred contact method */}
-              <div className="space-y-2">
-                <p className="text-sm font-medium text-slate-900">Preferred contact</p>
-                <div className="flex items-center gap-5">
-                  {([
-                    { id: 'email' as const, label: 'Email' },
-                    { id: 'phone' as const, label: 'Phone' },
-                    { id: 'text' as const, label: 'Text' },
-                  ] as const).map((option) => (
-                    <button
-                      key={option.id}
-                      type="button"
-                      onClick={() => setResPreferredContact(option.id)}
-                      className="inline-flex cursor-pointer items-center gap-2 transition-colors duration-200"
-                    >
-                      <span
-                        className={cn(
-                          'flex h-4 w-4 items-center justify-center rounded-full border-2 transition-colors duration-200',
-                          resPreferredContact === option.id
-                            ? 'border-(--color-brand)'
-                            : 'border-slate-300'
-                        )}
-                      >
-                        {resPreferredContact === option.id ? (
-                          <span className="h-2 w-2 rounded-full bg-(--color-brand)" />
-                        ) : null}
-                      </span>
-                      <span className={cn(
-                        'text-sm',
-                        resPreferredContact === option.id ? 'font-medium text-slate-900' : 'text-slate-600'
-                      )}>
-                        {option.label}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Booking summary */}
-              <div className="rounded-xl border border-slate-200 bg-slate-50 p-5 space-y-3">
-                <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Your Request Summary</p>
-                <div className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
-                  <div>
-                    <p className="text-xs text-slate-500">Service</p>
-                    <p className="font-medium text-slate-900">{serviceLabel}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-slate-500">Frequency</p>
-                    <p className="font-medium text-slate-900">{frequencyLabel}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-slate-500">Home size</p>
-                    <p className="font-medium text-slate-900">
-                      {bedrooms} bed · {bathrooms === 0 ? 'Studio' : `${bathrooms} bath`}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-slate-500">Condition</p>
-                    <p className="font-medium text-slate-900">{conditionLabel}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-slate-500">Pets</p>
-                    <p className="font-medium text-slate-900">{petsLabel}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-slate-500">
-                      {resSchedulingMode === 'specific' ? 'Preferred date' : 'Date window'}
-                    </p>
-                    <p className="font-medium text-slate-900">{dateLabel}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-slate-500">Arrival window</p>
-                    <p className="font-medium text-slate-900">{timeLabel}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-slate-500">Preferred contact</p>
-                    <p className="font-medium text-slate-900">
-                      {resPreferredContact === 'email' ? 'Email' : resPreferredContact === 'phone' ? 'Phone' : resPreferredContact === 'text' ? 'Text' : '—'}
-                    </p>
-                  </div>
-                  <div className="col-span-2">
-                    <p className="text-xs text-slate-500">Address</p>
-                    <p className="font-medium text-slate-900">{resAddress || '—'}</p>
-                  </div>
-                  {selectedAddOns.length > 0 ? (
-                    <div className="col-span-2">
-                      <p className="text-xs text-slate-500">Add-ons</p>
-                      <p className="font-medium text-slate-900">{addOnLabels}</p>
-                    </div>
+                  {errors.termsAgreed ? (
+                    <p className="text-sm text-red-600">{errors.termsAgreed}</p>
                   ) : null}
                 </div>
               </div>
+            ) : null}
 
-              {/* Commitment copy + submit */}
-              <div className="space-y-3">
-                <Button
-                  type="button"
-                  size="lg"
-                  className="w-full"
-                  disabled={submitting || savingPartial}
-                  onClick={submitResidential}
-                >
-                  {submitting
-                    ? <><Loader2 size={16} className="animate-spin" /> Submitting…</>
-                    : 'Request My Custom Quote'}
-                </Button>
+            {resStep === 2 ? (
+              <div className="space-y-7">
+                <div className="space-y-3">
+                  <p className="text-sm font-medium text-slate-900">What type of home?</p>
+                  <div className="flex flex-wrap gap-2">
+                    {([
+                      { id: 'apartment' as const, label: 'Apartment' },
+                      { id: 'townhouse' as const, label: 'Townhouse' },
+                      { id: 'single_family' as const, label: 'Single Family' },
+                      { id: 'condo' as const, label: 'Condo' },
+                    ]).map((option) => (
+                      <button
+                        key={option.id}
+                        type="button"
+                        onClick={() => setResHomeType(option.id)}
+                        className={cn(
+                          'inline-flex cursor-pointer items-center gap-1.5 rounded-full border px-3.5 py-2 text-sm font-medium transition-all duration-150',
+                          resHomeType === option.id
+                            ? 'border-(--color-brand) bg-(--color-brand) text-white'
+                            : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50'
+                        )}
+                      >
+                        {option.label}
+                      </button>
+                    ))}
+                  </div>
+                  {errors.resHomeType ? <p className="text-sm text-red-600">{errors.resHomeType}</p> : null}
+                </div>
+
+                <div className="space-y-3">
+                  <p className="text-sm font-medium text-slate-900">Home size</p>
+                  {[
+                    { label: 'Bedrooms', value: bedrooms, min: 1, max: 6, set: setBedrooms },
+                    { label: 'Bathrooms', value: bathrooms, min: 0, max: 8, set: setBathrooms },
+                  ].map((item) => (
+                    <div key={item.label} className="flex items-center justify-between rounded-xl border border-slate-200 p-4">
+                      <p className="font-medium text-slate-900">{item.label}</p>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => item.set((v) => Math.max(item.min, v - 1))}
+                          className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg border border-slate-200 transition-colors duration-200 hover:bg-slate-50"
+                        >
+                          <Minus size={16} />
+                        </button>
+                        <span className="w-10 text-center font-mono text-xl font-bold tabular-nums text-slate-900">
+                          {item.label === 'Bathrooms' && item.value >= 5 ? '5+' : item.value}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => item.set((v) => Math.min(item.max, v + 1))}
+                          disabled={item.label === 'Bathrooms' && item.value >= 8}
+                          className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg border border-slate-200 transition-colors duration-200 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                        >
+                          <Plus size={16} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="space-y-3">
+                  <p className="text-sm font-medium text-slate-900">Any pets at home?</p>
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                    {([
+                      { id: 'none' as PetOption, label: 'No Pets', emoji: '🚫' },
+                      { id: 'cat' as PetOption, label: 'Cat', emoji: '🐱' },
+                      { id: 'dog' as PetOption, label: 'Dog', emoji: '🐶' },
+                      { id: 'other' as PetOption, label: 'Other', emoji: '🐾' },
+                    ]).map((option) => (
+                      <TileButton
+                        key={option.id}
+                        selected={resPets === option.id}
+                        onClick={() => setResPets(option.id)}
+                      >
+                        <p className="text-lg">{option.emoji}</p>
+                        <p className={cn('mt-1 text-sm font-semibold', resPets === option.id ? 'text-(--color-brand)' : 'text-slate-900')}>
+                          {option.label}
+                        </p>
+                      </TileButton>
+                    ))}
+                  </div>
+                  {errors.resPets ? <p className="text-sm text-red-600">{errors.resPets}</p> : null}
+                </div>
+
+                <div className="space-y-3">
+                  <p className="text-sm font-medium text-slate-900">What's the current condition?</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {([
+                      {
+                        id: 'maintained' as ConditionOption,
+                        label: 'Well maintained',
+                        sub: 'Cleaned regularly, just needs upkeep',
+                        color: 'text-emerald-600',
+                        dot: 'bg-emerald-500',
+                      },
+                      {
+                        id: 'some_buildup' as ConditionOption,
+                        label: 'Some buildup',
+                        sub: "Hasn't been cleaned in a while",
+                        color: 'text-amber-600',
+                        dot: 'bg-amber-400',
+                      },
+                      {
+                        id: 'heavy_buildup' as ConditionOption,
+                        label: 'Heavy buildup',
+                        sub: 'Needs serious attention',
+                        color: 'text-orange-600',
+                        dot: 'bg-orange-500',
+                      },
+                      {
+                        id: 'reset' as ConditionOption,
+                        label: 'Full reset',
+                        sub: 'Never been professionally cleaned',
+                        color: 'text-red-600',
+                        dot: 'bg-red-500',
+                      },
+                    ]).map((option) => (
+                      <TileButton
+                        key={option.id}
+                        selected={resCondition === option.id}
+                        onClick={() => setResCondition(option.id)}
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className={cn('h-2 w-2 rounded-full shrink-0', option.dot)} />
+                          <p className={cn('text-sm font-semibold', resCondition === option.id ? 'text-(--color-brand)' : 'text-slate-900')}>
+                            {option.label}
+                          </p>
+                        </div>
+                        <p className="mt-1 text-xs text-slate-500 pl-4">{option.sub}</p>
+                      </TileButton>
+                    ))}
+                  </div>
+                  {errors.resCondition ? <p className="text-sm text-red-600">{errors.resCondition}</p> : null}
+                </div>
               </div>
-            </div>
-          ) : null}
+            ) : null}
 
-          {/* Back / Next */}
-          <div className="flex justify-between gap-3">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setResStep((s) => Math.max(1, s - 1))}
-              disabled={resStep === 1 || submitting || savingPartial}
-            >
-              Back
-            </Button>
-            {resStep < 5 ? (
-              <Button
-                type="button"
-                onClick={handleResNext}
-                disabled={submitting || savingPartial}
-              >
-                {savingPartial ? <><Loader2 size={14} className="animate-spin" /> Saving…</> : 'Next'}
-              </Button>
+            {resStep === 3 ? (
+              <div className="space-y-5">
+                <div className="space-y-3">
+                  {([
+                    {
+                      id: 'standard' as ServiceType,
+                      title: 'Standard Clean',
+                      price: 'from $200',
+                      desc: 'Maintenance cleaning for regularly kept homes',
+                    },
+                    {
+                      id: 'deep' as ServiceType,
+                      title: 'Deep Clean',
+                      price: 'from $400',
+                      desc: 'Full top-to-bottom clean — includes inside oven & fridge',
+                    },
+                    {
+                      id: 'move_out' as ServiceType,
+                      title: 'Move-In / Move-Out',
+                      price: 'from $500',
+                      desc: 'For vacant properties and tenant turnover',
+                    },
+                  ]).map(({ id, title, price, desc }) => (
+                    <button
+                      key={id}
+                      type="button"
+                      onClick={() => setServiceType(id)}
+                      className={cn(
+                        'w-full cursor-pointer rounded-xl border p-4 text-left transition-colors duration-200',
+                        serviceType === id
+                          ? 'border-2 border-(--color-brand) bg-(--color-brand-muted)/30'
+                          : 'border-slate-200 hover:border-slate-300'
+                      )}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="font-semibold text-slate-900">{title}</p>
+                          <p className="mt-0.5 text-xs text-slate-500">{desc}</p>
+                        </div>
+                        <p className="shrink-0 font-mono text-sm font-semibold tabular-nums text-slate-900">{price}</p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+
+                <div className="space-y-2 rounded-xl border border-slate-200 p-4">
+                  <p className="font-medium text-slate-900">Add-ons <span className="text-xs font-normal text-slate-400">(optional)</span></p>
+                  {ADD_ONS_FOR_SERVICE(serviceType).map((addOn) => (
+                    <label key={addOn.id} className="flex cursor-pointer items-center gap-3 py-1">
+                      <span className="inline-flex items-center gap-2 text-sm text-slate-700">
+                        <Checkbox.Root
+                          checked={selectedAddOns.includes(addOn.id)}
+                          onCheckedChange={() => toggleAddOn(addOn.id)}
+                          className="flex h-4 w-4 items-center justify-center rounded border border-slate-300"
+                        >
+                          <Checkbox.Indicator>
+                            <Check size={12} className="text-(--color-brand)" />
+                          </Checkbox.Indicator>
+                        </Checkbox.Root>
+                        {addOn.label}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+
+                <div>
+                  <p className="mb-2 font-medium text-slate-900">How often?</p>
+                  <div className="grid gap-2 sm:grid-cols-4">
+                    {frequencies.map((f) => (
+                      <button
+                        key={f.id}
+                        type="button"
+                        onClick={() => setResFrequency(f.id)}
+                        className={cn(
+                          'cursor-pointer rounded-lg border px-4 py-2.5 text-sm font-medium transition-colors duration-200',
+                          resFrequency === f.id
+                            ? 'border-(--color-brand) bg-(--color-brand) text-white'
+                            : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50'
+                        )}
+                      >
+                        {f.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            ) : null}
+
+            {resStep === 4 ? (
+              <div className="space-y-6">
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-slate-900" htmlFor="res-address">
+                    Service Address
+                  </label>
+                  <Input
+                    id="res-address"
+                    value={resAddress}
+                    onChange={(e) => setResAddress(e.target.value)}
+                    placeholder="Street address, City, State, ZIP"
+                    autoComplete="street-address"
+                    error={Boolean(errors.resAddress)}
+                  />
+                  <p className="text-xs text-slate-500">e.g. 4521 Oak Hill Dr, Bowie, MD 20715</p>
+                  {errors.resAddress ? <p className="text-sm text-red-600">{errors.resAddress}</p> : null}
+                </div>
+
+                <AvailabilityPicker
+                  schedulingMode={resSchedulingMode}
+                  onSchedulingModeChange={setResSchedulingMode}
+                  startDate={resStartDate}
+                  endDate={resEndDate}
+                  timePreference={resTimePref}
+                  onStartDateChange={setResStartDate}
+                  onEndDateChange={setResEndDate}
+                  onTimePreferenceChange={setResTimePref}
+                />
+                {errors.resStartDate || errors.resEndDate || errors.resTimePref ? (
+                  <p className="text-sm text-red-600">Please complete all scheduling fields.</p>
+                ) : null}
+              </div>
+            ) : null}
+
+            {resStep === 5 ? (
+              <div className="space-y-5">
+                <label className="block space-y-1.5">
+                  <span className="text-sm font-medium text-slate-900">Notes</span>
+                  <textarea
+                    className="flex min-h-[80px] w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 transition-colors duration-200 hover:border-slate-300 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-(--color-brand) focus:ring-offset-0"
+                    placeholder="How do we get in?"
+                    value={resNotes}
+                    onChange={(e) => setResNotes(e.target.value)}
+                  />
+                </label>
+
+                <div className="space-y-1.5">
+                  <p className="text-sm font-medium text-slate-900">Show us your space</p>
+                  <p className="text-xs text-slate-500">
+                    The more we can see, the more accurate your quote. A 60-second walkthrough video works best.
+                  </p>
+                  <MediaUpload onUpload={setResMediaEncoded} uploadedEncoded={resMediaEncoded} />
+                </div>
+
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-slate-900">Preferred contact</p>
+                  <div className="flex items-center gap-5">
+                    {([
+                      { id: 'email' as const, label: 'Email' },
+                      { id: 'phone' as const, label: 'Phone' },
+                      { id: 'text' as const, label: 'Text' },
+                    ] as const).map((option) => (
+                      <button
+                        key={option.id}
+                        type="button"
+                        onClick={() => setResPreferredContact(option.id)}
+                        className="inline-flex cursor-pointer items-center gap-2 transition-colors duration-200"
+                      >
+                        <span
+                          className={cn(
+                            'flex h-4 w-4 items-center justify-center rounded-full border-2 transition-colors duration-200',
+                            resPreferredContact === option.id
+                              ? 'border-(--color-brand)'
+                              : 'border-slate-300'
+                          )}
+                        >
+                          {resPreferredContact === option.id ? (
+                            <span className="h-2 w-2 rounded-full bg-(--color-brand)" />
+                          ) : null}
+                        </span>
+                        <span className={cn(
+                          'text-sm',
+                          resPreferredContact === option.id ? 'font-medium text-slate-900' : 'text-slate-600'
+                        )}>
+                          {option.label}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="rounded-xl border border-slate-200 bg-slate-50 p-5 space-y-3">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Your Request Summary</p>
+                  <div className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
+                    <div>
+                      <p className="text-xs text-slate-500">Service</p>
+                      <p className="font-medium text-slate-900">{serviceLabel}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-500">Frequency</p>
+                      <p className="font-medium text-slate-900">{frequencyLabel}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-500">Home size</p>
+                      <p className="font-medium text-slate-900">
+                        {bedrooms} bed · {bathrooms === 0 ? 'Studio' : `${bathrooms} bath`}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-500">Condition</p>
+                      <p className="font-medium text-slate-900">{conditionLabel}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-500">Pets</p>
+                      <p className="font-medium text-slate-900">{petsLabel}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-500">
+                        {resSchedulingMode === 'specific' ? 'Preferred date' : 'Date window'}
+                      </p>
+                      <p className="font-medium text-slate-900">{dateLabel}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-500">Arrival window</p>
+                      <p className="font-medium text-slate-900">{timeLabel}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-500">Preferred contact</p>
+                      <p className="font-medium text-slate-900">
+                        {resPreferredContact === 'email' ? 'Email' : resPreferredContact === 'phone' ? 'Phone' : resPreferredContact === 'text' ? 'Text' : '—'}
+                      </p>
+                    </div>
+                    <div className="col-span-2">
+                      <p className="text-xs text-slate-500">Address</p>
+                      <p className="font-medium text-slate-900">{resAddress || '—'}</p>
+                    </div>
+                    {selectedAddOns.length > 0 ? (
+                      <div className="col-span-2">
+                        <p className="text-xs text-slate-500">Add-ons</p>
+                        <p className="font-medium text-slate-900">{addOnLabels}</p>
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <Button
+                    type="button"
+                    size="lg"
+                    className="w-full"
+                    disabled={submitting || savingPartial}
+                    onClick={submitResidential}
+                  >
+                    {submitting
+                      ? <><Loader2 size={16} className="animate-spin" /> Submitting…</>
+                      : 'Request My Custom Quote'}
+                  </Button>
+                </div>
+              </div>
             ) : null}
           </div>
-        </div>
-
-      ) : (
-
-      /* ═══════════════════════════════════════════════════════════════════ */
-      /* COMMERCIAL FLOW — 3 steps (unchanged)                              */
-      /* ═══════════════════════════════════════════════════════════════════ */
-        <div className="space-y-6">
-          <div>
-            <p className="text-sm font-medium text-slate-900">Step {comStep} of 3</p>
-            <div className="mt-2 h-1.5 w-full rounded-full bg-slate-100">
-              <div className="h-1.5 rounded-full bg-(--color-brand)" style={{ width: `${(comStep / 3) * 100}%` }} />
-            </div>
-          </div>
-
-          {comStep === 1 ? (
-            <div className="space-y-4">
-              <h2 className="font-display text-xl font-bold text-slate-900">
-                {flowType === 'post_construction' ? 'Tell us about your project' : 'Tell us about your business'}
-              </h2>
-              <label className="block space-y-1">
+        ) : (
+          <div className="space-y-4 pb-4">
+            {comStep === 1 ? (
+              <div className="space-y-4">
+                <label className="block space-y-1">
                 <span className="text-sm font-medium text-slate-900">Business Name</span>
                 <Input value={businessName} onChange={(e) => setBusinessName(e.target.value)} error={Boolean(errors.businessName)} />
                 {errors.businessName ? <p className="text-sm text-red-600">{errors.businessName}</p> : null}
@@ -1171,9 +1130,6 @@ export function BookingForm() {
 
           {comStep === 2 ? (
             <div className="space-y-5">
-              <h2 className="font-display text-xl font-bold text-slate-900">
-                {flowType === 'post_construction' ? 'About your project' : 'About your space'}
-              </h2>
               <div>
                 <p className="mb-2 font-medium text-slate-900">Property Type</p>
                 <div className="grid gap-2 grid-cols-2 sm:grid-cols-4">
@@ -1280,30 +1236,56 @@ export function BookingForm() {
               </div>
             </div>
           ) : null}
+        </div>
+        )}
 
-          <div className="flex justify-between gap-3">
+        {submitError ? <p className="mt-2 text-sm text-red-600">{submitError}</p> : null}
+      </div>
+
+      {/* ── PINNED FOOTER — Back / Next ───────────────────────────────── */}
+      {/* Only shows Back and Next. Submit stays inside step content above. */}
+      <div className="shrink-0 border-t border-slate-100 bg-white px-4 py-3 sm:px-6">
+        <div className="flex justify-between gap-3">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => {
+              if (flowType === 'residential') setResStep((s) => Math.max(1, s - 1))
+              else setComStep((s) => Math.max(1, s - 1))
+            }}
+            disabled={
+              (flowType === 'residential' && resStep === 1) ||
+              (flowType !== 'residential' && comStep === 1) ||
+              submitting ||
+              savingPartial
+            }
+          >
+            Back
+          </Button>
+
+          {flowType === 'residential' && resStep < 5 ? (
             <Button
               type="button"
-              variant="outline"
-              onClick={() => setComStep((s) => Math.max(1, s - 1))}
-              disabled={comStep === 1 || submitting}
+              onClick={handleResNext}
+              disabled={submitting || savingPartial}
             >
-              Back
+              {savingPartial
+                ? <><Loader2 size={14} className="animate-spin" /> Saving…</>
+                : 'Next'}
             </Button>
-            {comStep < 3 ? (
-              <Button
-                type="button"
-                onClick={() => { if (validateCommercialStep()) setComStep((s) => Math.min(3, s + 1)) }}
-                disabled={submitting}
-              >
-                Next
-              </Button>
-            ) : null}
-          </div>
-        </div>
-      )}
+          ) : null}
 
-      {submitError ? <p className="text-sm text-red-600">{submitError}</p> : null}
+          {flowType !== 'residential' && comStep < 3 ? (
+            <Button
+              type="button"
+              onClick={() => { if (validateCommercialStep()) setComStep((s) => Math.min(3, s + 1)) }}
+              disabled={submitting}
+            >
+              Next
+            </Button>
+          ) : null}
+        </div>
+      </div>
     </div>
   )
 }
