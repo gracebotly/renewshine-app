@@ -1,6 +1,17 @@
 import { createClient } from '@supabase/supabase-js'
 import { rateLimit, getClientIp } from '@/lib/ratelimit'
 
+// ── Body size limit ────────────────────────────────────────────────────────────
+// Vercel's default is 4.5MB — iPhone HEIC photos are 3–6MB each.
+// Raising to 25MB matches the stated per-file limit shown in the UI.
+export const config = {
+  api: {
+    bodyParser: {
+      sizeLimit: '25mb',
+    },
+  },
+}
+
 // IMPORTANT: The 'job-media' bucket must be set to PRIVATE in Supabase Dashboard.
 // Dashboard → Storage → job-media → Edit bucket → toggle "Public bucket" OFF.
 // This endpoint no longer returns public URLs — it returns a storage path.
@@ -14,6 +25,11 @@ const supabase = createClient(
 // Rate limit: max 10 uploads per IP per 10 minutes
 const RATE_LIMIT = 10
 const RATE_WINDOW_MS = 10 * 60 * 1000
+
+// Handle preflight / health-check GETs cleanly
+export async function GET() {
+  return Response.json({ error: 'Method not allowed. Use POST.' }, { status: 405 })
+}
 
 export async function POST(request: Request) {
   // ── Rate limiting ──────────────────────────────────────────────────────────
@@ -33,9 +49,10 @@ export async function POST(request: Request) {
   }
 
   // ── File type validation ───────────────────────────────────────────────────
+  // Explicitly allow HEIC/HEIF (iPhone default camera format)
   const ALLOWED_IMAGE_TYPES = [
     'image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp',
-    'image/heic', 'image/heif', // iPhone camera formats
+    'image/heic', 'image/heif',
   ]
   const ALLOWED_VIDEO_TYPES = [
     'video/mp4', 'video/mov', 'video/quicktime', 'video/avi', 'video/webm',
@@ -55,22 +72,26 @@ export async function POST(request: Request) {
   }
 
   // ── Generate a random storage path ────────────────────────────────────────
-  // HEIC files from iPhone sometimes arrive with generic names like 'image.bin'
-  // Fall back to extension derived from MIME type when filename extension is missing/generic
+  // HEIC files sometimes arrive with generic names — derive ext from MIME type as fallback
   const nameExt = file.name.split('.').pop()?.toLowerCase() ?? ''
-  const mimeExt = file.type === 'image/heic' ? 'heic'
+  const mimeExt =
+    file.type === 'image/heic' ? 'heic'
     : file.type === 'image/heif' ? 'heif'
     : file.type === 'video/quicktime' ? 'mov'
     : ''
-  const ext = (nameExt && nameExt !== 'bin') ? nameExt : (mimeExt || 'bin')
+  const ext = nameExt && nameExt !== 'bin' ? nameExt : mimeExt || 'bin'
+
   const path = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
 
   const arrayBuffer = await file.arrayBuffer()
   const buffer = Buffer.from(arrayBuffer)
 
+  // Use the file's content type, or fall back to a sensible default for HEIC
+  const contentType = file.type || (ext === 'heic' ? 'image/heic' : ext === 'heif' ? 'image/heif' : 'application/octet-stream')
+
   // ── Upload to private bucket ───────────────────────────────────────────────
   const { data, error } = await supabase.storage.from('job-media').upload(path, buffer, {
-    contentType: file.type,
+    contentType,
     upsert: false,
   })
 
@@ -79,8 +100,5 @@ export async function POST(request: Request) {
     return Response.json({ error: 'Upload failed' }, { status: 500 })
   }
 
-  // Return the storage path and content type.
-  // The admin generates a signed URL from path at view time.
-  // contentType is passed through so callers don't have to guess from extension.
-  return Response.json({ path: data.path, contentType: file.type }, { status: 201 })
+  return Response.json({ path: data.path, contentType }, { status: 201 })
 }
