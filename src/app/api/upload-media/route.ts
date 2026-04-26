@@ -33,9 +33,19 @@ export async function POST(request: Request) {
   }
 
   // ── File type validation ───────────────────────────────────────────────────
-  const isImage = file.type.startsWith('image/')
-  const isVideo = file.type.startsWith('video/')
+  const ALLOWED_IMAGE_TYPES = [
+    'image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp',
+    'image/heic', 'image/heif', // iPhone camera formats
+  ]
+  const ALLOWED_VIDEO_TYPES = [
+    'video/mp4', 'video/mov', 'video/quicktime', 'video/avi', 'video/webm',
+  ]
+
+  const isImage = file.type.startsWith('image/') || ALLOWED_IMAGE_TYPES.includes(file.type)
+  const isVideo = file.type.startsWith('video/') || ALLOWED_VIDEO_TYPES.includes(file.type)
+
   if (!isImage && !isVideo) {
+    console.error('Rejected file type:', file.type, 'name:', file.name)
     return Response.json({ error: 'Only images and videos are accepted' }, { status: 400 })
   }
 
@@ -45,7 +55,14 @@ export async function POST(request: Request) {
   }
 
   // ── Generate a random storage path ────────────────────────────────────────
-  const ext = file.name.split('.').pop()?.toLowerCase() ?? 'bin'
+  // HEIC files from iPhone sometimes arrive with generic names like 'image.bin'
+  // Fall back to extension derived from MIME type when filename extension is missing/generic
+  const nameExt = file.name.split('.').pop()?.toLowerCase() ?? ''
+  const mimeExt = file.type === 'image/heic' ? 'heic'
+    : file.type === 'image/heif' ? 'heif'
+    : file.type === 'video/quicktime' ? 'mov'
+    : ''
+  const ext = (nameExt && nameExt !== 'bin') ? nameExt : (mimeExt || 'bin')
   const path = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
 
   const arrayBuffer = await file.arrayBuffer()
