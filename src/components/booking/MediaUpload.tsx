@@ -2,11 +2,10 @@
 
 import * as React from 'react'
 import { useDropzone } from 'react-dropzone'
-import { CheckCircle2, Loader2, Upload, X } from 'lucide-react'
+import { CheckCircle2, Film, Loader2, Upload, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface MediaUploadProps {
-  // Encoded as "storagePath|contentType" — matches what create-job route expects
   onUpload: (encoded: string[]) => void
   uploadedEncoded: string[]
 }
@@ -14,8 +13,8 @@ interface MediaUploadProps {
 interface UploadItem {
   id: string
   name: string
-  previewUrl: string       // blob: URL for display — never replaced
-  storagePath: string      // returned by upload API — used in submit payload
+  previewUrl: string
+  storagePath: string
   contentType: string
   isVideo: boolean
   uploading: boolean
@@ -26,13 +25,28 @@ export function MediaUpload({ onUpload, uploadedEncoded }: MediaUploadProps) {
   const [error, setError] = React.useState('')
   const [items, setItems] = React.useState<UploadItem[]>([])
 
+  // Using a ref instead of reading uploadedEncoded from the closure prevents
+  // the race condition where concurrent uploads overwrite each other.
+  const encodedRef = React.useRef<string[]>([])
+
+  React.useEffect(() => {
+    encodedRef.current = uploadedEncoded
+  }, [uploadedEncoded])
+
   const uploadFile = React.useCallback(
-    async (file: File, id: string, previewUrl: string, resolvedContentType?: string) => {
+    async (
+      file: File,
+      id: string,
+      previewUrl: string,
+      resolvedContentType: string
+    ) => {
       const form = new FormData()
-      // For HEIC/HEIF files, the browser may report an empty MIME type.
-      // We pass the resolved contentType by wrapping the file in a Blob with the target type.
       if (resolvedContentType && resolvedContentType !== file.type) {
-        form.append('file', new Blob([await file.arrayBuffer()], { type: resolvedContentType }), file.name)
+        form.append(
+          'file',
+          new Blob([await file.arrayBuffer()], { type: resolvedContentType }),
+          file.name
+        )
       } else {
         form.append('file', file)
       }
@@ -41,25 +55,31 @@ export function MediaUpload({ onUpload, uploadedEncoded }: MediaUploadProps) {
         const data = await response.json()
         if (!response.ok) throw new Error(data.error ?? 'Upload failed')
 
-        // data.path = storage path, data.contentType = mime type
         const encoded = `${data.path}|${data.contentType}`
+
+        encodedRef.current = [...encodedRef.current, encoded]
+        onUpload(encodedRef.current)
 
         setItems((prev) =>
           prev.map((i) =>
             i.id === id
-              ? { ...i, storagePath: data.path, contentType: data.contentType, uploading: false, done: true }
+              ? {
+                  ...i,
+                  storagePath: data.path,
+                  contentType: data.contentType,
+                  uploading: false,
+                  done: true,
+                }
               : i
           )
         )
-        // Notify parent with encoded storage path — previewUrl stays in local state only
-        onUpload([...uploadedEncoded, encoded])
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Upload failed')
         setItems((prev) => prev.filter((i) => i.id !== id))
         URL.revokeObjectURL(previewUrl)
       }
     },
-    [onUpload, uploadedEncoded]
+    [onUpload]
   )
 
   const onDrop = React.useCallback(
@@ -72,17 +92,21 @@ export function MediaUpload({ onUpload, uploadedEncoded }: MediaUploadProps) {
       acceptedFiles.forEach((file) => {
         const previewUrl = URL.createObjectURL(file)
         const id = crypto.randomUUID()
-        // HEIC/HEIF from iPhone may have type 'image/heic' or empty string — treat as image
         const isVideo = file.type.startsWith('video/')
-        // Fallback contentType for HEIC/HEIF files where browser reports empty type
-        const contentType = file.type || (file.name.toLowerCase().endsWith('.heic') ? 'image/heic' : file.name.toLowerCase().endsWith('.heif') ? 'image/heif' : 'application/octet-stream')
+        const contentType =
+          file.type ||
+          (file.name.toLowerCase().endsWith('.heic')
+            ? 'image/heic'
+            : file.name.toLowerCase().endsWith('.heif')
+              ? 'image/heif'
+              : 'application/octet-stream')
 
         setItems((prev) => [
           ...prev,
           {
             id,
             name: file.name,
-            previewUrl,         // This is what the img/video tag reads — never overwritten
+            previewUrl,
             storagePath: '',
             contentType,
             isVideo,
@@ -99,18 +123,19 @@ export function MediaUpload({ onUpload, uploadedEncoded }: MediaUploadProps) {
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     multiple: true,
-    maxSize: 25 * 1024 * 1024,
+    maxSize: 200 * 1024 * 1024,
     maxFiles: 10,
     accept: {
       'image/*': [],
       'image/heic': ['.heic'],
       'image/heif': ['.heif'],
       'video/*': [],
+      'video/quicktime': ['.mov'],
     },
     onDropRejected: (rejections) => {
       const code = rejections[0]?.errors[0]?.code
-      if (code === 'file-too-large') setError('File too large (max 25MB)')
-      else if (code === 'file-invalid-type') setError('Only images and videos are accepted')
+      if (code === 'file-too-large') setError('File too large (max 200MB)')
+      else if (code === 'file-invalid-type') setError('Only photos and videos are accepted')
       else setError('Upload failed. Please try again.')
     },
   })
@@ -119,7 +144,9 @@ export function MediaUpload({ onUpload, uploadedEncoded }: MediaUploadProps) {
     const item = items.find((i) => i.id === id)
     if (item) URL.revokeObjectURL(item.previewUrl)
     setItems((prev) => prev.filter((i) => i.id !== id))
-    onUpload(uploadedEncoded.filter((e) => e !== encoded))
+    const next = uploadedEncoded.filter((e) => e !== encoded)
+    encodedRef.current = next
+    onUpload(next)
   }
 
   const doneCount = items.filter((i) => i.done).length
@@ -150,11 +177,11 @@ export function MediaUpload({ onUpload, uploadedEncoded }: MediaUploadProps) {
           {isDragActive ? 'Drop files here' : 'Upload photos or a video'}
         </p>
         <p className="mt-1 text-sm text-slate-600">
-          A <span className="font-medium text-slate-900">60-second walkthrough video</span> gives us
-          the most accurate picture. Photos of each room work too.
+          A <span className="font-medium text-slate-900">60-second walkthrough video</span>{' '}
+          gives us the most accurate picture. Photos of each room work too.
         </p>
         <p className="mt-3 text-xs text-slate-400">
-          MP4 · MOV · JPG · PNG &nbsp;·&nbsp; Max 25MB per file &nbsp;·&nbsp; Up to 10 files
+          MP4 · MOV · HEIC · JPG · PNG &nbsp;·&nbsp; Up to 10 files
         </p>
       </div>
 
@@ -167,7 +194,7 @@ export function MediaUpload({ onUpload, uploadedEncoded }: MediaUploadProps) {
           <p className="text-xs font-medium text-slate-500">
             {doneCount === totalCount
               ? `${totalCount} file${totalCount !== 1 ? 's' : ''} uploaded`
-              : `Uploading ${totalCount - doneCount} of ${totalCount}…`}
+              : `Uploading… (${doneCount} of ${totalCount} done)`}
           </p>
           {doneCount === totalCount && totalCount > 0 ? (
             <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-600">
@@ -186,44 +213,34 @@ export function MediaUpload({ onUpload, uploadedEncoded }: MediaUploadProps) {
               key={item.id}
               className="group relative aspect-square overflow-hidden rounded-lg border border-slate-200 bg-slate-100"
             >
-              {/* Thumbnail — always uses previewUrl (blob:) */}
               {item.isVideo ? (
-                <video
-                  src={item.previewUrl}
-                  className="h-full w-full object-cover"
-                  muted
-                  playsInline
-                />
+                <div className="flex h-full w-full flex-col items-center justify-center gap-1 bg-slate-800">
+                  <Film size={22} className="text-slate-300" />
+                  <span className="max-w-full truncate px-1 text-center text-[10px] leading-tight text-slate-400">
+                    {item.name}
+                  </span>
+                </div>
               ) : (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={item.previewUrl}
-                  alt={item.name}
-                  className="h-full w-full object-cover"
-                />
+                <img src={item.previewUrl} alt={item.name} className="h-full w-full object-cover" />
               )}
 
-              {/* Uploading overlay */}
               {item.uploading ? (
                 <div className="absolute inset-0 flex items-center justify-center bg-white/70">
                   <Loader2 size={20} className="animate-spin text-(--color-brand)" />
                 </div>
               ) : null}
 
-              {/* Done badge */}
               {item.done ? (
                 <div className="absolute bottom-1.5 left-1.5">
                   <CheckCircle2 size={16} className="text-emerald-500 drop-shadow" />
                 </div>
               ) : null}
 
-              {/* Remove button */}
               {!item.uploading ? (
                 <button
                   type="button"
-                  onClick={() =>
-                    handleRemove(item.id, `${item.storagePath}|${item.contentType}`)
-                  }
+                  onClick={() => handleRemove(item.id, `${item.storagePath}|${item.contentType}`)}
                   className="absolute right-1.5 top-1.5 flex h-6 w-6 cursor-pointer items-center justify-center rounded-full bg-slate-900/70 text-white opacity-0 transition-opacity duration-150 group-hover:opacity-100"
                   aria-label={`Remove ${item.name}`}
                 >
