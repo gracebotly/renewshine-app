@@ -44,15 +44,14 @@ export async function POST(request: Request) {
         quantity: 1,
       },
     ],
-    // payment_intent_data.metadata is copied to every CheckoutSession created
-    // from this Payment Link — this is how jobId reaches the webhook handler.
-    // Top-level metadata on a PaymentLink is NOT propagated to the session.
-    payment_intent_data: {
-      metadata: {
-        jobId: job.id,
-        client_email: job.client_email,
-        client_name: job.client_name,
-      },
+    // Top-level metadata on a PaymentLink IS copied to every CheckoutSession
+    // created from this link — this is what populates session.metadata in the
+    // checkout.session.completed webhook event. Do NOT use payment_intent_data.metadata
+    // here — that only goes to the PaymentIntent, not to the session.
+    metadata: {
+      jobId: job.id,
+      client_email: job.client_email,
+      client_name: job.client_name,
     },
     after_completion: {
       type: 'redirect',

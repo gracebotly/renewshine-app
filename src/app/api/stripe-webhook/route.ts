@@ -3,6 +3,7 @@ import { createServerClient } from '@/lib/supabase/server'
 import { sendCustomerBooked, sendOwnerBooked } from '@/lib/email'
 import { notifyDepositPaid } from '@/lib/slack'
 
+// Required: raw body for Stripe signature verification
 export const runtime = 'nodejs'
 
 export async function POST(request: Request) {
@@ -30,32 +31,48 @@ export async function POST(request: Request) {
     const session = event.data.object as {
       id: string
       metadata?: Record<string, string> | null
-      payment_intent?: string | { metadata?: Record<string, string> } | null
+      payment_link?: string | null
     }
 
-    // payment_intent_data.metadata is surfaced on session.metadata for Payment Links.
-    // Fallback to payment_intent.metadata for PaymentIntent-based flows.
-    const sessionMeta = session.metadata ?? {}
-    const paymentIntentMeta =
-      session.payment_intent && typeof session.payment_intent === 'object'
-        ? (session.payment_intent.metadata ?? {})
-        : {}
+    const supabase = createServerClient()
 
-    const jobId = sessionMeta.jobId ?? paymentIntentMeta.jobId
+    // PRIMARY: jobId from session.metadata — populated when PaymentLink has top-level metadata
+    let jobId: string | null = session.metadata?.jobId ?? null
+
+    // FALLBACK: if metadata missing (e.g. older Payment Links without metadata),
+    // look up the job by the Stripe payment_link URL stored in our database
+    if (!jobId && session.payment_link) {
+      console.log('Webhook: no jobId in session.metadata — attempting fallback lookup by payment_link ID:', session.payment_link)
+
+      // Fetch the Payment Link object from Stripe to get its URL
+      const paymentLinkObj = await stripe.paymentLinks.retrieve(session.payment_link)
+
+      if (paymentLinkObj?.url) {
+        const { data: jobByLink } = await supabase
+          .from('jobs')
+          .select('id')
+          .eq('stripe_payment_link', paymentLinkObj.url)
+          .single()
+
+        if (jobByLink?.id) {
+          jobId = jobByLink.id
+          console.log('Webhook: fallback lookup succeeded — jobId:', jobId)
+        }
+      }
+    }
 
     if (!jobId) {
       console.error(
-        'Webhook: no jobId found in session.metadata or payment_intent.metadata.',
+        'Webhook: could not resolve jobId from session.metadata or payment_link fallback.',
         'Session ID:', session.id,
-        'session.metadata:', JSON.stringify(sessionMeta),
-        'payment_intent:', typeof session.payment_intent
+        'session.metadata:', JSON.stringify(session.metadata),
+        'payment_link:', session.payment_link
       )
       // Return 200 — don't let Stripe retry endlessly for a configuration issue
       return Response.json({ received: true })
     }
 
-    const supabase = createServerClient()
-
+    // Fetch job — also serves as idempotency check
     const { data: job } = await supabase
       .from('jobs')
       .select('*')
@@ -84,6 +101,7 @@ export async function POST(request: Request) {
 
     if (updateError) {
       console.error('Webhook: failed to update job', jobId, updateError)
+      // Return 500 so Stripe retries — idempotency check above prevents double processing
       return Response.json({ error: 'DB update failed' }, { status: 500 })
     }
 
@@ -113,14 +131,14 @@ export async function POST(request: Request) {
 🗓️ ${
           updatedJob.confirmed_date
             ? new Date(updatedJob.confirmed_date).toLocaleDateString('en-US', {
-              weekday: 'long', month: 'long', day: 'numeric',
-            })
+                weekday: 'long',
+                month: 'long',
+                day: 'numeric',
+              })
             : 'Date TBD'
         }
 💵 Remaining balance: $${updatedJob.remaining_amount ?? 0}
-🔗 ${
-          process.env.NEXT_PUBLIC_SITE_URL
-        }/admin/jobs/${updatedJob.id}`
+🔗 ${process.env.NEXT_PUBLIC_SITE_URL}/admin/jobs/${updatedJob.id}`
       ).catch(() => {})
     }
 
