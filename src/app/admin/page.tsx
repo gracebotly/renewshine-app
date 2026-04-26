@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'
+
 import { createServerClient } from '@/lib/supabase/server'
 import { JobsTable, StaleAlert } from '@/components/admin/JobsTable'
 import { LogoutButton } from '@/components/admin/LogoutButton'

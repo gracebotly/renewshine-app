@@ -356,11 +356,13 @@ export function BookingForm() {
       }
 
       if (!response.ok) throw new Error('Failed')
+      const resData = await response.json()
 
       const resParams = new URLSearchParams({
         name: resName,
         email: resEmail,
         phone: rawPhone(resPhone),
+        jobId: resData.jobId ?? '',
       })
       router.push(`/booking-submitted?${resParams.toString()}`)
     } catch {
@@ -403,10 +405,13 @@ export function BookingForm() {
         }),
       })
       if (!response.ok) throw new Error('Failed')
+      const comData = await response.json()
+
       const comParams = new URLSearchParams({
         name: contactName,
         email: comEmail,
         phone: rawPhone(comPhone),
+        jobId: comData.jobId ?? '',
       })
       router.push(`/booking-submitted?${comParams.toString()}`)
     } catch {
