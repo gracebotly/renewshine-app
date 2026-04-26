@@ -1,6 +1,6 @@
 import { createServerClient } from '@/lib/supabase/server'
 import { sendOwnerNewJobAlert, sendCustomerSubmittedConfirmation } from '@/lib/email'
-import { sendSlackAlert } from '@/lib/slack'
+import { notifyNewBooking } from '@/lib/slack'
 import { rateLimit, getClientIp } from '@/lib/ratelimit'
 
 // Rate limit: max 5 job submissions per IP per 15 minutes
@@ -131,7 +131,7 @@ export async function POST(request: Request) {
       : job.service_type === 'move_out' ? 'Move-In / Move-Out'
       : 'Commercial / Custom'
 
-    sendSlackAlert(
+    notifyNewBooking(
       `⚡ *New booking request*
 *${job.client_name}* — ${serviceLabel}, ${job.bedrooms ?? '?'}bd/${job.bathrooms ?? '?'}ba
 📍 ${job.address ?? 'No address yet'}

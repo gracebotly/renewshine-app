@@ -1,7 +1,7 @@
 import { stripe } from '@/lib/stripe/client'
 import { createServerClient } from '@/lib/supabase/server'
 import { sendCustomerBooked, sendOwnerBooked } from '@/lib/email'
-import { sendSlackAlert } from '@/lib/slack'
+import { notifyDepositPaid } from '@/lib/slack'
 
 // Required: raw body for Stripe signature verification
 export const runtime = 'nodejs'
@@ -95,8 +95,8 @@ export async function POST(request: Request) {
 
     // Slack alert — deposit received
     if (updatedJob) {
-      sendSlackAlert(
-        `💰 *Deposit paid!*
+      notifyDepositPaid(
+        `💰 *Deposit paid — Stripe*
 *${updatedJob.client_name}* paid $100 deposit
 🗓️ ${updatedJob.confirmed_date ? new Date(updatedJob.confirmed_date).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }) : 'Date TBD'}
 💵 Remaining balance: $${updatedJob.remaining_amount ?? 0}

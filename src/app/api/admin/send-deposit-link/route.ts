@@ -1,7 +1,7 @@
 import { createServerClient } from '@/lib/supabase/server'
 import { stripe } from '@/lib/stripe/client'
 import { sendCustomerQuote, sendQuoteReminder, sendExpiredLinkRecovery } from '@/lib/email'
-import { sendSlackAlert } from '@/lib/slack'
+import { notifyQuoteSent } from '@/lib/slack'
 
 export async function POST(request: Request) {
   const { jobId, approvedPrice, confirmedDate, regenerate } = await request.json()
@@ -118,7 +118,7 @@ export async function POST(request: Request) {
   }
 
   // Slack alert — quote sent to customer
-  sendSlackAlert(
+  notifyQuoteSent(
     `📋 *Quote sent*
 *${job.client_name}* — $${approvedPrice} approved
 📧 ${job.client_email}
