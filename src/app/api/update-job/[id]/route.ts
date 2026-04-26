@@ -75,11 +75,18 @@ export async function PATCH(
 
   // Insert any media
   if (media_urls.length > 0) {
-    const mediaRows = media_urls.map((url: string) => ({
-      job_id: job.id,
-      file_url: url,
-      file_type: url?.match(/\.(mp4|mov|avi|webm)$/i) ? 'video' : 'image',
-    }))
+    const mediaRows = media_urls.map((encoded: string) => {
+      // Encoded as "storagePath|contentType" — strip the contentType suffix before storing
+      const [storagePath, contentType] = encoded.includes('|')
+        ? encoded.split('|')
+        : [encoded, 'image/jpeg']
+      const isVideo = contentType.startsWith('video/')
+      return {
+        job_id: job.id,
+        file_url: storagePath,
+        file_type: isVideo ? 'video' : 'image',
+      }
+    })
     await supabase.from('job_media').insert(mediaRows)
   }
 

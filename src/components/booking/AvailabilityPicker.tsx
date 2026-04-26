@@ -18,13 +18,13 @@ interface AvailabilityPickerProps {
   onTimePreferenceChange: (val: TimePreference) => void
 }
 
-const timeOptions: Array<{ id: TimePreference; label: string; sub: string }> = [
-  { id: 'early_morning',   label: '8am – 10am',  sub: 'Early morning'   },
-  { id: 'mid_morning',     label: '10am – 12pm', sub: 'Mid morning'     },
-  { id: 'noon',            label: '12pm – 2pm',  sub: 'Midday'          },
-  { id: 'early_afternoon', label: '2pm – 4pm',   sub: 'Early afternoon' },
-  { id: 'late_afternoon',  label: '4pm – 6pm',   sub: 'Late afternoon'  },
-  { id: 'flexible',        label: 'Flexible',    sub: 'Any time works'  },
+const timeOptions: Array<{ id: TimePreference; label: string }> = [
+  { id: 'early_morning', label: '8am – 10am' },
+  { id: 'mid_morning', label: '10am – 12pm' },
+  { id: 'noon', label: '12pm – 2pm' },
+  { id: 'early_afternoon', label: '2pm – 4pm' },
+  { id: 'late_afternoon', label: '4pm – 6pm' },
+  { id: 'flexible', label: 'Flexible' },
 ]
 
 export function AvailabilityPicker({
@@ -41,7 +41,6 @@ export function AvailabilityPicker({
 
   return (
     <div className="space-y-5">
-
       {/* Section header */}
       <div>
         <p className="inline-flex items-center gap-2 text-sm font-semibold text-slate-900">
@@ -50,11 +49,11 @@ export function AvailabilityPicker({
         </p>
       </div>
 
-      {/* Scheduling mode toggle */}
+      {/* Scheduling mode toggle — labels only, no subtitles */}
       <div className="grid grid-cols-2 gap-2">
         {([
-          { id: 'specific' as SchedulingMode, label: 'I have a specific date', sub: 'I know exactly when'  },
-          { id: 'flexible' as SchedulingMode, label: "I'm flexible",           sub: 'Give me a date range' },
+          { id: 'specific' as SchedulingMode, label: 'I have a specific date' },
+          { id: 'flexible' as SchedulingMode, label: "I'm flexible" },
         ] as const).map((option) => (
           <button
             key={option.id}
@@ -67,18 +66,21 @@ export function AvailabilityPicker({
                 : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'
             )}
           >
-            <p className={cn(
-              'text-sm font-semibold',
-              schedulingMode === option.id ? 'text-(--color-brand)' : 'text-slate-900'
-            )}>
+            <p
+              className={cn(
+                'text-sm font-semibold',
+                schedulingMode === option.id
+                  ? 'text-(--color-brand)'
+                  : 'text-slate-900'
+              )}
+            >
               {option.label}
             </p>
-            <p className="mt-0.5 text-xs text-slate-500">{option.sub}</p>
           </button>
         ))}
       </div>
 
-      {/* Date input — specific mode: single date picker */}
+      {/* Date input — specific mode */}
       {schedulingMode === 'specific' ? (
         <label className="block space-y-1">
           <span className="text-sm font-medium text-slate-900">Preferred Date</span>
@@ -93,7 +95,6 @@ export function AvailabilityPicker({
           />
         </label>
       ) : (
-        /* Date input — flexible mode: date range */
         <div className="grid gap-3 sm:grid-cols-2">
           <label className="space-y-1">
             <span className="text-sm font-medium text-slate-900">Earliest Date</span>
@@ -120,7 +121,7 @@ export function AvailabilityPicker({
         </div>
       )}
 
-      {/* Time window */}
+      {/* Time window — labels only, no subtitles */}
       <div>
         <p className="mb-2 inline-flex items-center gap-2 text-sm font-medium text-slate-900">
           <Clock size={14} className="text-(--color-brand)" />
@@ -141,19 +142,19 @@ export function AvailabilityPicker({
                     : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'
                 )}
               >
-                <p className={cn(
-                  'text-sm font-semibold tabular-nums',
-                  isSelected ? 'text-(--color-brand)' : 'text-slate-900'
-                )}>
+                <p
+                  className={cn(
+                    'text-sm font-semibold tabular-nums',
+                    isSelected ? 'text-(--color-brand)' : 'text-slate-900'
+                  )}
+                >
                   {option.label}
                 </p>
-                <p className="mt-0.5 text-xs text-slate-500">{option.sub}</p>
               </button>
             )
           })}
         </div>
       </div>
-
     </div>
   )
 }
