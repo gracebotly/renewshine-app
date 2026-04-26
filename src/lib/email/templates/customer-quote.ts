@@ -1,6 +1,6 @@
 import type { Job } from '@/types/database'
 import { ADD_ONS } from '@/lib/pricing'
-import { baseTemplate, ctaButton, divider, trustStrip } from './base'
+import { baseTemplate, ctaButton, divider } from './base'
 
 export function customerQuoteTemplate(job: Job, stripeUrl: string): { subject: string; html: string } {
   const firstName = job.client_name.split(' ')[0]
@@ -29,14 +29,16 @@ export function customerQuoteTemplate(job: Job, stripeUrl: string): { subject: s
 
   const confirmedDateStr = job.confirmed_date
     ? new Date(job.confirmed_date).toLocaleDateString('en-US', {
-        weekday: 'long', month: 'long', day: 'numeric', year: 'numeric',
-      })
+      weekday: 'long', month: 'long', day: 'numeric', year: 'numeric',
+    })
     : ''
 
   const approvedPrice = job.approved_price ?? 0
   const hasEstimateRange =
-    job.estimated_price_low != null && job.estimated_price_high != null &&
-    job.estimated_price_low > 0 && job.estimated_price_high > 0
+    job.estimated_price_low != null &&
+    job.estimated_price_high != null &&
+    job.estimated_price_low > 0 &&
+    job.estimated_price_high > 0
 
   const estimateDisplay = hasEstimateRange
     ? `$${job.estimated_price_low} to $${job.estimated_price_high}`
@@ -45,23 +47,26 @@ export function customerQuoteTemplate(job: Job, stripeUrl: string): { subject: s
       : 'Confirmed after review'
 
   const deposit = 100
-  const remaining = approvedPrice - deposit
+  const remaining = approvedPrice > deposit ? approvedPrice - deposit : 0
 
   const selectedAddOns = ADD_ONS.filter((a) =>
     Array.isArray(job.add_ons) && job.add_ons.includes(a.id)
   )
 
-  const bedroomLine = job.service_type !== 'move_out' && job.bedrooms
-    ? `${job.bedrooms} bed / ${job.bathrooms} bath`
-    : ''
+  const bedroomLine =
+    job.service_type !== 'move_out' && job.bedrooms
+      ? `${job.bedrooms} bed / ${job.bathrooms} bath`
+      : ''
 
-  const addOnBullets = selectedAddOns.map((a) =>
-    `<tr>
+  const addOnBullets = selectedAddOns
+    .map(
+      (a) => `<tr>
       <td style="padding:4px 0 4px 8px;font-size:13px;color:#334155;">
         <span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#4A7C59;margin-right:8px;vertical-align:middle;"></span>${a.label}
       </td>
     </tr>`
-  ).join('')
+    )
+    .join('')
 
   const content = `
   <p style="margin:0 0 6px;font-size:14px;color:#64748b;">Hi ${firstName},</p>
@@ -77,9 +82,8 @@ export function customerQuoteTemplate(job: Job, stripeUrl: string): { subject: s
     </tr>
   </table>
 
-  <p style="margin:0 0 8px;font-size:12px;font-weight:700;color:#0f172a;text-transform:uppercase;letter-spacing:0.06em;">What's included</p>
-  <table width="100%" cellpadding="0" cellspacing="0" role="presentation"
-    style="margin:0 0 24px;">
+  <p style="margin:0 0 8px;font-size:12px;font-weight:700;color:#0f172a;text-transform:uppercase;letter-spacing:0.06em;">What is included</p>
+  <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="margin:0 0 24px;">
     <tbody>
       <tr>
         <td style="padding:4px 0;font-size:13px;color:#334155;font-weight:600;">
@@ -115,11 +119,9 @@ export function customerQuoteTemplate(job: Job, stripeUrl: string): { subject: s
   ${ctaButton(`Confirm my appointment for $${deposit}`, stripeUrl)}
 
   <p style="margin:0;font-size:12px;color:#94a3b8;text-align:center;line-height:1.6;">
-    The remaining balance of $${remaining > 0 ? remaining.toFixed(2) : '0.00'} is due only after the clean is complete.<br/>
+    ${remaining > 0 ? `The remaining balance of $${remaining.toFixed(2)} is due only after the clean is complete.<br/>` : ''}
     Questions? Reply to this email or call us at (302) 492-7197.
   </p>
-
-  ${trustStrip()}
 `
 
   return {

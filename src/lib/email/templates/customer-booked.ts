@@ -39,7 +39,7 @@ export function customerBookedTemplate(job: Job): { subject: string; html: strin
   ${para('Your deposit has been received and your booking is locked in. Here are your full details:')}
 
   ${infoTable(
-    infoRow('Confirmed date', confirmedDateStr) +
+    infoRow('Confirmed date', confirmedDateStr !== '—' ? confirmedDateStr : 'Not confirmed') +
     infoRow('Arrival window', timePref) +
     infoRow('Service', serviceLabel) +
     infoRow('Address', job.address ?? 'Not set') +
@@ -63,8 +63,8 @@ export function customerBookedTemplate(job: Job): { subject: string; html: strin
       <tr>
         <td style="padding:10px 0;vertical-align:top;width:24px;font-size:13px;font-weight:700;color:#4A7C59;">2.</td>
         <td style="padding:10px 0 10px 8px;vertical-align:top;">
-          <p style="margin:0;font-size:14px;font-weight:600;color:#0f172a;">We handle everything on your service checklist</p>
-          <p style="margin:4px 0 0;font-size:13px;color:#64748b;">Every task included in your ${serviceLabel} will be completed. We reviewed your photos and arrive prepared.</p>
+          <p style="margin:0;font-size:14px;font-weight:600;color:#0f172a;">We handle everything on your checklist</p>
+          <p style="margin:4px 0 0;font-size:13px;color:#64748b;">Every task in your ${serviceLabel} will be completed. We reviewed your photos and arrive prepared.</p>
         </td>
       </tr>
       <tr>
