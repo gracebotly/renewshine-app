@@ -289,26 +289,32 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
   const rawMedia: Array<{ id: string; file_url: string; file_type: string | null }> =
     job.job_media ?? []
 
-  const mediaResults = rawMedia.map((m) => {
-    // If already a full URL (legacy records stored before path-only migration), use as-is
-    if (m.file_url.startsWith('http')) return m
+  // Bucket is PRIVATE — must use createSignedUrl (not getPublicUrl).
+  // createSignedUrl is async, so we resolve all in parallel with Promise.all.
+  const mediaResults = await Promise.all(
+    rawMedia.map(async (m) => {
+      // Legacy records stored before path-only migration: file_url is a full http URL
+      if (m.file_url.startsWith('http')) return m
 
-    // Bucket is PUBLIC — getPublicUrl() is synchronous, no expiry, no API call needed.
-    // createSignedUrl() is for private buckets only and causes inconsistent rendering on public buckets.
-    const { data } = supabase.storage
-      .from('job-media')
-      .getPublicUrl(m.file_url)
+      // Strip any residual "|contentType" suffix from old pipe-encoded records
+      const cleanPath = m.file_url.includes('|') ? m.file_url.split('|')[0] : m.file_url
 
-    if (!data?.publicUrl) {
-      console.error('Failed to get public URL for job media:', {
-        mediaId: m.id,
-        path: m.file_url,
-      })
-      return null
-    }
+      const { data, error } = await supabase.storage
+        .from('job-media')
+        .createSignedUrl(cleanPath, 60 * 60)
 
-    return { ...m, file_url: data.publicUrl }
-  })
+      if (error || !data?.signedUrl) {
+        console.error('Failed to create signed URL for job media:', {
+          mediaId: m.id,
+          path: cleanPath,
+          error,
+        })
+        return null
+      }
+
+      return { ...m, file_url: data.signedUrl }
+    })
+  )
   const media = mediaResults.filter((m): m is NonNullable<typeof m> => Boolean(m))
 
   const heroMedia = media[0] ?? null
