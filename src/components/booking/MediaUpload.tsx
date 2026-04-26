@@ -27,9 +27,15 @@ export function MediaUpload({ onUpload, uploadedEncoded }: MediaUploadProps) {
   const [items, setItems] = React.useState<UploadItem[]>([])
 
   const uploadFile = React.useCallback(
-    async (file: File, id: string, previewUrl: string) => {
+    async (file: File, id: string, previewUrl: string, resolvedContentType?: string) => {
       const form = new FormData()
-      form.append('file', file)
+      // For HEIC/HEIF files, the browser may report an empty MIME type.
+      // We pass the resolved contentType by wrapping the file in a Blob with the target type.
+      if (resolvedContentType && resolvedContentType !== file.type) {
+        form.append('file', new Blob([await file.arrayBuffer()], { type: resolvedContentType }), file.name)
+      } else {
+        form.append('file', file)
+      }
       try {
         const response = await fetch('/api/upload-media', { method: 'POST', body: form })
         const data = await response.json()
@@ -66,7 +72,11 @@ export function MediaUpload({ onUpload, uploadedEncoded }: MediaUploadProps) {
       acceptedFiles.forEach((file) => {
         const previewUrl = URL.createObjectURL(file)
         const id = crypto.randomUUID()
+        // HEIC/HEIF from iPhone may have type 'image/heic' or empty string — treat as image
         const isVideo = file.type.startsWith('video/')
+        // Fallback contentType for HEIC/HEIF files where browser reports empty type
+        const contentType = file.type || (file.name.toLowerCase().endsWith('.heic') ? 'image/heic' : file.name.toLowerCase().endsWith('.heif') ? 'image/heif' : 'application/octet-stream')
+
         setItems((prev) => [
           ...prev,
           {
@@ -74,13 +84,13 @@ export function MediaUpload({ onUpload, uploadedEncoded }: MediaUploadProps) {
             name: file.name,
             previewUrl,         // This is what the img/video tag reads — never overwritten
             storagePath: '',
-            contentType: file.type,
+            contentType,
             isVideo,
             uploading: true,
             done: false,
           },
         ])
-        void uploadFile(file, id, previewUrl)
+        void uploadFile(file, id, previewUrl, contentType)
       })
     },
     [items.length, uploadFile]
@@ -91,7 +101,12 @@ export function MediaUpload({ onUpload, uploadedEncoded }: MediaUploadProps) {
     multiple: true,
     maxSize: 25 * 1024 * 1024,
     maxFiles: 10,
-    accept: { 'image/*': [], 'video/*': [] },
+    accept: {
+      'image/*': [],
+      'image/heic': ['.heic'],
+      'image/heif': ['.heif'],
+      'video/*': [],
+    },
     onDropRejected: (rejections) => {
       const code = rejections[0]?.errors[0]?.code
       if (code === 'file-too-large') setError('File too large (max 25MB)')

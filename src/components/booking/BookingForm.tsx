@@ -116,7 +116,7 @@ export function BookingForm() {
   // Step 5 — final
   const [resNotes, setResNotes] = React.useState('')
   const [resMediaEncoded, setResMediaEncoded] = React.useState<string[]>([])
-  const [resPreferredContact, setResPreferredContact] = React.useState<'email' | 'phone' | ''>('')
+  const [resPreferredContact, setResPreferredContact] = React.useState<'email' | 'phone' | 'text' | ''>('')
 
   // ── Commercial state ───────────────────────────────────────────────────────
   const [businessName, setBusinessName] = React.useState('')
@@ -272,9 +272,6 @@ export function BookingForm() {
       if (!resTimePref) nextErrors.resTimePref = 'Time preference is required'
     }
 
-    if (resStep === 5) {
-      if (!resPreferredContact) nextErrors.resPreferredContact = 'Please select a contact preference'
-    }
 
     setErrors(nextErrors)
     return Object.keys(nextErrors).length === 0
@@ -668,7 +665,7 @@ export function BookingForm() {
                 <p className="text-sm font-medium text-slate-900">Home size</p>
                 {[
                   { label: 'Bedrooms', value: bedrooms, min: 1, max: 6, set: setBedrooms },
-                  { label: 'Bathrooms', value: bathrooms, min: 0, max: 4, set: setBathrooms },
+                  { label: 'Bathrooms', value: bathrooms, min: 0, max: 8, set: setBathrooms },
                 ].map((item) => (
                   <div key={item.label} className="flex items-center justify-between rounded-xl border border-slate-200 p-4">
                     <p className="font-medium text-slate-900">{item.label}</p>
@@ -680,13 +677,14 @@ export function BookingForm() {
                       >
                         <Minus size={16} />
                       </button>
-                      <span className="w-8 text-center font-mono text-xl font-bold tabular-nums text-slate-900">
-                        {item.value}
+                      <span className="w-10 text-center font-mono text-xl font-bold tabular-nums text-slate-900">
+                        {item.label === 'Bathrooms' && item.value >= 5 ? '5+' : item.value}
                       </span>
                       <button
                         type="button"
                         onClick={() => item.set((v) => Math.min(item.max, v + 1))}
-                        className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg border border-slate-200 transition-colors duration-200 hover:bg-slate-50"
+                        disabled={item.label === 'Bathrooms' && item.value >= 8}
+                        className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg border border-slate-200 transition-colors duration-200 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
                       >
                         <Plus size={16} />
                       </button>
@@ -930,10 +928,10 @@ export function BookingForm() {
 
               {/* Notes */}
               <label className="block space-y-1.5">
-                <span className="text-sm font-medium text-slate-900">Anything else we should know?</span>
+                <span className="text-sm font-medium text-slate-900">Notes</span>
                 <textarea
-                  className="flex min-h-[90px] w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 transition-colors duration-200 hover:border-slate-300 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-(--color-brand) focus:ring-offset-0"
-                  placeholder="How do we get in? (lockbox code, building fob, I'll be home...) — plus any areas to focus on, sensitivities, or special requests."
+                  className="flex min-h-[80px] w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 transition-colors duration-200 hover:border-slate-300 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-(--color-brand) focus:ring-offset-0"
+                  placeholder="How do we get in?"
                   value={resNotes}
                   onChange={(e) => setResNotes(e.target.value)}
                 />
@@ -950,38 +948,40 @@ export function BookingForm() {
 
               {/* Preferred contact method */}
               <div className="space-y-2">
-                <p className="text-sm font-medium text-slate-900">
-                  How would you prefer we contact you?
-                </p>
-                <div className="grid grid-cols-2 gap-2">
+                <p className="text-sm font-medium text-slate-900">Preferred contact</p>
+                <div className="flex items-center gap-5">
                   {([
-                    { id: 'email' as const, label: 'Email', sub: 'Quote and updates by email' },
-                    { id: 'phone' as const, label: 'Phone / Text', sub: 'We\'ll call or text you' },
-                  ]).map((option) => (
+                    { id: 'email' as const, label: 'Email' },
+                    { id: 'phone' as const, label: 'Phone' },
+                    { id: 'text' as const, label: 'Text' },
+                  ] as const).map((option) => (
                     <button
                       key={option.id}
                       type="button"
                       onClick={() => setResPreferredContact(option.id)}
-                      className={cn(
-                        'cursor-pointer rounded-xl border px-4 py-3 text-left transition-colors duration-200',
-                        resPreferredContact === option.id
-                          ? 'border-(--color-brand) bg-(--color-brand-muted)/40 ring-1 ring-(--color-brand)'
-                          : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'
-                      )}
+                      className="inline-flex cursor-pointer items-center gap-2 transition-colors duration-200"
                     >
-                      <p className={cn(
-                        'text-sm font-semibold',
-                        resPreferredContact === option.id ? 'text-(--color-brand)' : 'text-slate-900'
+                      <span
+                        className={cn(
+                          'flex h-4 w-4 items-center justify-center rounded-full border-2 transition-colors duration-200',
+                          resPreferredContact === option.id
+                            ? 'border-(--color-brand)'
+                            : 'border-slate-300'
+                        )}
+                      >
+                        {resPreferredContact === option.id ? (
+                          <span className="h-2 w-2 rounded-full bg-(--color-brand)" />
+                        ) : null}
+                      </span>
+                      <span className={cn(
+                        'text-sm',
+                        resPreferredContact === option.id ? 'font-medium text-slate-900' : 'text-slate-600'
                       )}>
                         {option.label}
-                      </p>
-                      <p className="mt-0.5 text-xs text-slate-500">{option.sub}</p>
+                      </span>
                     </button>
                   ))}
                 </div>
-                {errors.resPreferredContact ? (
-                  <p className="text-sm text-red-600">{errors.resPreferredContact}</p>
-                ) : null}
               </div>
 
               {/* Booking summary */}
@@ -1023,7 +1023,7 @@ export function BookingForm() {
                   <div>
                     <p className="text-xs text-slate-500">Preferred contact</p>
                     <p className="font-medium text-slate-900">
-                      {resPreferredContact === 'email' ? 'Email' : resPreferredContact === 'phone' ? 'Phone / Text' : '—'}
+                      {resPreferredContact === 'email' ? 'Email' : resPreferredContact === 'phone' ? 'Phone' : resPreferredContact === 'text' ? 'Text' : '—'}
                     </p>
                   </div>
                   <div className="col-span-2">

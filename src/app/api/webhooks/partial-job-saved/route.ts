@@ -5,6 +5,12 @@ import { Resend } from 'resend'
 const resend = new Resend(process.env.RESEND_API_KEY!)
 const FROM = 'RenewShine <noreply@renewshine.co>'
 
+// GET handler — n8n may health-check this endpoint via GET.
+// Return 200 so n8n doesn't error out on connection test.
+export async function GET() {
+  return Response.json({ ok: true })
+}
+
 export async function POST(request: NextRequest): Promise<Response> {
   // Validate shared secret — same pattern as all other n8n webhooks
   const secret = request.headers.get('x-webhook-secret')
