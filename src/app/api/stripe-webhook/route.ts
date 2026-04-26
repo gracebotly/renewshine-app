@@ -29,54 +29,50 @@ export async function POST(request: Request) {
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object as {
       id: string
-      payment_link?: string | null
-      metadata?: Record<string, string>
+      metadata?: Record<string, string> | null
+      payment_intent?: string | { metadata?: Record<string, string> } | null
+    }
+
+    // payment_intent_data.metadata is surfaced on session.metadata for Payment Links.
+    // Fallback to payment_intent.metadata for PaymentIntent-based flows.
+    const sessionMeta = session.metadata ?? {}
+    const paymentIntentMeta =
+      session.payment_intent && typeof session.payment_intent === 'object'
+        ? (session.payment_intent.metadata ?? {})
+        : {}
+
+    const jobId = sessionMeta.jobId ?? paymentIntentMeta.jobId
+
+    if (!jobId) {
+      console.error(
+        'Webhook: no jobId found in session.metadata or payment_intent.metadata.',
+        'Session ID:', session.id,
+        'session.metadata:', JSON.stringify(sessionMeta),
+        'payment_intent:', typeof session.payment_intent
+      )
+      // Return 200 — don't let Stripe retry endlessly for a configuration issue
+      return Response.json({ received: true })
     }
 
     const supabase = createServerClient()
-    let job: any = null
 
-    // PRIMARY: jobId in session metadata (future-proof once fixed)
-    const jobId = session.metadata?.jobId
-    if (jobId) {
-      const { data } = await supabase
-        .from('jobs')
-        .select('*')
-        .eq('id', jobId)
-        .single()
-      job = data
-    }
-
-    // FALLBACK: session.metadata is empty (current behavior with Payment Links)
-    // Use session.payment_link ID -> retrieve PaymentLink from Stripe -> get URL -> find job by URL
-    if (!job && session.payment_link) {
-      try {
-        const paymentLink = await stripe.paymentLinks.retrieve(session.payment_link)
-        const linkUrl = paymentLink.url
-        if (linkUrl) {
-          const { data } = await supabase
-            .from('jobs')
-            .select('*')
-            .eq('stripe_payment_link', linkUrl)
-            .single()
-          job = data
-        }
-      } catch (lookupErr) {
-        console.error('Webhook: payment link lookup failed:', lookupErr)
-      }
-    }
+    const { data: job } = await supabase
+      .from('jobs')
+      .select('*')
+      .eq('id', jobId)
+      .single()
 
     if (!job) {
-      console.error('Webhook: could not resolve job for session', session.id)
+      console.error('Webhook: job not found for jobId', jobId)
       return Response.json({ received: true })
     }
 
-    // Idempotency: already processed
+    // Idempotency — Stripe retries events; skip if already processed
     if (job.deposit_paid) {
+      console.log('Webhook: deposit already recorded for job', jobId, '— skipping')
       return Response.json({ received: true })
     }
 
-    // Mark deposit paid and schedule job
     const { error: updateError } = await supabase
       .from('jobs')
       .update({
@@ -84,24 +80,26 @@ export async function POST(request: Request) {
         status: 'scheduled',
         stripe_session_id: session.id,
       })
-      .eq('id', job.id)
+      .eq('id', jobId)
 
     if (updateError) {
-      console.error('Webhook: failed to update job', updateError)
+      console.error('Webhook: failed to update job', jobId, updateError)
       return Response.json({ error: 'DB update failed' }, { status: 500 })
     }
 
-    // Fetch updated job for email templates
+    console.log('Webhook: job', jobId, 'marked scheduled — sending confirmation emails')
+
     const { data: updatedJob } = await supabase
       .from('jobs')
       .select('*')
-      .eq('id', job.id)
+      .eq('id', jobId)
       .single()
 
-    // Send Templates 4 + 5
+    // Send Templates 4 + 5 — never block webhook response on email failure
     try {
       if (updatedJob) {
         await Promise.all([sendCustomerBooked(updatedJob), sendOwnerBooked(updatedJob)])
+        console.log('Webhook: confirmation emails sent for job', jobId)
       }
     } catch (emailError) {
       console.error('Webhook: confirmation emails failed (non-blocking):', emailError)
@@ -123,7 +121,7 @@ export async function POST(request: Request) {
 🔗 ${
           process.env.NEXT_PUBLIC_SITE_URL
         }/admin/jobs/${updatedJob.id}`
-      ).catch(() => { })
+      ).catch(() => {})
     }
 
     // Fire job-scheduled webhook for n8n day-before reminder
@@ -144,9 +142,10 @@ export async function POST(request: Request) {
           timePreference: updatedJob.availability_time_pref,
           address: updatedJob.address,
         }),
-      }).catch(err => console.error('job-scheduled webhook failed (stripe path):', err))
+      }).catch((err) => console.error('job-scheduled webhook failed (stripe path):', err))
     }
   }
 
+  // Always return 200 — Stripe interprets anything else as failure and retries
   return Response.json({ received: true })
 }
