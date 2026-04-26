@@ -30,7 +30,6 @@ export async function POST(request: Request) {
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? ''
 
   // Create Stripe Payment Link
-  // metadata.jobId is how the webhook maps Stripe → your database
   const paymentLink = await stripe.paymentLinks.create({
     line_items: [
       {
@@ -45,10 +44,15 @@ export async function POST(request: Request) {
         quantity: 1,
       },
     ],
-    metadata: {
-      jobId: job.id,
-      client_email: job.client_email,
-      client_name: job.client_name,
+    // payment_intent_data.metadata is copied to every CheckoutSession created
+    // from this Payment Link — this is how jobId reaches the webhook handler.
+    // Top-level metadata on a PaymentLink is NOT propagated to the session.
+    payment_intent_data: {
+      metadata: {
+        jobId: job.id,
+        client_email: job.client_email,
+        client_name: job.client_name,
+      },
     },
     after_completion: {
       type: 'redirect',
