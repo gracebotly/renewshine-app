@@ -70,7 +70,7 @@ const serviceTiers = [
   },
   {
     title: 'Move-In / Move-Out',
-    price: 'From $500',
+    price: 'From $400',
     tagline: 'Vacant properties & tenant turnover',
     items: [
       'Everything in Deep Clean, plus:',

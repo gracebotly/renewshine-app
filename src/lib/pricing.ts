@@ -43,7 +43,7 @@ export function estimatePrice(
     base = bedrooms * 90 + bathrooms * 55
   }
 
-  const floor = serviceType === 'standard' ? 200 : 400
+  const floor = serviceType === 'standard' ? 200 : 350
 
   const addOnsTotal = ADD_ONS
     .filter((a) => selectedAddOns.includes(a.id))

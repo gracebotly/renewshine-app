@@ -820,13 +820,13 @@ export function BookingForm() {
                     {
                       id: 'deep' as ServiceType,
                       title: 'Deep Clean',
-                      price: 'from $400',
+                      price: 'from $350',
                       desc: 'Full top-to-bottom clean — includes inside oven & fridge',
                     },
                     {
                       id: 'move_out' as ServiceType,
                       title: 'Move-In / Move-Out',
-                      price: 'from $500',
+                      price: 'from $400',
                       desc: 'For vacant properties and tenant turnover',
                     },
                   ]).map(({ id, title, price, desc }) => (
