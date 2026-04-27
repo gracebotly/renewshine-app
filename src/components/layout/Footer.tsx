@@ -43,11 +43,11 @@ export default function Footer() {
             </p>
             <div className="mt-4 flex flex-col gap-2">
               <a
-                href="mailto:renewshinedmv@gmail.com"
+                href="mailto:hello@renewshine.co"
                 className="inline-flex items-center gap-2 text-sm text-slate-600 hover:text-(--color-brand) transition-colors duration-200"
               >
                 <Mail size={14} />
-                renewshinedmv@gmail.com
+                hello@renewshine.co
               </a>
               <a
                 href="tel:+13024927197"

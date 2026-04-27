@@ -40,7 +40,7 @@ const tiers = [
   },
   {
     title: 'Deep Clean',
-    price: 'From $400',
+    price: 'From $350',
     tagline: 'Full reset. Recommended for first-time clients.',
     items: [
       'Everything in Standard Clean, plus:',
@@ -59,7 +59,7 @@ const tiers = [
   },
   {
     title: 'Move-In / Move-Out',
-    price: 'From $500',
+    price: 'From $400',
     tagline: 'Vacant properties and tenant turnover',
     items: [
       'Everything in Deep Clean, plus:',

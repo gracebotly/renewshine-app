@@ -111,8 +111,8 @@ export default function TermsPage() {
 
             <p className="mt-4 text-xs text-slate-500">
               To cancel or reschedule, email{' '}
-              <a href="mailto:renewshinedmv@gmail.com" className="text-(--color-brand) underline underline-offset-2">
-                renewshinedmv@gmail.com
+              <a href="mailto:hello@renewshine.co" className="text-(--color-brand) underline underline-offset-2">
+                hello@renewshine.co
               </a>{' '}
               with your name and appointment date. Cancellation timing is based on
               when we receive your email.
@@ -184,8 +184,8 @@ export default function TermsPage() {
             <h2 className="font-display text-xl font-bold text-slate-900 mb-3">10. Contact</h2>
             <p className="text-slate-600 leading-relaxed">
               Questions? Email{' '}
-              <a href="mailto:renewshinedmv@gmail.com" className="text-(--color-brand) underline underline-offset-2">
-                renewshinedmv@gmail.com
+              <a href="mailto:hello@renewshine.co" className="text-(--color-brand) underline underline-offset-2">
+                hello@renewshine.co
               </a>.
             </p>
           </section>
@@ -219,10 +219,10 @@ export default function TermsPage() {
               <strong className="text-slate-900">STOP</strong>. For assistance, reply{' '}
               <strong className="text-slate-900">HELP</strong> or email{' '}
               <a
-                href="mailto:renewshinedmv@gmail.com"
+                href="mailto:hello@renewshine.co"
                 className="text-(--color-brand) underline underline-offset-2"
               >
-                renewshinedmv@gmail.com
+                hello@renewshine.co
               </a>.
             </p>
             <p className="text-slate-600 leading-relaxed">

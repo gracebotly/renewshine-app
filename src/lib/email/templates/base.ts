@@ -47,7 +47,7 @@ export function baseTemplate(content: string, previewText: string): string {
             <td style="background:${BG_PAGE};padding:20px 32px;border-top:1px solid ${BORDER};">
               <p style="margin:0;font-size:12px;color:${TEXT_MUTED};text-align:center;">RenewShine · DMV Area · DC, Maryland &amp; Virginia</p>
               <p style="margin:6px 0 0;font-size:12px;color:${TEXT_MUTED};text-align:center;">
-                <a href="mailto:renewshinedmv@gmail.com" style="color:${TEXT_MUTED};text-decoration:none;">renewshinedmv@gmail.com</a>
+                <a href="mailto:hello@renewshine.co" style="color:${TEXT_MUTED};text-decoration:none;">hello@renewshine.co</a>
                 &nbsp;·&nbsp;
                 <a href="tel:+13024927197" style="color:${TEXT_MUTED};text-decoration:none;">(302) 492-7197</a>
               </p>

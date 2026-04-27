@@ -119,8 +119,8 @@ export default function CancellationPage() {
           <h2 className="font-semibold text-slate-900 mb-2">How to cancel or reschedule</h2>
           <p className="text-sm text-slate-600">
             Email{' '}
-            <a href="mailto:renewshinedmv@gmail.com" className="text-(--color-brand) underline underline-offset-2">
-              renewshinedmv@gmail.com
+            <a href="mailto:hello@renewshine.co" className="text-(--color-brand) underline underline-offset-2">
+              hello@renewshine.co
             </a>{' '}
             with your name and appointment date. Cancellation timing is recorded
             based on when we receive your email.

@@ -3,7 +3,7 @@ import { baseTemplate, badge, heading, para, ctaButton, divider } from './base'
 // Business contact email — shown at bottom of email so customer
 // can reach out directly. Sent FROM noreply so we cannot include
 // "reply to this email" copy anywhere in this template.
-const BUSINESS_EMAIL = 'renewshinedmv@gmail.com'
+const BUSINESS_EMAIL = 'hello@renewshine.co'
 
 interface AbandonedEmailParams {
   firstName: string

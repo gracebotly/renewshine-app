@@ -26,8 +26,8 @@ export default function ErrorPage({
         <p className="mt-3 text-slate-600">
           We hit an unexpected error. Try again — if the problem continues,
           email us at{' '}
-          <a href="mailto:renewshinedmv@gmail.com" className="text-(--color-brand) underline underline-offset-2">
-            renewshinedmv@gmail.com
+          <a href="mailto:hello@renewshine.co" className="text-(--color-brand) underline underline-offset-2">
+            hello@renewshine.co
           </a>.
         </p>
         <div className="mt-6 flex flex-wrap justify-center gap-3">

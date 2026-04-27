@@ -70,7 +70,7 @@ const serviceTiers = [
   },
   {
     title: 'Move-In / Move-Out',
-    price: 'From $500',
+    price: 'From $400',
     tagline: 'Vacant properties & tenant turnover',
     items: [
       'Everything in Deep Clean, plus:',
@@ -102,7 +102,7 @@ export default async function CityPage({
         name: 'RenewShine',
         description: city.metaDescription,
         url: `https://renewshine.co/locations/${city.slug}`,
-        email: 'renewshinedmv@gmail.com',
+        email: 'hello@renewshine.co',
         areaServed: {
           '@type': 'City',
           name: city.displayName,
