@@ -25,7 +25,7 @@ export default function PrivacyPage() {
               the DC, Maryland, and Virginia (DMV) area. We operate at{' '}
               <a href="https://renewshine.co" className="text-(--color-brand) underline underline-offset-2">renewshine.co</a>
               {' '}and can be reached at{' '}
-              <a href="mailto:renewshinedmv@gmail.com" className="text-(--color-brand) underline underline-offset-2">renewshinedmv@gmail.com</a>.
+              <a href="mailto:hello@renewshine.co" className="text-(--color-brand) underline underline-offset-2">hello@renewshine.co</a>.
             </p>
           </section>
 
@@ -130,8 +130,8 @@ export default function PrivacyPage() {
               not shared with third parties, used for marketing, or published in any form
               without your explicit written consent. You may request deletion of your
               uploaded media at any time by emailing{' '}
-              <a href="mailto:renewshinedmv@gmail.com" className="text-(--color-brand) underline underline-offset-2">
-                renewshinedmv@gmail.com
+              <a href="mailto:hello@renewshine.co" className="text-(--color-brand) underline underline-offset-2">
+                hello@renewshine.co
               </a>.
             </p>
           </section>
@@ -169,8 +169,8 @@ export default function PrivacyPage() {
             </ul>
             <p className="text-slate-600 leading-relaxed mt-3">
               To exercise any of these rights, email{' '}
-              <a href="mailto:renewshinedmv@gmail.com" className="text-(--color-brand) underline underline-offset-2">
-                renewshinedmv@gmail.com
+              <a href="mailto:hello@renewshine.co" className="text-(--color-brand) underline underline-offset-2">
+                hello@renewshine.co
               </a>. We will respond within 45 days.
             </p>
           </section>
@@ -181,7 +181,7 @@ export default function PrivacyPage() {
               The emails we send you — including booking confirmations, quote links,
               deposit receipts, and appointment reminders — are transactional messages
               related to services you have requested. If you have questions about any
-              email from us, contact renewshinedmv@gmail.com.
+              email from us, contact hello@renewshine.co.
             </p>
           </section>
 
@@ -243,7 +243,7 @@ export default function PrivacyPage() {
             <h2 className="font-display text-xl font-bold text-slate-900 mb-3">13. Contact Us</h2>
             <div className="rounded-xl border border-slate-200 bg-slate-50 p-5 text-sm text-slate-700">
               <p className="font-semibold text-slate-900">RenewShine</p>
-              <p className="mt-1">Email: <a href="mailto:renewshinedmv@gmail.com" className="text-(--color-brand) underline underline-offset-2">renewshinedmv@gmail.com</a></p>
+              <p className="mt-1">Email: <a href="mailto:hello@renewshine.co" className="text-(--color-brand) underline underline-offset-2">hello@renewshine.co</a></p>
               <p className="mt-1">Phone: <a href="tel:+13024927197" className="text-(--color-brand) underline underline-offset-2">(302) 492-7197</a></p>
               <p className="mt-1">Website: <a href="https://renewshine.co" className="text-(--color-brand) underline underline-offset-2">renewshine.co</a></p>
               <p className="mt-1">State of operation: Maryland, USA</p>

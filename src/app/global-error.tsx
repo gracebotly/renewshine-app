@@ -31,7 +31,7 @@ export default function GlobalError({
               Something went wrong
             </h2>
             <p style={{ color: '#475569', marginBottom: '1.5rem' }}>
-              Please reload the page or contact us at renewshinedmv@gmail.com.
+              Please reload the page or contact us at hello@renewshine.co.
             </p>
             <button
               onClick={reset}

@@ -102,7 +102,7 @@ export default async function CityPage({
         name: 'RenewShine',
         description: city.metaDescription,
         url: `https://renewshine.co/locations/${city.slug}`,
-        email: 'renewshinedmv@gmail.com',
+        email: 'hello@renewshine.co',
         areaServed: {
           '@type': 'City',
           name: city.displayName,
