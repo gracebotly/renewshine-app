@@ -30,9 +30,10 @@ export function ownerNewJobTemplate(job: Job): { subject: string; html: string }
     : 'Flexible (Any Time)'
 
   const priceRange =
-    job.estimated_price_low && job.estimated_price_high
+    job.estimated_price_low && job.estimated_price_high &&
+    job.estimated_price_low > 0 && job.estimated_price_high > 0
       ? `$${job.estimated_price_low} – $${job.estimated_price_high}`
-      : 'Manual quote required'
+      : null
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? ''
 
@@ -56,7 +57,7 @@ export function ownerNewJobTemplate(job: Job): { subject: string; html: string }
       infoRow('Frequency', job.service_frequency ?? '—') +
       infoRow('Availability', availWindow) +
       infoRow('Time preference', timePref) +
-      infoRow('Estimated price', priceRange)
+      (priceRange ? infoRow('Estimated price', priceRange) : '')
     )}
     ${divider}
     ${ctaButton('Review in Admin →', `${siteUrl}/admin/jobs/${job.id}`)}

@@ -24,7 +24,6 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 const tiers = [
   {
     title: 'Standard Clean',
-    price: 'From $200',
     tagline: 'Regular maintenance',
     items: [
       'Dust all surfaces, furniture, bookshelves & picture frames',
@@ -40,7 +39,6 @@ const tiers = [
   },
   {
     title: 'Deep Clean',
-    price: 'From $350',
     tagline: 'Full reset. Recommended for first-time clients.',
     items: [
       'Everything in Standard Clean, plus:',
@@ -59,7 +57,6 @@ const tiers = [
   },
   {
     title: 'Move-In / Move-Out',
-    price: 'From $400',
     tagline: 'Vacant properties and tenant turnover',
     items: [
       'Everything in Deep Clean, plus:',
@@ -76,7 +73,6 @@ const tiers = [
 
   {
     title: 'Post-Construction Cleaning',
-    price: 'Custom Quote',
     tagline: 'After renovation, new builds, and construction projects',
     items: [
       'Fine dust and debris removal — all surfaces',
@@ -129,7 +125,7 @@ export default function PricingPage() {
             <p className="text-xs font-semibold uppercase tracking-wider text-(--color-brand)">Pricing</p>
             <h1 className="mt-2 font-display text-4xl font-bold text-slate-900">Simple, Transparent Pricing</h1>
             <p className="mt-3 text-lg text-slate-600">
-              No hidden fees. Your final price confirmed before you pay a single cent.
+              No guessing. Your confirmed price is set after we review your photos — before you pay anything.
             </p>
           </motion.div>
         </div>
@@ -142,9 +138,6 @@ export default function PricingPage() {
               <CardHeader>
                 {tier.popular ? <Badge variant="popular">Most Popular</Badge> : null}
                 <CardTitle className="mt-3">{tier.title}</CardTitle>
-                <p className={`font-mono text-4xl font-bold tabular-nums ${tier.popular ? 'text-(--color-brand)' : 'text-slate-900'}`}>
-                  {tier.price}
-                </p>
                 <CardDescription>{tier.tagline}</CardDescription>
               </CardHeader>
               <CardContent>
@@ -172,7 +165,7 @@ export default function PricingPage() {
         <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
           <h2 className="text-2xl font-bold text-slate-900">Additional services</h2>
           <p className="mt-2 text-sm text-slate-600">
-            Available on Standard Cleans. Inside Refrigerator and Inside Oven are included at no extra charge on Deep Clean and Move-In/Move-Out.
+            Available on Standard Cleans · Priced after review · Select during booking
           </p>
 
           <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -215,7 +208,7 @@ export default function PricingPage() {
       <section className="bg-(--color-brand) py-16">
         <div className="mx-auto max-w-4xl px-4 text-center sm:px-6 lg:px-8">
           <h2 className="font-display text-3xl font-bold text-white">Ready to get started?</h2>
-          <p className="mt-2 text-white/80">Your confirmed price is waiting. No surprises.</p>
+          <p className="mt-2 text-white/80">Your confirmed quote is one submission away. No surprises.</p>
           <div className="mt-6">
             <Button asChild className="bg-white text-(--color-brand) hover:bg-slate-100">
               <Link href="/booking">Get a Quote</Link>
