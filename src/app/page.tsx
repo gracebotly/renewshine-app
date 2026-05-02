@@ -45,7 +45,7 @@ const steps = [
     icon: Search,
     title: 'We Review & Confirm',
     description:
-      'We assess your submission and lock in a realistic price range based on what we see — usually within 1–4 hours.',
+      'We review your photos and send you a confirmed price — not a range, not an estimate. Usually within 24 hours.',
   },
   {
     icon: CheckCircle,
@@ -64,7 +64,6 @@ const steps = [
 const services = [
   {
     title: 'Standard Clean',
-    price: 'From $200',
     tagline: 'Regular maintenance',
     items: [
       'Dust all surfaces, furniture, bookshelves & picture frames',
@@ -80,7 +79,6 @@ const services = [
   },
   {
     title: 'Deep Clean',
-    price: 'From $350',
     tagline: 'Full reset. Recommended for first-time clients.',
     items: [
       'Everything in Standard Clean, plus:',
@@ -99,7 +97,6 @@ const services = [
   },
   {
     title: 'Move-In / Move-Out',
-    price: 'From $400',
     tagline: 'Vacant properties and tenant turnover',
     items: [
       'Everything in Deep Clean, plus:',
@@ -131,12 +128,12 @@ const faqs = [
   {
     question: 'Do I need to send photos or a video?',
     answer:
-      "You don't have to — but it helps us give you a much more accurate estimate. A 60-second walkthrough video of your space is the easiest way to help us understand what the job involves. Photos of each room work too. If you'd rather just describe your space in writing, that's fine — we'll review what you submit and follow up if we need more details before confirming your price.",
+      "You don't have to — but it helps us give you an accurate quote. A 60-second walkthrough video is ideal. Photos of each room work too. If you'd rather describe your space in writing, that's fine — we'll follow up if we need more detail before confirming your price.",
   },
   {
     question: 'Do I have to pay before you confirm my price?',
     answer:
-      "No. You submit your details and photos at no cost. We review your home and send you a full itemized quote. You only pay a $100 deposit after you've reviewed and approved the confirmed price.",
+      "No. You submit your details and photos — no payment required. We review your space and send you a confirmed quote. You pay a $100 deposit only after you've approved the price.",
   },
   {
     question: 'What areas do you serve?',
@@ -182,7 +179,7 @@ export default function HomePage() {
               confirmed before you pay.
             </h1>
             <p className="mx-auto mt-5 max-w-xl text-lg text-slate-600">
-              Tell us about your space. We review your submission and confirm your price within 1–4 hours.
+              Tell us about your space. We review your photos and send you a confirmed price within 24 hours. No surprises — ever.
             </p>
 
             <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
@@ -195,7 +192,7 @@ export default function HomePage() {
             </div>
 
             <div className="mt-6 flex flex-wrap items-center justify-center gap-6 text-sm text-slate-600">
-              {['Insured & background checked', 'Quote within 1–4 hours', 'No payment until you approve'].map((item) => (
+              {['Insured & background checked', 'Quote within 24 hours', 'No payment until you approve'].map((item) => (
                 <div key={item} className="inline-flex items-center gap-2">
                   <CheckCircle size={14} className="text-emerald-500" />
                   <span>{item}</span>
@@ -264,30 +261,30 @@ export default function HomePage() {
         <div className="mx-auto grid max-w-6xl gap-10 px-4 sm:px-6 lg:grid-cols-2 lg:px-8">
           <div>
             <p className="text-xs font-semibold uppercase tracking-wider text-(--color-brand)">Why we&apos;re different</p>
-            <h2 className="mt-2 font-display text-3xl font-bold text-slate-900">More accurate estimates — before we ever arrive</h2>
+            <h2 className="mt-2 font-display text-3xl font-bold text-slate-900">We review before we quote — every time</h2>
             <p className="mt-4 whitespace-pre-line text-slate-600">
-              Most cleaning companies give you a quick quote without ever seeing your home. That&apos;s how prices end up
-              changing at the door.
+              Most cleaning companies give you a price without ever seeing your home. That&apos;s how you end up with
+              surprises at the door.
               {'\n\n'}
-              We do it differently. You share photos, a quick video, or a description. We review your space and give you a
-              realistic price range based on what we see — so you know what to expect before booking.
+              We don&apos;t quote blind. You share photos or a quick video, we review your space, and we send you a confirmed
+              price before you pay a cent. What we quote is what you pay.
             </p>
             <div className="mt-6 space-y-4">
               {[
                 {
                   icon: ShieldCheck,
-                  title: 'Clear price range upfront',
-                  text: 'We give you a realistic estimate based on your submission — not a blind guess.',
+                  title: 'Confirmed price — not an estimate',
+                  text: 'We review your photos and send you a locked-in price before you pay anything.',
                 },
                 {
                   icon: Clock,
-                  title: 'Final price confirmed after review',
-                  text: 'Once we understand the full scope, we lock in your price before the job begins.',
+                  title: 'Quote within 24 hours',
+                  text: 'Submit your details and photos. We come back to you with a confirmed price — usually same day.',
                 },
                 {
                   icon: Star,
-                  title: 'No awkward surprises at the door',
-                  text: 'Our goal is full alignment before we arrive — not last-minute changes.',
+                  title: 'No surprises at the door',
+                  text: 'What we quote is what you pay. Full stop.',
                 },
               ].map((item) => {
                 const Icon = item.icon
@@ -301,9 +298,6 @@ export default function HomePage() {
                 )
               })}
             </div>
-            <p className="mt-4 text-xs italic text-slate-400">
-              Final pricing may adjust if the condition of the space differs significantly from what was shown.
-            </p>
           </div>
 
           <div className="flex items-center justify-center">
@@ -313,11 +307,11 @@ export default function HomePage() {
               </div>
               <div className="ml-6 h-6 border-l-2 border-dashed border-slate-300" />
               <div className="rounded-xl border border-(--color-brand)/20 bg-(--color-brand-muted) p-4">
-                <p className="font-medium text-slate-900">🔍 We review &amp; estimate</p>
+                <p className="font-medium text-slate-900">🔍 We review within 24 hours</p>
               </div>
               <div className="ml-6 h-6 border-l-2 border-dashed border-slate-300" />
               <div className="rounded-xl border border-slate-200 bg-white p-4">
-                <p className="font-medium text-slate-900">✅ You approve the range</p>
+                <p className="font-medium text-slate-900">✅ You get a confirmed price</p>
               </div>
             </div>
           </div>
@@ -330,7 +324,7 @@ export default function HomePage() {
           <div className="mx-auto mb-12 max-w-2xl text-center">
             <p className="text-xs font-semibold uppercase tracking-wider text-(--color-brand)">Residential cleaning</p>
             <h2 className="mt-2 font-display text-3xl font-bold text-slate-900">Three tiers. Zero guesswork.</h2>
-            <p className="mt-3 text-slate-600">Starting prices shown. Final confirmed after we review your submission.</p>
+            <p className="mt-3 text-slate-600">Every quote is confirmed after we review your photos — no guessing, no surprises.</p>
           </div>
 
           <div className="grid gap-6 lg:grid-cols-3">
@@ -342,11 +336,6 @@ export default function HomePage() {
                 <CardHeader>
                   {service.popular ? <Badge variant="popular">Most Popular</Badge> : null}
                   <CardTitle className="mt-3">{service.title}</CardTitle>
-                  <p
-                    className={`font-mono text-4xl font-bold tabular-nums ${service.popular ? 'text-(--color-brand)' : 'text-slate-900'}`}
-                  >
-                    {service.price}
-                  </p>
                   <CardDescription>{service.tagline}</CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -598,7 +587,7 @@ export default function HomePage() {
         <div className="mx-auto max-w-4xl px-4 text-center sm:px-6 lg:px-8">
           <h2 className="font-display text-3xl font-bold text-white">Ready for a clean you can count on?</h2>
           <p className="mx-auto mt-3 max-w-md text-lg text-white/80">
-            Tell us about your space. Get a confirmed price. Pay only when you&apos;re happy.
+            Tell us about your space. Get a confirmed price. Pay your deposit only after you approve it.
           </p>
           <div className="mt-8 flex flex-wrap justify-center gap-3">
             <Button asChild className="bg-white text-(--color-brand) hover:bg-slate-100">

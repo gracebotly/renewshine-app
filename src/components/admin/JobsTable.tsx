@@ -220,7 +220,7 @@ export function JobsTable({ jobs }: { jobs: JobRecord[] }) {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-slate-200 bg-slate-50">
-              {['Submitted', 'Client', 'Service', 'Availability', 'Stage', 'Action'].map((header) => (
+              {['Submitted', 'Client', 'Service', 'Availability', 'Est. Price', 'Stage', 'Action'].map((header) => (
                 <th
                   key={header}
                   className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500"
@@ -233,7 +233,7 @@ export function JobsTable({ jobs }: { jobs: JobRecord[] }) {
           <tbody>
             {filteredJobs.length === 0 ? (
               <tr>
-                <td colSpan={6}>
+                <td colSpan={7}>
                   <p className="px-4 py-10 text-center text-sm text-slate-400">No jobs found.</p>
                 </td>
               </tr>
@@ -262,6 +262,13 @@ export function JobsTable({ jobs }: { jobs: JobRecord[] }) {
                         job.availability_end,
                         job.availability_time_pref
                       )}
+                    </td>
+                    <td className="px-4 py-3 text-slate-700">
+                      {(() => {
+                        const low = Number(job.estimated_price_low ?? 0)
+                        const high = Number(job.estimated_price_high ?? 0)
+                        return low > 0 && high > 0 ? `$${low} – $${high}` : '—'
+                      })()}
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">

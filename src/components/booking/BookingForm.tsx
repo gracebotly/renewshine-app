@@ -814,22 +814,19 @@ export function BookingForm() {
                     {
                       id: 'standard' as ServiceType,
                       title: 'Standard Clean',
-                      price: 'from $200',
                       desc: 'Maintenance cleaning for regularly kept homes',
                     },
                     {
                       id: 'deep' as ServiceType,
                       title: 'Deep Clean',
-                      price: 'from $350',
                       desc: 'Full top-to-bottom clean — includes inside oven & fridge',
                     },
                     {
                       id: 'move_out' as ServiceType,
                       title: 'Move-In / Move-Out',
-                      price: 'from $400',
                       desc: 'For vacant properties and tenant turnover',
                     },
-                  ]).map(({ id, title, price, desc }) => (
+                  ]).map(({ id, title, desc }) => (
                     <button
                       key={id}
                       type="button"
@@ -841,12 +838,9 @@ export function BookingForm() {
                           : 'border-slate-200 hover:border-slate-300'
                       )}
                     >
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <p className="font-semibold text-slate-900">{title}</p>
-                          <p className="mt-0.5 text-xs text-slate-500">{desc}</p>
-                        </div>
-                        <p className="shrink-0 font-mono text-sm font-semibold tabular-nums text-slate-900">{price}</p>
+                      <div>
+                        <p className="font-semibold text-slate-900">{title}</p>
+                        <p className="mt-0.5 text-xs text-slate-500">{desc}</p>
                       </div>
                     </button>
                   ))}
