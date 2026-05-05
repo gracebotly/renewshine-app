@@ -8,9 +8,9 @@ export const metadata: Metadata = {
 export default function LinksPage() {
   const links = [
     {
-      href: 'https://renewshine.co',
-      name: 'Our Website',
-      description: 'Book a clean · View services',
+      href: 'https://renewshine.co/booking',
+      name: 'Book Your Clean',
+      description: 'Free quote · Confirmed within 24 hours',
       iconBg: '#eef5f0',
       icon: (
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4a7c59" strokeWidth="2" strokeLinecap="round">
@@ -50,16 +50,7 @@ export default function LinksPage() {
         <div style={{ backgroundColor: '#2d4a2d', padding: '28px 20px 24px' }} className="flex flex-col items-center">
           {/* Wordmark row */}
           <div className="mb-1 flex items-center gap-2">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-              <circle cx="12" cy="12" r="4" stroke="white" strokeWidth="1.8" />
-              <line x1="12" y1="3" x2="12" y2="6" stroke="white" strokeWidth="1.8" strokeLinecap="round" />
-              <line x1="12" y1="18" x2="12" y2="21" stroke="white" strokeWidth="1.8" strokeLinecap="round" />
-              <line x1="3" y1="12" x2="6" y2="12" stroke="white" strokeWidth="1.8" strokeLinecap="round" />
-              <line x1="18" y1="12" x2="21" y2="12" stroke="white" strokeWidth="1.8" strokeLinecap="round" />
-            </svg>
-            <span className="font-semibold" style={{ fontSize: '18px', color: 'white', letterSpacing: '-0.01em' }}>
-              renew<span style={{ color: '#8fc49a' }}>shine</span>
-            </span>
+            <img src="/logo-white.svg" alt="RenewShine" style={{ height: '36px', width: 'auto' }} />
           </div>
 
           {/* Tagline */}
