@@ -78,7 +78,7 @@ export function customerBookedTemplate(job: Job): { subject: string; html: strin
         <td style="padding:10px 0;vertical-align:top;width:24px;font-size:13px;font-weight:700;color:#4A7C59;">4.</td>
         <td style="padding:10px 0 10px 8px;vertical-align:top;">
           <p style="margin:0;font-size:14px;font-weight:600;color:#0f172a;">Questions before your appointment?</p>
-          <p style="margin:4px 0 0;font-size:13px;color:#64748b;">Reply to this email or call us at (302) 492-7197. We respond quickly.</p>
+          <p style="margin:4px 0 0;font-size:13px;color:#64748b;">Reply to this email or call us at (771) 253-9204. We respond quickly.</p>
         </td>
       </tr>
     </tbody>

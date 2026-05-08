@@ -49,7 +49,7 @@ export function baseTemplate(content: string, previewText: string): string {
               <p style="margin:6px 0 0;font-size:12px;color:${TEXT_MUTED};text-align:center;">
                 <a href="mailto:hello@renewshine.co" style="color:${TEXT_MUTED};text-decoration:none;">hello@renewshine.co</a>
                 &nbsp;·&nbsp;
-                <a href="tel:+13024927197" style="color:${TEXT_MUTED};text-decoration:none;">(302) 492-7197</a>
+                <a href="tel:+17712539204" style="color:${TEXT_MUTED};text-decoration:none;">(771) 253-9204</a>
               </p>
               <p style="margin:6px 0 0;font-size:11px;color:#94a3b8;text-align:center;">© ${new Date().getFullYear()} RenewShine. All rights reserved.</p>
             </td>
