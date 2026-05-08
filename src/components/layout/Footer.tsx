@@ -52,11 +52,11 @@ export default function Footer() {
                 hello@renewshine.co
               </a>
               <a
-                href="tel:+13024927197"
+                href="tel:+17712539204"
                 className="inline-flex items-center gap-2 text-sm text-slate-600 hover:text-(--color-brand) transition-colors duration-200"
               >
                 <Phone size={14} aria-hidden="true" />
-                (302) 492-7197
+                (771) 253-9204
               </a>
             </div>
             <div className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-700">
