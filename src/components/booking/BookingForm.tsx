@@ -563,7 +563,7 @@ export function BookingForm() {
               {resStep === 1 ? "We'll send your confirmed quote to this email."
                 : resStep === 2 ? 'Helps us send the right team with the right supplies.'
                 : resStep === 3 ? 'Final price confirmed after we review your photos.'
-                : resStep === 4 ? "We'll confirm your exact appointment within 24 hours."
+                : resStep === 4 ? "We'll be in touch as soon as possible to confirm your appointment."
                 : "One last thing, then we'll take it from here."}
             </p>
           </div>
@@ -577,9 +577,9 @@ export function BookingForm() {
                   : 'Scheduling & details'}
             </h2>
             <p className="mt-0.5 text-xs text-slate-500">
-              {comStep === 1 ? "We'll reach out to confirm details within 24 hours."
+              {comStep === 1 ? "We'll reach out to confirm details as soon as possible."
                 : comStep === 2 ? 'Estimate is fine — we confirm during walkthrough.'
-                : "We'll confirm availability within 24 hours."}
+                : "We'll confirm availability as soon as possible."}
             </p>
           </div>
         )}

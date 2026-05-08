@@ -45,7 +45,7 @@ const steps = [
     icon: Search,
     title: 'We Review & Confirm',
     description:
-      'We review your photos and send you a confirmed price — not a range, not an estimate. Usually within 24 hours.',
+      'We review your photos and send you a confirmed price — not a range, not an estimate. We get back to you promptly.',
   },
   {
     icon: CheckCircle,
@@ -276,8 +276,8 @@ export default function HomePage() {
                 },
                 {
                   icon: Clock,
-                  title: 'Quote within 24 hours',
-                  text: 'Submit your details and photos. We come back to you with a confirmed price — usually same day.',
+                  title: 'Fast, personal response',
+                  text: 'Submit your details and photos. We review your space and come back to you with a confirmed price as soon as possible.',
                 },
                 {
                   icon: Star,
@@ -305,7 +305,7 @@ export default function HomePage() {
               </div>
               <div className="ml-6 h-6 border-l-2 border-dashed border-slate-300" />
               <div className="rounded-xl border border-(--color-brand)/20 bg-(--color-brand-muted) p-4">
-                <p className="font-medium text-slate-900">🔍 We review within 24 hours</p>
+                <p className="font-medium text-slate-900">🔍 We review your space promptly</p>
               </div>
               <div className="ml-6 h-6 border-l-2 border-dashed border-slate-300" />
               <div className="rounded-xl border border-slate-200 bg-white p-4">
