@@ -64,7 +64,7 @@ function SubmittedContent() {
             {firstName ? `Got it, ${firstName}!` : 'Request Received!'}
           </h1>
           <p className="text-slate-600">
-            We&apos;re reviewing your photos now. You&apos;ll hear from us as soon as possible — usually within a few hours.
+            We&apos;re reviewing your photos now. You&apos;ll hear from us as soon as possible.
           </p>
 
           {/* Contact confirmation + email correction */}

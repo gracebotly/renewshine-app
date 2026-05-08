@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
   title: 'Request Received — RenewShine',
-  description: "Your cleaning request has been submitted. We'll confirm your quote within 1–4 hours.",
+  description: "Your cleaning request has been submitted. We're reviewing your space now and will be in touch as soon as possible.",
   robots: {
     index: false,
     follow: false,

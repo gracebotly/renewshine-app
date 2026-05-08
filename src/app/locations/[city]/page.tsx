@@ -170,7 +170,7 @@ export default async function CityPage({
               </Button>
             </div>
             <div className="mt-6 flex flex-wrap gap-5 text-sm text-slate-600">
-              {['Insured & background checked', 'Quote within 24 hours', 'No payment until you approve'].map(
+              {['Insured & background checked', 'Fast, personal response', 'No payment until you approve'].map(
                 (item) => (
                   <div key={item} className="inline-flex items-center gap-2">
                     <CheckCircle size={14} className="text-emerald-500" />
@@ -292,7 +292,7 @@ export default async function CityPage({
         <div className="mx-auto max-w-4xl px-4 text-center sm:px-6 lg:px-8">
           <h2 className="font-display text-3xl font-bold text-white">Ready for a clean in {city.displayName}?</h2>
           <p className="mx-auto mt-3 max-w-md text-lg text-white/80">
-            Submit your details and photos. We review and send you a confirmed price within 24 hours — before you pay anything.
+            Submit your details and photos. We review your space and send you a confirmed price as soon as possible — before you pay anything.
           </p>
           <div className="mt-8 flex flex-wrap justify-center gap-3">
             <Button asChild className="bg-white text-(--color-brand) hover:bg-slate-100">
