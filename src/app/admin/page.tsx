@@ -3,16 +3,25 @@ export const dynamic = 'force-dynamic'
 import { createServerClient } from '@/lib/supabase/server'
 import { JobsTable, StaleAlert } from '@/components/admin/JobsTable'
 import { LogoutButton } from '@/components/admin/LogoutButton'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
 
-export default async function AdminPage() {
+const PAGE_SIZE = 25
+
+export default async function AdminPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | undefined>>
+}) {
   const supabase = createServerClient()
+  const params = await searchParams
+  const page = Math.max(1, Number(params.page ?? 1))
 
-  const { data: jobs } = await supabase
+  const { data: allJobsForCounts } = await supabase
     .from('jobs')
-    .select('*')
+    .select('id, status, created_at')
     .order('created_at', { ascending: false })
 
-  const allJobs = jobs ?? []
+  const allJobs = allJobsForCounts ?? []
 
   const counts = {
     total: allJobs.length,
@@ -30,77 +39,19 @@ export default async function AdminPage() {
     (j) => (j.status === 'new' || j.status === 'under_review') && j.created_at < fourHoursAgo
   ).length
 
-  return (
-    <div className="min-h-screen bg-slate-50">
-      <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-        <StaleAlert count={staleCount} />
+  const from = (page - 1) * PAGE_SIZE
+  const to = from + PAGE_SIZE - 1
 
-        <div className="mb-8 flex items-start justify-between gap-4">
-          <div>
-            <h1 className="font-display text-3xl font-bold text-slate-900">Admin Dashboard</h1>
-            <p className="mt-1 text-slate-600">Manage bookings and quote requests.</p>
-          </div>
-          <div className="flex shrink-0 items-center gap-2">
-            <a
-              href="/admin/templates"
-              className="inline-flex cursor-pointer items-center rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-600 transition-colors duration-200 hover:bg-slate-50 hover:text-slate-900"
-            >
-              SMS Templates
-            </a>
-            <LogoutButton />
-          </div>
-        </div>
+  const { data: pagedJobs, count: totalCount } = await supabase
+    .from('jobs')
+    .select('*', { count: 'exact' })
+    .order('created_at', { ascending: false })
+    .range(from, to)
 
-        <div className="mb-8 grid grid-cols-2 gap-4 sm:grid-cols-5">
-          {[
-            {
-              label: 'Needs Quote',
-              value: counts.needsQuote,
-              highlight: counts.needsQuote > 0,
-              color: 'border-amber-200 bg-amber-50',
-              textColor: 'text-amber-700',
-            },
-            {
-              label: 'Quote Pending',
-              value: counts.quotePending,
-              highlight: false,
-              color: 'border-orange-200 bg-orange-50',
-              textColor: 'text-orange-700',
-            },
-            {
-              label: 'Scheduled',
-              value: counts.scheduled,
-              highlight: false,
-              color: 'border-emerald-200 bg-emerald-50',
-              textColor: 'text-emerald-700',
-            },
-            {
-              label: 'Completed',
-              value: counts.completed,
-              highlight: false,
-              color: 'border-slate-200 bg-white',
-              textColor: 'text-slate-700',
-            },
-            {
-              label: 'Declined',
-              value: counts.declined,
-              highlight: false,
-              color: 'border-red-100 bg-white',
-              textColor: 'text-red-400',
-            },
-          ].map((card) => (
-            <div
-              key={card.label}
-              className={`rounded-xl border p-5 shadow-sm ${card.color}`}
-            >
-              <p className={`font-mono text-2xl font-bold tabular-nums ${card.textColor}`}>{card.value}</p>
-              <p className="mt-1 text-sm text-slate-600">{card.label}</p>
-            </div>
-          ))}
-        </div>
+  const jobs = pagedJobs ?? []
+  const totalPages = Math.ceil((totalCount ?? 0) / PAGE_SIZE)
+  const hasPrev = page > 1
+  const hasNext = page < totalPages
 
-        <JobsTable jobs={allJobs} />
-      </div>
-    </div>
-  )
+  return <div className="min-h-screen bg-slate-50"><div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8"><StaleAlert count={staleCount} /><JobsTable jobs={jobs} />{totalPages>1&&<div className="mt-6 flex items-center justify-between"><p className="text-sm text-slate-600">Page {page} of {totalPages} · <span className="font-medium">{totalCount ?? 0}</span> total jobs</p><div className="flex items-center gap-2"><a href={hasPrev ? `/admin?page=${page - 1}` : undefined}><ChevronLeft size={14}/>Previous</a><a href={hasNext ? `/admin?page=${page + 1}` : undefined}>Next<ChevronRight size={14}/></a></div></div>}</div></div>
 }

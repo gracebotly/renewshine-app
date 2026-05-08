@@ -2,8 +2,16 @@ import { createServerClient } from '@/lib/supabase/server'
 import type { Job } from '@/types/database'
 
 const VALID_STATUSES = ['new', 'under_review', 'approved', 'scheduled', 'completed', 'cancelled']
+import { requireAdmin } from '@/lib/require-admin'
 
 export async function PATCH(request: Request) {
+  try {
+    await requireAdmin()
+  } catch (err) {
+    if (err instanceof Response) return err
+    return Response.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
   const { jobId, status, notes, address } = await request.json()
 
   if (!jobId) return Response.json({ error: 'jobId required' }, { status: 400 })

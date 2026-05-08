@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { validateTwilioSignature } from '@/lib/validate-twilio'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -23,8 +24,17 @@ function inboundTwiML() {
 }
 
 export async function POST(req: NextRequest) {
-  const formData = await req.formData()
-  const from = String(formData.get('From') || '')
+  const rawBody = await req.text()
+  const params = Object.fromEntries(new URLSearchParams(rawBody))
+
+  const signature = req.headers.get('x-twilio-signature') ?? ''
+  const url = `${process.env.NEXT_PUBLIC_SITE_URL}/api/twilio/voice`
+
+  if (!validateTwilioSignature(signature, url, params)) {
+    return new NextResponse('Forbidden', { status: 403 })
+  }
+
+  const from = params['From'] ?? ''
 
   if (from === OWNER_PHONE) {
     return xml(`<?xml version="1.0" encoding="UTF-8"?>
