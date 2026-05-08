@@ -31,12 +31,12 @@ export function customerSubmittedTemplate(job: Job): { subject: string; html: st
   const content = `
     ${badge('Request Received', 'green')}
     ${heading(`Thanks, ${firstName}.`)}
-    ${para(`Your request is in. We&apos;re reviewing your photos now and will be in touch as soon as possible — within 24 hours. No payment is needed until you approve the quote.`)}
+    ${para(`Your request is in. We&apos;re reviewing your photos now and will be in touch as soon as possible. No payment is needed until you approve the quote.`)}
 
     <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="margin:0 0 20px;">
       <tbody>
         ${step(1, 'Request received', 'Your photos and details are with us now.')}
-        ${step(2, 'We review your photos (within 24 hrs)', 'We confirm your price and set a date — before you pay anything.')}
+        ${step(2, 'We review your photos', 'We confirm your price and set a date — before you pay anything.')}
         ${step(3, 'You approve and pay a $100 deposit', 'Nothing is charged until you see the quote and agree.')}
       </tbody>
     </table>
@@ -55,5 +55,5 @@ export function customerSubmittedTemplate(job: Job): { subject: string; html: st
     )}
   `
 
-  return { subject, html: baseTemplate(content, `Got it! We'll review your photos and send you a confirmed price within 24 hours.`) }
+  return { subject, html: baseTemplate(content, `Got it! We're reviewing your photos and will be in touch as soon as possible.`) }
 }

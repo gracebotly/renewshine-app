@@ -4,7 +4,7 @@ import { baseTemplate, ctaButton, divider } from './base'
 
 export function customerQuoteTemplate(job: Job, stripeUrl: string): { subject: string; html: string } {
   const firstName = job.client_name.split(' ')[0]
-  const subject = `${firstName}, your RenewShine estimate is ready`
+  const subject = `${firstName}, your RenewShine quote is ready`
 
   const serviceLabel =
     job.service_type === 'standard' ? 'Standard Clean'
@@ -120,7 +120,7 @@ export function customerQuoteTemplate(job: Job, stripeUrl: string): { subject: s
 
   <p style="margin:0;font-size:12px;color:#94a3b8;text-align:center;line-height:1.6;">
     ${remaining > 0 ? `The remaining balance of $${remaining.toFixed(2)} is due only after the clean is complete.<br/>` : ''}
-    Questions? Reply to this email or call us at (302) 492-7197.
+    Questions? Reply to this email or call us at (771) 253-9204.
   </p>
 `
 
