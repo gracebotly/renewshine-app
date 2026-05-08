@@ -8,6 +8,11 @@ import Image from 'next/image'
 export const metadata: Metadata = {
   title: 'Booking Confirmed — RenewShine',
   description: 'Your deposit has been received. Your clean is confirmed.',
+  robots: {
+    index: false,
+    follow: false,
+    noarchive: true,
+  },
 }
 
 export default async function PayPage({

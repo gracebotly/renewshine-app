@@ -3,6 +3,10 @@ import type { Metadata } from 'next'
 export const metadata: Metadata = {
   title: 'RenewShine — Premium Cleaning · DMV',
   description: 'Premium residential cleaning serving the DMV area.',
+  robots: {
+    index: false,
+    follow: false,
+  },
 }
 
 export default function LinksPage() {
