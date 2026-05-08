@@ -174,12 +174,10 @@ export default function HomePage() {
               DMV&apos;s photo-reviewed cleaning service
             </span>
             <h1 className="font-display text-4xl font-bold text-slate-900 md:text-5xl">
-              A cleaner home,
-              <br />
-              confirmed before you pay.
+              Professional cleaning without the guesswork.
             </h1>
             <p className="mx-auto mt-5 max-w-xl text-lg text-slate-600">
-              Tell us about your space. We review your photos and send you a confirmed price within 24 hours. No surprises — ever.
+              Every home is different. That&apos;s why we review your space first and send a personalized quote tailored to your cleaning needs.
             </p>
 
             <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
@@ -192,7 +190,7 @@ export default function HomePage() {
             </div>
 
             <div className="mt-6 flex flex-wrap items-center justify-center gap-6 text-sm text-slate-600">
-              {['Insured & background checked', 'Quote within 24 hours', 'No payment until you approve'].map((item) => (
+              {['Fast response times', 'Transparent service recommendations', 'Trusted across the DMV area'].map((item) => (
                 <div key={item} className="inline-flex items-center gap-2">
                   <CheckCircle size={14} className="text-emerald-500" />
                   <span>{item}</span>
