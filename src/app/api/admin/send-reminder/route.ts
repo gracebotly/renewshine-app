@@ -1,7 +1,15 @@
 import { createServerClient } from '@/lib/supabase/server'
 import { sendSms } from '@/lib/sms'
+import { requireAdmin } from '@/lib/require-admin'
 
 export async function POST(request: Request) {
+  try {
+    await requireAdmin()
+  } catch (err) {
+    if (err instanceof Response) return err
+    return Response.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
   const { jobId } = await request.json()
 
   if (!jobId) {

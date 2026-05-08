@@ -4,6 +4,13 @@ import { BookingForm } from '@/components/booking/BookingForm'
 export const metadata: Metadata = {
   title: 'Get a Quote — RenewShine',
   description: 'Submit your details and photos. Quote confirmed within 1–4 hours.',
+  alternates: {
+    canonical: '/booking',
+  },
+  robots: {
+    index: false,
+    follow: false,
+  },
 }
 
 export default function BookingPage() {

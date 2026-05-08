@@ -1,7 +1,15 @@
 import { createServerClient } from '@/lib/supabase/server'
 import { sendCustomerDeclined } from '@/lib/email'
+import { requireAdmin } from '@/lib/require-admin'
 
 export async function POST(request: Request) {
+  try {
+    await requireAdmin()
+  } catch (err) {
+    if (err instanceof Response) return err
+    return Response.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
   const { jobId, reason, referral } = await request.json()
 
   if (!jobId) return Response.json({ error: 'jobId required' }, { status: 400 })

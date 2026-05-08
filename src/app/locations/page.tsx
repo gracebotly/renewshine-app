@@ -5,9 +5,12 @@ import { Button } from '@/components/ui/button'
 import { CITIES } from '@/lib/cities'
 
 export const metadata: Metadata = {
-  title: 'Service Locations | RenewShine — DMV Cleaning Service',
+  title: 'House Cleaning Locations in DC, MD & VA | RenewShine',
   description:
-    'RenewShine provides premium house cleaning across Washington DC, Maryland, and Northern Virginia. See all locations we serve.',
+    'RenewShine provides premium house cleaning across Washington DC, Maryland, and Northern Virginia. See all cities we serve in the DMV area.',
+  alternates: {
+    canonical: '/locations',
+  },
 }
 
 export default function LocationsPage() {

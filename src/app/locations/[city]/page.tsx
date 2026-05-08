@@ -23,17 +23,29 @@ export async function generateMetadata({
   return {
     title: city.metaTitle,
     description: city.metaDescription,
+    keywords: [
+      `house cleaning ${city.name}`,
+      `maid service ${city.name}`,
+      `cleaning service ${city.name}`,
+      `deep cleaning ${city.name}`,
+      `move out cleaning ${city.name}`,
+    ],
     alternates: {
-      canonical: `https://renewshine.co/locations/${city.slug}`,
+      canonical: `/locations/${city.slug}`,
     },
     openGraph: {
       title: city.metaTitle,
       description: city.metaDescription,
-      url: `https://renewshine.co/locations/${city.slug}`,
+      url: `/locations/${city.slug}`,
       siteName: 'RenewShine',
       images: [{ url: '/og-image.png', width: 1200, height: 630 }],
       locale: 'en_US',
       type: 'website',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: city.metaTitle,
+      description: city.metaDescription,
     },
   }
 }

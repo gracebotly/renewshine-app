@@ -2,7 +2,15 @@ import { createServerClient } from '@/lib/supabase/server'
 import { sendCustomerBooked, sendOwnerBooked } from '@/lib/email'
 import { notifyDepositPaid } from '@/lib/slack'
 
+import { requireAdmin } from '@/lib/require-admin'
 export async function POST(request: Request) {
+  try {
+    await requireAdmin()
+  } catch (err) {
+    if (err instanceof Response) return err
+    return Response.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
   const { jobId, approvedPrice, confirmedDate } = await request.json()
 
   if (!jobId || !approvedPrice || !confirmedDate) {

@@ -4,7 +4,15 @@ import { AlertCircle, CheckCircle, Clock } from 'lucide-react'
 
 export const metadata: Metadata = {
   title: 'Cancellation Policy | RenewShine',
-  description: 'RenewShine deposit and cancellation policy — what happens if you need to cancel or reschedule your cleaning appointment.',
+  description:
+    'RenewShine deposit and cancellation policy — what happens if you need to cancel or reschedule your cleaning appointment.',
+  alternates: {
+    canonical: '/cancellation',
+  },
+  robots: {
+    index: false,
+    follow: false,
+  },
 }
 
 export default function CancellationPage() {
