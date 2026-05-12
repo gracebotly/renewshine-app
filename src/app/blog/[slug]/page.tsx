@@ -8,6 +8,9 @@ import { MDXRemote } from 'next-mdx-remote/rsc'
 import { getAllPosts, getPostBySlug } from '@/lib/blog'
 import { Clock, ArrowLeft, ArrowRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Post1Content } from '@/components/blog/Post1Content'
+import { Post2Content } from '@/components/blog/Post2Content'
+import { Post3Content } from '@/components/blog/Post3Content'
 
 type BlogHowToStep = { name: string; text: string }
 type BlogHowTo = { name: string; description: string; steps: BlogHowToStep[] }
@@ -99,6 +102,12 @@ export default async function BlogPostPage({
           })),
         }
       : null
+
+  const mdxComponents = {
+    Post1Content,
+    Post2Content,
+    Post3Content,
+  }
 
   const articleSchema = {
     '@context': 'https://schema.org',
@@ -203,8 +212,8 @@ export default async function BlogPostPage({
         </div>
 
         {/* Article body */}
-        <div className="prose prose-slate max-w-none prose-headings:font-display prose-headings:font-bold prose-headings:text-slate-900 prose-p:text-slate-600 prose-p:leading-relaxed prose-a:text-[color:var(--color-brand)] prose-strong:text-slate-900 prose-img:rounded-2xl prose-img:shadow-md prose-h2:text-2xl prose-h3:text-xl prose-table:text-sm">
-          <MDXRemote source={post.content} />
+        <div>
+          <MDXRemote source={post.content} components={mdxComponents} />
         </div>
 
         {/* Divider */}
