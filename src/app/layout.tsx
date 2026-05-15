@@ -1,24 +1,29 @@
-﻿import type { Metadata } from "next";
-import { Geist, Geist_Mono, Plus_Jakarta_Sans } from "next/font/google";
-import "./globals.css";
+import type { Metadata, Viewport } from 'next'
+import { Geist, Geist_Mono, Plus_Jakarta_Sans } from 'next/font/google'
+import { headers } from 'next/headers'
+import './globals.css'
 import Navbar from '@/components/layout/Navbar'
 import Footer from '@/components/layout/Footer'
 
 const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
+  variable: '--font-geist-sans',
+  subsets: ['latin'],
+})
 
 const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+  variable: '--font-geist-mono',
+  subsets: ['latin'],
+})
 
 const plusJakarta = Plus_Jakarta_Sans({
-  variable: "--font-plus-jakarta",
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "800"],
-});
+  variable: '--font-plus-jakarta',
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700', '800'],
+})
+
+export const viewport: Viewport = {
+  themeColor: '#4A7C59',
+}
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://renewshine.co'),
@@ -38,7 +43,6 @@ export const metadata: Metadata = {
     'move out cleaning Maryland',
   ],
   manifest: '/manifest.json',
-  themeColor: '#4A7C59',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
@@ -66,12 +70,15 @@ export const metadata: Metadata = {
   },
 }
 
-
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
-  children: React.ReactNode;
+  children: React.ReactNode
 }>) {
+  const headersList = await headers()
+  const pathname = headersList.get('x-pathname') ?? headersList.get('x-invoke-path') ?? ''
+  const isAdmin = pathname.startsWith('/admin')
+
   return (
     <html
       lang="en"
@@ -81,13 +88,55 @@ export default function RootLayout({
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
-            __html: JSON.stringify({ '@context': 'https://schema.org', '@type': 'HomeAndConstructionBusiness', name: 'RenewShine', url: 'https://renewshine.co', logo: 'https://renewshine.co/logo-primary.svg', image: 'https://renewshine.co/og-image.png', description: 'Premium residential cleaning service in Washington DC, Maryland, and Northern Virginia. Photo-reviewed quotes — confirmed price before you pay.', telephone: '+17712539204', email: 'hello@renewshine.co', priceRange: '$$', areaServed: [ { '@type': 'City', name: 'Washington, DC' }, { '@type': 'City', name: 'Arlington, VA' }, { '@type': 'City', name: 'Alexandria, VA' }, { '@type': 'City', name: 'Bethesda, MD' }, { '@type': 'City', name: 'Silver Spring, MD' }, { '@type': 'City', name: 'McLean, VA' }, { '@type': 'City', name: 'Potomac, MD' }, { '@type': 'City', name: 'Rockville, MD' }, { '@type': 'City', name: 'Gaithersburg, MD' }, { '@type': 'City', name: 'Reston, VA' } ], hasOfferCatalog: { '@type': 'OfferCatalog', name: 'Cleaning Services', itemListElement: [ { '@type': 'Offer', itemOffered: { '@type': 'Service', name: 'Standard House Cleaning' } }, { '@type': 'Offer', itemOffered: { '@type': 'Service', name: 'Deep Cleaning Service' } }, { '@type': 'Offer', itemOffered: { '@type': 'Service', name: 'Move-Out Cleaning' } }, { '@type': 'Offer', itemOffered: { '@type': 'Service', name: 'Move-In Cleaning' } }, { '@type': 'Offer', itemOffered: { '@type': 'Service', name: 'Post-Construction Cleaning' } } ] }, sameAs: [] }).replace(/</g, '\u003c'),
+            __html: JSON.stringify({
+              '@context': 'https://schema.org',
+              '@type': 'HomeAndConstructionBusiness',
+              name: 'RenewShine',
+              url: 'https://renewshine.co',
+              logo: 'https://renewshine.co/logo-primary.svg',
+              image: 'https://renewshine.co/og-image.png',
+              description:
+                'Premium residential cleaning service in Washington DC, Maryland, and Northern Virginia. Photo-reviewed quotes — confirmed price before you pay.',
+              telephone: '+17712539204',
+              email: 'hello@renewshine.co',
+              priceRange: '$$',
+              areaServed: [
+                { '@type': 'City', name: 'Washington, DC' },
+                { '@type': 'City', name: 'Arlington, VA' },
+                { '@type': 'City', name: 'Alexandria, VA' },
+                { '@type': 'City', name: 'Bethesda, MD' },
+                { '@type': 'City', name: 'Silver Spring, MD' },
+                { '@type': 'City', name: 'McLean, VA' },
+                { '@type': 'City', name: 'Potomac, MD' },
+                { '@type': 'City', name: 'Rockville, MD' },
+                { '@type': 'City', name: 'Gaithersburg, MD' },
+                { '@type': 'City', name: 'Reston, VA' },
+              ],
+              hasOfferCatalog: {
+                '@type': 'OfferCatalog',
+                name: 'Cleaning Services',
+                itemListElement: [
+                  { '@type': 'Offer', itemOffered: { '@type': 'Service', name: 'Standard House Cleaning' } },
+                  { '@type': 'Offer', itemOffered: { '@type': 'Service', name: 'Deep Cleaning Service' } },
+                  { '@type': 'Offer', itemOffered: { '@type': 'Service', name: 'Move-Out Cleaning' } },
+                  { '@type': 'Offer', itemOffered: { '@type': 'Service', name: 'Move-In Cleaning' } },
+                  { '@type': 'Offer', itemOffered: { '@type': 'Service', name: 'Post-Construction Cleaning' } },
+                ],
+              },
+              sameAs: [],
+            }).replace(/</g, '\\u003c'),
           }}
         />
-        <Navbar />
-        <main className="flex-1">{children}</main>
-        <Footer />
+        {isAdmin ? (
+          <main className="flex-1">{children}</main>
+        ) : (
+          <>
+            <Navbar />
+            <main className="flex-1">{children}</main>
+            <Footer />
+          </>
+        )}
       </body>
     </html>
-  );
+  )
 }
