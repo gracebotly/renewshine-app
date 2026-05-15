@@ -37,6 +37,13 @@ export const metadata: Metadata = {
     'maid service Northern Virginia',
     'move out cleaning Maryland',
   ],
+  manifest: '/manifest.json',
+  themeColor: '#4A7C59',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'RenewShine',
+  },
   icons: {
     icon: [{ url: '/favicon-32.png', sizes: '32x32', type: 'image/png' }],
     apple: '/apple-touch-icon.png',

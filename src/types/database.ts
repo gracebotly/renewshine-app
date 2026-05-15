@@ -160,6 +160,60 @@ export interface Database {
         Update: Partial<Database['public']['Tables']['missed_calls']['Row']>
         Relationships: []
       }
+
+      sms_conversations: {
+        Row: {
+          id: string
+          contact_phone: string
+          contact_name: string | null
+          last_message_at: string
+          last_message_preview: string | null
+          unread_count: number
+          status: 'open' | 'needs_reply' | 'waiting_on_customer' | 'booked' | 'closed'
+          lead_source: 'sms' | 'facebook_ads' | 'missed_call' | 'website' | 'returning_client'
+          created_at: string
+        }
+        Insert: Omit<Database['public']['Tables']['sms_conversations']['Row'], 'id' | 'created_at'>
+        Update: Partial<Database['public']['Tables']['sms_conversations']['Insert']>
+        Relationships: []
+      }
+      sms_messages: {
+        Row: {
+          id: string
+          conversation_id: string
+          direction: 'inbound' | 'outbound'
+          body: string
+          twilio_sid: string | null
+          created_at: string
+        }
+        Insert: Omit<Database['public']['Tables']['sms_messages']['Row'], 'id' | 'created_at'>
+        Update: Partial<Database['public']['Tables']['sms_messages']['Insert']>
+        Relationships: []
+      }
+      push_subscriptions: {
+        Row: {
+          id: string
+          endpoint: string
+          p256dh: string
+          auth: string
+          created_at: string
+        }
+        Insert: Omit<Database['public']['Tables']['push_subscriptions']['Row'], 'id' | 'created_at'>
+        Update: Partial<Database['public']['Tables']['push_subscriptions']['Insert']>
+        Relationships: []
+      }
+      quick_replies: {
+        Row: {
+          id: string
+          label: string
+          body: string
+          sort_order: number
+          created_at: string
+        }
+        Insert: Omit<Database['public']['Tables']['quick_replies']['Row'], 'id' | 'created_at'>
+        Update: Partial<Database['public']['Tables']['quick_replies']['Insert']>
+        Relationships: []
+      }
       reactivation_log: {
         Row: {
           id: string
