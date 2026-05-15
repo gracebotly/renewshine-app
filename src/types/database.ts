@@ -173,7 +173,7 @@ export interface Database {
           lead_source: 'sms' | 'facebook_ads' | 'missed_call' | 'website' | 'returning_client'
           created_at: string
         }
-        Insert: Omit<Database['public']['Tables']['sms_conversations']['Row'], 'id' | 'created_at'>
+        Insert: Omit<Database['public']['Tables']['sms_conversations']['Row'], 'id' | 'created_at' | 'unread_count'> & { unread_count?: number }
         Update: Partial<Database['public']['Tables']['sms_conversations']['Insert']>
         Relationships: []
       }
@@ -186,7 +186,7 @@ export interface Database {
           twilio_sid: string | null
           created_at: string
         }
-        Insert: Omit<Database['public']['Tables']['sms_messages']['Row'], 'id' | 'created_at'>
+        Insert: Omit<Database['public']['Tables']['sms_messages']['Row'], 'id' | 'created_at' | 'twilio_sid'> & { twilio_sid?: string | null }
         Update: Partial<Database['public']['Tables']['sms_messages']['Insert']>
         Relationships: []
       }

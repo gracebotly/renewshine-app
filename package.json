@@ -34,6 +34,7 @@
     "sharp": "latest",
     "stripe": "^22",
     "twilio": "^5",
+    "web-push": "^3",
     "tailwind-merge": "latest",
     "zod": "latest"
   },
@@ -42,6 +43,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/web-push": "^3",
     "eslint": "^9",
     "eslint-config-next": "16.2.3",
     "tailwindcss": "^4",

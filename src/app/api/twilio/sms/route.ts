@@ -72,7 +72,8 @@ export async function POST(req: NextRequest) {
     return new NextResponse(EMPTY_TWIML, { status: 200, headers: { 'Content-Type': 'text/xml' } })
   }
 
-  await supabase.rpc('increment_unread', {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await (supabase.rpc as any)('increment_unread', {
     conv_id: conv.id,
     preview: body.slice(0, 100),
   })
