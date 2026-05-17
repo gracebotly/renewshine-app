@@ -4,7 +4,6 @@ import { Mail, Phone, Shield } from 'lucide-react'
 
 const footerLinks = {
   Services: [
-    { label: 'All Services', href: '/services' },
     { label: 'Standard Clean', href: '/pricing#standard' },
     { label: 'Deep Clean', href: '/pricing#deep' },
     { label: 'Move-In / Move-Out', href: '/pricing#move-out' },
@@ -19,7 +18,6 @@ const footerLinks = {
     { label: 'View All Locations', href: '/locations' },
   ],
   Company: [
-    { label: 'Services', href: '/services' },
     { label: 'Blog', href: '/blog' },
     { label: 'How It Works', href: '/#how-it-works' },
     { label: 'Pricing', href: '/pricing' },
