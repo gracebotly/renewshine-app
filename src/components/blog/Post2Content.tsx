@@ -48,6 +48,7 @@ export function Post2Content() {
 
       {/* LEAD */}
       {p("Most people who book a cleaning service aren't sure which type they need. Standard and deep cleaning sound like obvious categories until you're actually looking at the checklist.", { fontSize: '1.05rem', color: textPrimary })}
+      {p("For DC apartments, Capitol Hill rowhomes, and larger DMV homes, choosing the wrong service usually means one of two things: overpaying for something you didn't need, or being disappointed because the buildup you had wasn't addressed.")}
       {p("Here's the simple way to think about it: standard cleaning is maintenance. Deep cleaning is a reset.")}
 
       {/* SECTION 1 */}
@@ -78,11 +79,11 @@ export function Post2Content() {
         { area: 'Throughout', items: ['Under and behind accessible furniture', 'Vents dusted within reach', 'Cobwebs from corners', 'Doors and baseboards wet-wiped (not just dusted)', 'Light switches and outlet covers wet-wiped'] },
       ].map(({ area, items }) => (
         <div key={area} style={{ background: card, border: `1px solid ${border}`, borderRadius: 10, padding: '1.1rem 1.25rem', marginBottom: '0.75rem' }}>
-          <p style={{ ...display, fontWeight: 700, fontSize: '0.9rem', color: textPrimary, marginBottom: '0.6rem' }}>{area}</p>
+          <p style={{ ...display, fontWeight: 700, fontSize: '0.9rem', color: textPrimary, marginBottom: '0.75rem' }}>{area}</p>
           {items.map((item) => (
-            <div key={item} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.6rem', marginBottom: '0.35rem' }}>
-              <span style={{ color: green, fontWeight: 700, flexShrink: 0 }}>+</span>
-              <span style={{ ...sans, fontSize: '0.88rem', color: textSecondary }}>{item}</span>
+            <div key={item} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', marginBottom: '0.55rem' }}>
+              <span style={{ color: green, fontWeight: 700, flexShrink: 0, fontSize: '0.9rem', marginTop: '0.1rem' }}>✓</span>
+              <span style={{ ...sans, fontSize: '0.88rem', color: textSecondary, lineHeight: 1.6 }}>{item}</span>
             </div>
           ))}
         </div>
@@ -91,12 +92,23 @@ export function Post2Content() {
       {/* SECTION 3 — COMPARISON TABLE */}
       {h2('comparison', 'Side-by-side comparison')}
 
-      <div style={{ overflowX: 'auto', margin: '1.25rem 0 1.75rem', borderRadius: 10, border: `1px solid ${border}` }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', ...sans, fontSize: '0.85rem' }}>
+      <div style={{ overflowX: 'auto', margin: '1.25rem 0 1.75rem', borderRadius: 10, border: `1px solid ${border}`, WebkitOverflowScrolling: 'touch' }}>
+        <table style={{ width: '100%', minWidth: 480, borderCollapse: 'collapse', ...sans, fontSize: '0.85rem' }}>
           <thead>
             <tr style={{ background: accentLight }}>
-              {['Task', 'Standard', 'Deep'].map((h) => (
-                <th key={h} style={{ padding: '0.7rem 1rem', textAlign: 'left', fontWeight: 700, color: accent, fontSize: '0.76rem', textTransform: 'uppercase', letterSpacing: '0.04em', borderBottom: `2px solid ${accentBorder}` }}>{h}</th>
+              {['Task', 'Standard', 'Deep'].map((h, i) => (
+                <th key={h} style={{
+                  padding: '0.7rem 1rem',
+                  textAlign: i === 0 ? 'left' : 'center',
+                  fontWeight: 700,
+                  color: accent,
+                  fontSize: '0.76rem',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.04em',
+                  borderBottom: `2px solid ${accentBorder}`,
+                  width: i === 0 ? 'auto' : 80,
+                  whiteSpace: 'nowrap',
+                }}>{h}</th>
               ))}
             </tr>
           </thead>
@@ -163,7 +175,8 @@ export function Post2Content() {
         { title: 'Moving in', body: "Even if the previous tenant cleaned, professional move-out cleans vary in quality. A deep clean on arrival gives you a home you know is actually clean — grout, inside appliances, behind things." },
         { title: 'Moving out', body: "A deep clean is the right level for vacant properties, especially if you need to pass a landlord inspection. Move-in/Move-out cleaning goes even further — adding inside all cabinets and closets." },
         { title: 'Seasonal reset', body: "Once or twice a year, most homes benefit from going back to a deep clean baseline — even with regular standard cleanings in between." },
-        { title: 'After renovation or construction', body: "Fine dust from drywall and construction gets into vents, surfaces, and corners that a standard clean won't reach." },
+        { title: 'After light renovation', body: "Drywall dust, paint overspray, and fine debris from smaller renovation projects get into vents, surfaces, and corners that a standard clean won't reach. A deep clean handles this well." },
+        { title: 'Heavy construction or contractor cleanup', body: "Full gut renovations, new builds, or large contractor projects are a different scope entirely. That level of construction dust and debris is routed as Post-Construction Cleaning — always custom quoted after reviewing photos." },
         { title: 'Before selling your home', body: "Buyers notice the oven, the fridge, the grout lines. A deep clean before listing makes those invisible." },
       ].map(({ title, body }) => (
         <div key={title} style={{ display: 'flex', gap: '1rem', padding: '1rem 0', borderBottom: `1px solid ${border}` }}>
@@ -192,10 +205,11 @@ export function Post2Content() {
       <div style={{ marginTop: '1rem' }}>
         {[
           ["What's the difference between a deep clean and a standard clean?", "Standard cleaning covers regular maintenance — surfaces, floors, kitchen exterior, bathrooms, dusting. Deep cleaning adds: inside the oven and refrigerator (included, not add-ons), grease removal, hard water stains, under and behind accessible furniture, vents, cobwebs, and wet-wiped baseboards and light switches."],
-          ['How much does deep cleaning cost in Washington DC?', "Most DC homes range from $400–$600+ depending on size and condition. A 2BR/2BA in good condition typically runs $400–$480. RenewShine confirms your exact price after reviewing your photos — no guessing by bedroom count alone."],
+          ['How much does deep cleaning cost in Washington DC?', "Most Deep Cleans in DC start at $400, with many homes landing in the $400–$600+ range depending on size, condition, and how much buildup has accumulated. RenewShine confirms your exact price after reviewing your photos — no guessing by bedroom count alone."],
           ['How often should you get a deep clean?', "Most households benefit from a deep clean once or twice a year, or whenever a significant life event happens — moving in, moving out, after a renovation, before selling."],
           ['Does deep cleaning include inside the oven and fridge?', "Yes. At RenewShine, inside the oven and inside the refrigerator are standard inclusions on every Deep Clean — not add-ons. Most services charge extra for these."],
           ['Should first-time clients get a deep clean?', "For most first-time clients, yes. A deep clean establishes a baseline that makes every subsequent standard clean faster and more thorough."],
+          ['Can I book a standard clean first instead of a deep clean?', "Yes — and some homes genuinely don't need a deep clean. But if there's buildup in the oven, grout lines, behind furniture, or on baseboards, a standard clean won't fully reset those areas. When you submit photos, we'll tell you honestly which service fits your home before you pay anything."],
         ].map(([q, a]) => (
           <div key={q as string} style={{ borderBottom: `1px solid ${border}`, padding: '1.25rem 0' }}>
             <p style={{ ...display, fontWeight: 700, fontSize: '0.97rem', color: textPrimary, marginBottom: '0.5rem' }}>{q}</p>
