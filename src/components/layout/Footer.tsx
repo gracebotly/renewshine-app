@@ -20,6 +20,7 @@ const footerLinks = {
   ],
   Company: [
     { label: 'Services', href: '/services' },
+    { label: 'Blog', href: '/blog' },
     { label: 'How It Works', href: '/#how-it-works' },
     { label: 'Pricing', href: '/pricing' },
     { label: 'Get a Quote', href: '/booking' },

@@ -24,9 +24,11 @@
     "class-variance-authority": "latest",
     "clsx": "latest",
     "date-fns": "latest",
+    "gray-matter": "^4.0.3",
     "lucide-react": "^1",
     "motion": "^12",
     "next": "16.2.3",
+    "next-mdx-remote": "^6.0.0",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "react-dropzone": "^15",
@@ -36,6 +38,7 @@
     "twilio": "^5",
     "web-push": "^3",
     "tailwind-merge": "latest",
+    "twilio": "^5",
     "zod": "latest"
   },
   "devDependencies": {
