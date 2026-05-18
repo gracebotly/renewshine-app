@@ -14,11 +14,14 @@ export async function POST(req: NextRequest) {
   if (!validateTwilioSignature(signature, url, params)) {
     return new NextResponse('Forbidden', { status: 403 })
   }
+
   return new NextResponse(
     `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Say voice="Polly.Joanna">
-    Hi, you've reached RenewShine. The fastest way to reach us is by text, but you can leave a message after the tone and we'll get back to you as soon as possible.
+    Thanks for calling RenewShine Premium Cleaning.
+    We respond fastest by text — just send a message to this number and we'll get back to you within the hour.
+    You're also welcome to leave a message after the tone.
   </Say>
   <Record maxLength="120" transcribe="false" />
 </Response>`.trim(),
