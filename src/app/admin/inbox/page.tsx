@@ -191,7 +191,7 @@ export default function InboxPage() {
   const totalUnread = conversations.reduce((s, c) => s + (c.unread_count ?? 0), 0)
 
   return (
-    <div className="flex flex-col bg-slate-50" style={{ height: '100dvh' }}>
+    <div className="flex flex-col bg-slate-50" style={{ height: '100dvh', paddingBottom: 'env(safe-area-inset-bottom)' }}>
 
       {/* Header */}
       <div className="shrink-0 border-b border-slate-200 bg-white px-4 py-4 sm:px-6">
@@ -222,7 +222,7 @@ export default function InboxPage() {
             )}
           >
             {pushEnabled ? <Bell size={13} /> : <BellOff size={13} />}
-            {pushEnabled ? 'Notifications on' : 'Enable notifications'}
+            <span className="hidden sm:inline">{pushEnabled ? 'Notifications on' : 'Enable notifications'}</span>
           </button>
         </div>
       </div>
@@ -252,7 +252,7 @@ export default function InboxPage() {
             ) : conversations.map(conv => (
               <button key={conv.id} onClick={() => openConversation(conv)}
                 className={cn(
-                  'w-full border-b border-slate-50 px-4 py-3 text-left transition-colors duration-150 cursor-pointer',
+                  'w-full border-b border-slate-50 px-4 py-4 text-left transition-colors duration-150 cursor-pointer',
                   activeConv?.id === conv.id ? 'bg-[#e8f3ec]' : 'hover:bg-slate-50'
                 )}
               >
@@ -385,7 +385,7 @@ export default function InboxPage() {
               </AnimatePresence>
 
               {/* Reply box */}
-              <div className="shrink-0 border-t border-slate-100 bg-white px-3 py-3">
+              <div className="shrink-0 border-t border-slate-100 bg-white px-3 py-3 pb-safe">
                 <div className="flex items-end gap-2">
                   <button onClick={() => setShowQuickPanel(p => !p)} title="Quick replies"
                     className={cn(

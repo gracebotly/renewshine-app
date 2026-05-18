@@ -24,20 +24,10 @@ export default async function AdminPage({
 
   const allJobs = allJobsForCounts ?? []
 
-  const counts = {
-    total: allJobs.length,
-    needsQuote: allJobs.filter((j) => j.status === 'new' || j.status === 'under_review').length,
-    quotePending: allJobs.filter((j) => j.status === 'approved').length,
-    scheduled: allJobs.filter((j) => j.status === 'scheduled').length,
-    completed: allJobs.filter((j) => j.status === 'completed').length,
-    declined: allJobs.filter((j) => j.status === 'cancelled').length,
-  }
-
   const fourHoursAgoDate = new Date()
   fourHoursAgoDate.setHours(fourHoursAgoDate.getHours() - 4)
-  const fourHoursAgo = fourHoursAgoDate.toISOString()
   const staleCount = allJobs.filter(
-    (j) => (j.status === 'new' || j.status === 'under_review') && j.created_at < fourHoursAgo
+    (j) => (j.status === 'new' || j.status === 'under_review') && j.created_at < fourHoursAgoDate.toISOString()
   ).length
 
   const from = (page - 1) * PAGE_SIZE
@@ -55,10 +45,9 @@ export default async function AdminPage({
   const hasNext = page < totalPages
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-        {/* Admin nav bar */}
-        <div className="mb-6 flex items-center justify-between">
+    <div className="min-h-screen bg-slate-50 pb-safe">
+      <div className="mx-auto max-w-7xl px-4 pb-10 pt-6 sm:px-6 sm:pt-10 lg:px-8">
+        <div className="mb-5 flex items-center justify-between sm:mb-6">
           <p className="font-display text-lg font-semibold text-slate-900">Admin</p>
           <div className="flex items-center gap-2">
             <Link
@@ -66,7 +55,7 @@ export default async function AdminPage({
               className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition-colors duration-200 hover:border-brand/30 hover:text-brand cursor-pointer"
             >
               <MessageCircle size={14} />
-              Inbox
+              <span className="hidden xs:inline">Inbox</span>
             </Link>
             <LogoutButton />
           </div>
@@ -74,21 +63,41 @@ export default async function AdminPage({
 
         <StaleAlert count={staleCount} />
         <JobsTable jobs={jobs} />
+
         {totalPages > 1 && (
-          <div className="mt-6 flex items-center justify-between">
-            <p className="text-sm text-slate-600">
-              Page {page} of {totalPages} · <span className="font-medium">{totalCount ?? 0}</span>{' '}
-              total jobs
+          <div className="mt-5 flex items-center justify-between gap-4 sm:mt-6">
+            <p className="text-xs text-slate-500 sm:text-sm">
+              Page {page} of {totalPages} · <span className="font-medium">{totalCount ?? 0}</span> jobs
             </p>
             <div className="flex items-center gap-2">
-              <a href={hasPrev ? `/admin?page=${page - 1}` : undefined}>
-                <ChevronLeft size={14} />
-                Previous
-              </a>
-              <a href={hasNext ? `/admin?page=${page + 1}` : undefined}>
-                Next
-                <ChevronRight size={14} />
-              </a>
+              {hasPrev ? (
+                <a
+                  href={`/admin?page=${page - 1}`}
+                  className="flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition-colors duration-200 hover:border-slate-300 hover:text-slate-900"
+                >
+                  <ChevronLeft size={14} />
+                  Prev
+                </a>
+              ) : (
+                <span className="flex items-center gap-1 rounded-lg border border-slate-100 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-300 cursor-not-allowed">
+                  <ChevronLeft size={14} />
+                  Prev
+                </span>
+              )}
+              {hasNext ? (
+                <a
+                  href={`/admin?page=${page + 1}`}
+                  className="flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition-colors duration-200 hover:border-slate-300 hover:text-slate-900"
+                >
+                  Next
+                  <ChevronRight size={14} />
+                </a>
+              ) : (
+                <span className="flex items-center gap-1 rounded-lg border border-slate-100 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-300 cursor-not-allowed">
+                  Next
+                  <ChevronRight size={14} />
+                </span>
+              )}
             </div>
           </div>
         )}
