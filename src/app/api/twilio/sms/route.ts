@@ -173,6 +173,8 @@ async function storeInInbox({
         last_message_at:      new Date().toISOString(),
         last_message_preview: body.slice(0, 100),
         status:               'needs_reply',
+        notes:                null,
+        tags:                 [],
       },
       { onConflict: 'contact_phone', ignoreDuplicates: false }
     )

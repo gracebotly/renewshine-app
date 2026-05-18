@@ -171,6 +171,8 @@ export interface Database {
           unread_count: number
           status: 'open' | 'needs_reply' | 'waiting_on_customer' | 'booked' | 'closed'
           lead_source: 'sms' | 'facebook_ads' | 'missed_call' | 'website' | 'returning_client'
+          notes: string | null
+          tags: string[]
           created_at: string
         }
         Insert: Omit<Database['public']['Tables']['sms_conversations']['Row'], 'id' | 'created_at' | 'unread_count'> & { unread_count?: number }
@@ -189,6 +191,26 @@ export interface Database {
         Insert: Omit<Database['public']['Tables']['sms_messages']['Row'], 'id' | 'created_at' | 'twilio_sid'> & { twilio_sid?: string | null }
         Update: Partial<Database['public']['Tables']['sms_messages']['Insert']>
         Relationships: []
+      }
+      conversation_events: {
+        Row: {
+          id: string
+          conversation_id: string
+          event_type: 'missed_call' | 'voicemail'
+          duration_sec: number | null
+          recording_url: string | null
+          created_at: string
+        }
+        Insert: Omit<Database['public']['Tables']['conversation_events']['Row'], 'id' | 'created_at'>
+        Update: Partial<Database['public']['Tables']['conversation_events']['Insert']>
+        Relationships: [
+          {
+            foreignKeyName: 'conversation_events_conversation_id_fkey'
+            columns: ['conversation_id']
+            referencedRelation: 'sms_conversations'
+            referencedColumns: ['id']
+          }
+        ]
       }
       push_subscriptions: {
         Row: {
