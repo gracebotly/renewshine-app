@@ -13,17 +13,19 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'conversationId required' }, { status: 400 })
   }
 
-  const update: Record<string, unknown> = {}
-  if (typeof notes === 'string') update.notes = notes
-  if (Array.isArray(tags)) update.tags = tags
+  const hasNotes = typeof notes === 'string'
+  const hasTags  = Array.isArray(tags)
 
-  if (Object.keys(update).length === 0) {
+  if (!hasNotes && !hasTags) {
     return NextResponse.json({ error: 'nothing to update' }, { status: 400 })
   }
 
   const { error } = await supabase
     .from('sms_conversations')
-    .update(update)
+    .update({
+      ...(hasNotes ? { notes: notes as string } : {}),
+      ...(hasTags  ? { tags:  tags  as string[] } : {}),
+    })
     .eq('id', conversationId)
 
   if (error) {
