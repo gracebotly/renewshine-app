@@ -9,6 +9,7 @@ import { customerQuoteReminderTemplate } from './templates/customer-quote-remind
 import { customerLinkExpiredTemplate } from './templates/customer-link-expired'
 import { customerDeclinedTemplate } from './templates/customer-declined'
 import { customerAbandonedTemplate } from './templates/customer-abandoned'
+import { customerInvoiceTemplate, type InvoiceEmailData } from './templates/customer-invoice'
 
 const resend = new Resend(process.env.RESEND_API_KEY!)
 const FROM = 'RenewShine <noreply@renewshine.co>'
@@ -95,3 +96,11 @@ export async function sendAbandonedFormReminder(
   const { subject, html } = customerAbandonedTemplate({ firstName, clientEmail, resumeUrl })
   await resend.emails.send({ from: FROM, to: clientEmail, subject, html })
 }
+
+
+/** Custom invoice — fires when owner clicks "Send Invoice" in admin. To: customer. */
+export async function sendCustomerInvoice(data: InvoiceEmailData): Promise<void> {
+  const { subject, html } = customerInvoiceTemplate(data)
+  await resend.emails.send({ from: FROM, to: data.clientEmail, subject, html })
+}
+

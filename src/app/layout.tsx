@@ -22,6 +22,7 @@ const plusJakarta = Plus_Jakarta_Sans({
 })
 
 export const viewport: Viewport = {
+  interactiveWidget: 'resizes-content',
   themeColor: '#4A7C59',
 }
 

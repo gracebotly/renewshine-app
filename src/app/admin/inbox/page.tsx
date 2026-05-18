@@ -364,7 +364,7 @@ export default function InboxPage() {
   return (
     // svh = "small viewport height" — stable on iOS when keyboard opens
     // dvh resizes as keyboard animates which causes the reply box to jump
-    <div className="flex flex-col bg-white" style={{ height: '100svh' }}>
+    <div className="flex flex-col bg-white" style={{ height: '100svh', maxHeight: '100svh', position: 'fixed', inset: 0 }}>
 
       {/* ── App header ────────────────────────────────────────────────────── */}
       <div className="shrink-0 border-b border-slate-200 bg-white px-4 py-3 sm:px-6"

@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Bell } from 'lucide-react'
+import { InvoicePanel } from '@/components/admin/InvoicePanel'
 
 const STATUS_VARIANTS = {
   new: 'neutral',
@@ -521,6 +522,9 @@ export function QuoteCard({ job }: { job: any }) {
         {/* Feedback messages */}
         {successMsg && <p className="text-sm font-medium text-emerald-600">{successMsg}</p>}
         {errorMsg && <p className="text-sm font-medium text-red-600">{errorMsg}</p>}
+
+        {/* Invoice */}
+        <InvoicePanel job={job} />
 
       </div>
     </div>
