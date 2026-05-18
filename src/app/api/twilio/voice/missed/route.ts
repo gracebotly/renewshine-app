@@ -87,6 +87,8 @@ async function logMissedCall(from: string) {
   await supabase.from('conversation_events').insert({
     conversation_id: conv.id,
     event_type:      'missed_call',
+    duration_sec:    null,
+    recording_url:   null,
   })
 
   // Also log to existing missed_calls table (n8n still reads this)
