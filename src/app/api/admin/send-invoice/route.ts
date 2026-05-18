@@ -23,16 +23,21 @@ export async function POST(request: Request) {
     return Response.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const { jobId, lineItems, dueDate, businessName, preparedForAddress } = await request.json() as {
+  const { jobId, lineItems, dueDate, businessName, preparedForAddress, notes } = await request.json() as {
     jobId: string
     lineItems: InvoiceLineItem[]
-    dueDate?: string
+    dueDate: string       // ISO date string — always required, sent by client
     businessName?: string
     preparedForAddress?: string
+    notes?: string
   }
 
   if (!jobId || !lineItems || lineItems.length === 0) {
     return Response.json({ error: 'jobId and at least one line item are required' }, { status: 400 })
+  }
+
+  if (!dueDate) {
+    return Response.json({ error: 'Due date is required' }, { status: 400 })
   }
 
   for (const item of lineItems) {
@@ -107,24 +112,21 @@ export async function POST(request: Request) {
     })
     .eq('id', jobId)
 
-  // Format dates
-  const dueDateObj = dueDate
-    ? new Date(dueDate)
-    : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
-
-  const dueDateStr = dueDateObj.toLocaleDateString('en-US', {
+  // Format due date for email display
+  const dueDateStr = new Date(dueDate).toLocaleDateString('en-US', {
     month: 'long',
     day: 'numeric',
     year: 'numeric',
   })
 
+  // Format service date if available
   const serviceDateStr = job.confirmed_date
     ? new Date(job.confirmed_date).toLocaleDateString('en-US', {
-      weekday: 'long',
-      month: 'long',
-      day: 'numeric',
-      year: 'numeric',
-    })
+        weekday: 'long',
+        month: 'long',
+        day: 'numeric',
+        year: 'numeric',
+      })
     : null
 
   // Send branded invoice email via Resend
@@ -142,6 +144,7 @@ export async function POST(request: Request) {
       dueDate: dueDateStr,
       paymentUrl: paymentLink.url,
       serviceDate: serviceDateStr,
+      notes: notes?.trim() || null,
     })
   } catch (emailError) {
     console.error('Invoice email failed (non-blocking):', emailError)

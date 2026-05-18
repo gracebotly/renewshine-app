@@ -7,12 +7,23 @@ interface LineItem {
   amount: string
 }
 
+// Returns today's date + 48 hours as a yyyy-mm-dd string in local time
+function getDefault48hrDate(): string {
+  const d = new Date()
+  d.setHours(d.getHours() + 48)
+  const year = d.getFullYear()
+  const month = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
 export function InvoicePanel({ job }: { job: any }) {
   const [open, setOpen] = React.useState(false)
   const [lineItems, setLineItems] = React.useState<LineItem[]>([{ description: '', amount: '' }])
   const [businessName, setBusinessName] = React.useState(job.business_name ?? '')
   const [preparedForAddress, setPreparedForAddress] = React.useState(job.address ?? '')
-  const [dueDate, setDueDate] = React.useState('')
+  const [notes, setNotes] = React.useState('')
+  const [dueDate, setDueDate] = React.useState(getDefault48hrDate())
   const [loading, setLoading] = React.useState(false)
   const [success, setSuccess] = React.useState('')
   const [error, setError] = React.useState('')
@@ -20,6 +31,14 @@ export function InvoicePanel({ job }: { job: any }) {
   const depositPaid = job.deposit_paid ? (job.deposit_amount ?? 100) : 0
   const subtotal = lineItems.reduce((sum, i) => sum + (parseFloat(i.amount) || 0), 0)
   const amountDue = Math.max(subtotal - depositPaid, 0)
+
+  // Re-initialize due date to 48hrs from now each time panel opens
+  function handleOpen() {
+    setDueDate(getDefault48hrDate())
+    setSuccess('')
+    setError('')
+    setOpen(true)
+  }
 
   const inputClass =
     'w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-(--color-brand) focus:ring-offset-0 transition-colors duration-200'
@@ -52,6 +71,11 @@ export function InvoicePanel({ job }: { job: any }) {
       return
     }
 
+    if (!dueDate) {
+      setError('Please set a due date.')
+      return
+    }
+
     setLoading(true)
     const res = await fetch('/api/admin/send-invoice', {
       method: 'POST',
@@ -59,9 +83,10 @@ export function InvoicePanel({ job }: { job: any }) {
       body: JSON.stringify({
         jobId: job.id,
         lineItems: parsed,
-        dueDate: dueDate || undefined,
+        dueDate,
         businessName: businessName || undefined,
         preparedForAddress: preparedForAddress || undefined,
+        notes: notes || undefined,
       }),
     })
 
@@ -70,7 +95,8 @@ export function InvoicePanel({ job }: { job: any }) {
       setSuccess(`Invoice ${data.invoiceNumber} sent to ${job.client_email} ✓`)
       setOpen(false)
       setLineItems([{ description: '', amount: '' }])
-      setDueDate('')
+      setNotes('')
+      setDueDate(getDefault48hrDate())
     } else {
       const err = await res.json().catch(() => ({}))
       setError(err.error ?? 'Failed to send invoice. Please try again.')
@@ -82,7 +108,7 @@ export function InvoicePanel({ job }: { job: any }) {
     <div className="border-t border-slate-100 pt-4 mt-2">
       {!open ? (
         <button
-          onClick={() => { setOpen(true); setSuccess(''); setError('') }}
+          onClick={handleOpen}
           className="w-full cursor-pointer rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition-colors duration-200 hover:bg-slate-50 flex items-center justify-center gap-2"
         >
           <span>📄</span>
@@ -172,6 +198,21 @@ export function InvoicePanel({ job }: { job: any }) {
             </button>
           </div>
 
+          {/* Notes */}
+          <div className="space-y-1">
+            <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Notes{' '}
+              <span className="normal-case font-normal text-slate-400">(optional — shown on invoice)</span>
+            </label>
+            <textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              rows={3}
+              placeholder="e.g. Payment confirms scheduling. Thank you for your business."
+              className={`${inputClass} resize-none`}
+            />
+          </div>
+
           {/* Totals preview */}
           {subtotal > 0 && (
             <div className="overflow-hidden rounded-lg border border-slate-200 text-sm bg-white">
@@ -192,12 +233,14 @@ export function InvoicePanel({ job }: { job: any }) {
             </div>
           )}
 
-          {/* Due Date */}
+          {/* Due Date — always visible, pre-filled to 48hrs, fully editable */}
           <label className="block space-y-1">
             <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-              Due Date{' '}
-              <span className="normal-case font-normal text-slate-400">(defaults to 7 days)</span>
+              Due Date
             </span>
+            <p className="text-xs text-slate-400">
+              Set to today for immediate payment — pre-filled to 48 hours from now
+            </p>
             <input
               type="date"
               value={dueDate}
@@ -216,7 +259,7 @@ export function InvoicePanel({ job }: { job: any }) {
           {/* Send */}
           <button
             onClick={handleSend}
-            disabled={loading || subtotal === 0}
+            disabled={loading || subtotal === 0 || !dueDate}
             className="w-full cursor-pointer rounded-lg bg-(--color-brand) px-4 py-3 text-sm font-semibold text-white transition-colors duration-200 hover:bg-(--color-brand-hover) disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading
@@ -225,7 +268,7 @@ export function InvoicePanel({ job }: { job: any }) {
           </button>
 
           <p className="text-xs text-slate-400 text-center">
-            Stripe payment link · Branded invoice email · Invoice {job.id ? `RS-${new Date(job.created_at).getFullYear()}-XXXX` : ''}
+            Stripe payment link · Branded invoice email
           </p>
         </div>
       )}
