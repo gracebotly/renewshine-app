@@ -73,6 +73,8 @@ async function logMissedCall(from: string) {
         last_message_at:      new Date().toISOString(),
         last_message_preview: '📞 Missed call',
         status:               'needs_reply',
+        notes:                null,
+        tags:                 [],
       },
       { onConflict: 'contact_phone', ignoreDuplicates: false }
     )
