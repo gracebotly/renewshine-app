@@ -23,6 +23,8 @@ interface Conversation {
   unread_count: number
   status: ConvStatus
   lead_source: LeadSource
+  notes: string | null
+  tags: string[]
 }
 
 interface Message {
@@ -32,6 +34,20 @@ interface Message {
   body: string
   created_at: string
 }
+
+interface ConversationEvent {
+  id: string
+  conversation_id: string
+  event_type: 'missed_call' | 'voicemail'
+  duration_sec: number | null
+  recording_url: string | null
+  created_at: string
+}
+
+const PRESET_TAGS = [
+  'Hot Lead', 'High Ticket', 'Recurring', 'Bethesda', 'McLean',
+  'Commercial', 'Realtor', 'Difficult', 'Airbnb Host',
+]
 
 interface QuickReply {
   id: string
@@ -146,6 +162,11 @@ export default function InboxPage() {
   const [pushEnabled, setPushEnabled] = useState(false)
   const [pushLoading, setPushLoading] = useState(false)
   const [justSent, setJustSent] = useState(false)
+  const [events, setEvents] = useState<ConversationEvent[]>([])
+  const [notes, setNotes] = useState('')
+  const [notesSaving, setNotesSaving] = useState(false)
+  const [notesSaved, setNotesSaved] = useState(false)
+  const [showCrmPanel, setShowCrmPanel] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
@@ -214,10 +235,17 @@ export default function InboxPage() {
   // ── Actions ───────────────────────────────────────────────────────────────
 
   const openConversation = async (conv: Conversation) => {
-    setActiveConv(conv)
-    setShowThread(true)
-    setShowQuickPanel(false)
+    setActiveConv(conv); setShowThread(true); setShowQuickPanel(false); setShowCrmPanel(false)
+    setNotes(conv.notes ?? '')
     await loadMessages(conv.id)
+
+    // Load conversation events (missed calls)
+    const { data: evtData } = await supabaseBrowser
+      .from('conversation_events')
+      .select('*')
+      .eq('conversation_id', conv.id)
+      .order('created_at', { ascending: true })
+    setEvents((evtData ?? []) as ConversationEvent[])
     await fetch('/api/admin/sms-mark-read', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -230,6 +258,33 @@ export default function InboxPage() {
     await supabaseBrowser.from('sms_conversations').update({ status }).eq('id', convId)
     setActiveConv(p => p ? { ...p, status } : p)
     setConversations(p => p.map(c => c.id === convId ? { ...c, status } : c))
+  }
+
+  const saveNotes = async () => {
+    if (!activeConv) return
+    setNotesSaving(true)
+    await fetch('/api/admin/conversation-update', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ conversationId: activeConv.id, notes }),
+    })
+    setNotesSaving(false)
+    setNotesSaved(true)
+    setTimeout(() => setNotesSaved(false), 2000)
+  }
+
+  const toggleTag = async (tag: string) => {
+    if (!activeConv) return
+    const current = activeConv.tags ?? []
+    const next = current.includes(tag)
+      ? current.filter((t: string) => t !== tag)
+      : [...current, tag]
+    setActiveConv(p => p ? { ...p, tags: next } : p)
+    await fetch('/api/admin/conversation-update', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ conversationId: activeConv.id, tags: next }),
+    })
   }
 
   const sendReply = async (text?: string) => {
@@ -508,6 +563,19 @@ export default function InboxPage() {
                 </div>
 
                 <div className="flex items-center gap-2">
+                  {/* CRM panel toggle */}
+                  <button
+                    onClick={() => setShowCrmPanel(p => !p)}
+                    className={cn(
+                      'flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-medium transition-colors duration-200 cursor-pointer',
+                      showCrmPanel
+                        ? 'border-[#4A7C59]/30 bg-[#e8f3ec] text-[#4A7C59]'
+                        : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300 hover:text-slate-700'
+                    )}
+                  >
+                    Notes
+                  </button>
+
                   {/* Call button */}
                   <a
                     href={`tel:${activeConv.contact_phone}`}
@@ -557,54 +625,81 @@ export default function InboxPage() {
                 <p className="text-[10px] text-slate-400">{messages.length} message{messages.length !== 1 ? 's' : ''}</p>
               </div>
 
-              {/* Messages scroll area */}
+              {/* Messages scroll area — messages + events merged by timestamp */}
               <div className="flex-1 overflow-y-auto px-4 py-4 space-y-1">
                 <AnimatePresence initial={false}>
-                  {messages.map((msg, i) => {
-                    const isOut = msg.direction === 'outbound'
-                    const prevMsg = messages[i - 1]
-                    const showTimestamp =
-                      !prevMsg ||
-                      new Date(msg.created_at).getTime() - new Date(prevMsg.created_at).getTime() > 5 * 60 * 1000
+                  {[
+                    ...messages.map(m => ({ ...m, _type: 'message' as const })),
+                    ...events.map(e => ({ ...e, _type: 'event' as const })),
+                  ]
+                    .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+                    .map((item, i, arr) => {
+                      const prevItem = arr[i - 1]
+                      const showTimestamp =
+                        !prevItem ||
+                        new Date(item.created_at).getTime() - new Date(prevItem.created_at).getTime() > 5 * 60 * 1000
 
-                    return (
-                      <motion.div key={msg.id}
-                        initial={{ opacity: 0, y: 8, scale: 0.97 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        transition={{ duration: 0.2, ease: [0.25, 0.46, 0.45, 0.94] }}
-                      >
-                        {/* Timestamp divider — shown when >5 min gap */}
-                        {showTimestamp && (
-                          <p className="text-center text-[10px] text-slate-400 py-2">
-                            {formatFullTime(msg.created_at)}
-                          </p>
-                        )}
-
-                        <div className={cn('flex', isOut ? 'justify-end' : 'justify-start')}>
-                          <div
-                            title={formatFullTime(msg.created_at)}
-                            className={cn(
-                              'max-w-[78%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed',
-                              isOut
-                                ? 'rounded-br-md bg-[#4A7C59] text-white'
-                                : 'rounded-bl-md bg-white text-slate-900 shadow-sm border border-slate-100'
-                            )}
+                      if (item._type === 'event') {
+                        return (
+                          <motion.div key={`evt-${item.id}`}
+                            initial={{ opacity: 0, y: 4 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.2 }}
                           >
-                            <p className="whitespace-pre-wrap break-words">{msg.body}</p>
+                            {showTimestamp && (
+                              <p className="text-center text-[10px] text-slate-400 py-2">
+                                {formatFullTime(item.created_at)}
+                              </p>
+                            )}
+                            <div className="flex justify-center py-1">
+                              <div className="flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-500 shadow-sm">
+                                <span>📞</span>
+                                <span>Missed call</span>
+                                <span className="text-slate-300">·</span>
+                                <span>{formatTime(item.created_at)}</span>
+                              </div>
+                            </div>
+                          </motion.div>
+                        )
+                      }
+
+                      // Regular message
+                      const msg = item
+                      const isOut = msg.direction === 'outbound'
+                      return (
+                        <motion.div key={msg.id}
+                          initial={{ opacity: 0, y: 8, scale: 0.97 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          transition={{ duration: 0.2, ease: [0.25, 0.46, 0.45, 0.94] }}
+                        >
+                          {showTimestamp && (
+                            <p className="text-center text-[10px] text-slate-400 py-2">
+                              {formatFullTime(item.created_at)}
+                            </p>
+                          )}
+                          <div className={cn('flex', isOut ? 'justify-end' : 'justify-start')}>
+                            <div
+                              title={formatFullTime(msg.created_at)}
+                              className={cn(
+                                'max-w-[78%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed',
+                                isOut
+                                  ? 'rounded-br-md bg-[#4A7C59] text-white'
+                                  : 'rounded-bl-md bg-white text-slate-900 shadow-sm border border-slate-100'
+                              )}
+                            >
+                              <p className="whitespace-pre-wrap break-words">{msg.body}</p>
+                            </div>
                           </div>
-                        </div>
-                      </motion.div>
-                    )
-                  })}
+                        </motion.div>
+                      )
+                    })
+                  }
                 </AnimatePresence>
 
-                {/* "Sent" confirmation */}
                 <AnimatePresence>
                   {justSent && (
                     <motion.p
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
+                      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                       className="text-right text-[10px] text-slate-400 pr-1"
                     >
                       Sent
@@ -614,6 +709,61 @@ export default function InboxPage() {
 
                 <div ref={bottomRef} />
               </div>
+
+              {/* CRM panel — notes + tags */}
+              <AnimatePresence>
+                {showCrmPanel && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.18 }}
+                    className="shrink-0 overflow-hidden border-t border-slate-200 bg-white"
+                  >
+                    <div className="px-4 py-3 space-y-3">
+                      {/* Tags */}
+                      <div>
+                        <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400 mb-2">Tags</p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {PRESET_TAGS.map(tag => {
+                            const active = (activeConv.tags ?? []).includes(tag)
+                            return (
+                              <button
+                                key={tag}
+                                onClick={() => toggleTag(tag)}
+                                className={cn(
+                                  'rounded-full border px-2.5 py-1 text-xs font-medium transition-colors duration-150 cursor-pointer',
+                                  active
+                                    ? 'border-[#4A7C59]/30 bg-[#e8f3ec] text-[#4A7C59]'
+                                    : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300 hover:text-slate-700'
+                                )}
+                              >
+                                {tag}
+                              </button>
+                            )
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Notes */}
+                      <div>
+                        <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400 mb-2">Internal notes</p>
+                        <textarea
+                          value={notes}
+                          onChange={e => setNotes(e.target.value)}
+                          onBlur={saveNotes}
+                          placeholder="Dog in house. Prefers text. Interested in bi-weekly…"
+                          rows={3}
+                          className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-xs text-slate-900 placeholder:text-slate-400 focus:border-[#4A7C59]/40 focus:bg-white focus:outline-none focus:ring-0 transition-colors duration-200 resize-none"
+                        />
+                        <p className="mt-1 text-right text-[10px] text-slate-400">
+                          {notesSaving ? 'Saving…' : notesSaved ? '✓ Saved' : 'Saves on blur'}
+                        </p>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
               {/* Quick replies panel */}
               <AnimatePresence>
