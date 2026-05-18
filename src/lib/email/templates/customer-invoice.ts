@@ -1,4 +1,4 @@
-import { baseTemplate, ctaButton, divider } from './base'
+import { baseTemplate, ctaButton } from './base'
 
 export interface InvoiceLineItem {
   description: string
@@ -15,9 +15,10 @@ export interface InvoiceEmailData {
   total: number
   depositPaid: number   // 0 if no deposit was taken
   amountDue: number     // total - depositPaid
-  dueDate: string       // formatted string e.g. "May 25, 2026"
+  dueDate: string       // formatted string e.g. "May 20, 2026"
   paymentUrl: string
   serviceDate?: string | null
+  notes?: string | null
 }
 
 export function customerInvoiceTemplate(data: InvoiceEmailData): { subject: string; html: string } {
@@ -54,6 +55,13 @@ export function customerInvoiceTemplate(data: InvoiceEmailData): { subject: stri
 
   const serviceDateLine = data.serviceDate
     ? `<p style="margin:0 0 6px;font-size:13px;color:#64748b;">Service date: <strong style="color:#0f172a;">${data.serviceDate}</strong></p>`
+    : ''
+
+  const notesBlock = data.notes?.trim()
+    ? `<div style="margin:0 0 20px;border-left:4px solid #e2e8f0;padding:10px 16px;background:#f8fafc;border-radius:0 8px 8px 0;">
+        <p style="margin:0 0 4px;font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.06em;">Notes</p>
+        <p style="margin:0;font-size:13px;color:#334155;line-height:1.65;white-space:pre-line;">${data.notes}</p>
+      </div>`
     : ''
 
   const content = `
@@ -101,6 +109,8 @@ export function customerInvoiceTemplate(data: InvoiceEmailData): { subject: stri
   </table>
 
   ${ctaButton(`Pay $${data.amountDue.toFixed(2)} Now`, data.paymentUrl)}
+
+  ${notesBlock}
 
   <table width="100%" cellpadding="0" cellspacing="0" role="presentation"
     style="border-left:4px solid #4A7C59;background:#f4f7f5;border-radius:0 8px 8px 0;margin:0 0 20px;overflow:hidden;">
