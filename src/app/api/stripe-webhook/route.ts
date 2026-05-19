@@ -37,11 +37,14 @@ export async function POST(request: Request) {
     const supabase = createServerClient()
 
     // PRIMARY: jobId from session.metadata — populated when PaymentLink has top-level metadata
-    let jobId: string | null = session.metadata?.jobId ?? null
+    const jobId: string | null = session.metadata?.jobId ?? null
+    const paymentType: string = session.metadata?.type ?? 'deposit'
 
     // FALLBACK: if metadata missing (e.g. older Payment Links without metadata),
     // look up the job by the Stripe payment_link URL stored in our database
-    if (!jobId && session.payment_link) {
+    let resolvedJobId = jobId
+
+    if (!resolvedJobId && session.payment_link) {
       console.log('Webhook: no jobId in session.metadata — attempting fallback lookup by payment_link ID:', session.payment_link)
 
       // Fetch the Payment Link object from Stripe to get its URL
@@ -55,13 +58,13 @@ export async function POST(request: Request) {
           .single()
 
         if (jobByLink?.id) {
-          jobId = jobByLink.id
-          console.log('Webhook: fallback lookup succeeded — jobId:', jobId)
+          resolvedJobId = jobByLink.id
+          console.log('Webhook: fallback lookup succeeded — jobId:', resolvedJobId)
         }
       }
     }
 
-    if (!jobId) {
+    if (!resolvedJobId) {
       console.error(
         'Webhook: could not resolve jobId from session.metadata or payment_link fallback.',
         'Session ID:', session.id,
@@ -76,48 +79,59 @@ export async function POST(request: Request) {
     const { data: job } = await supabase
       .from('jobs')
       .select('*')
-      .eq('id', jobId)
+      .eq('id', resolvedJobId)
       .single()
 
     if (!job) {
-      console.error('Webhook: job not found for jobId', jobId)
+      console.error('Webhook: job not found for jobId', resolvedJobId)
       return Response.json({ received: true })
     }
 
     // Idempotency — Stripe retries events; skip if already processed
-    if (job.deposit_paid) {
-      console.log('Webhook: deposit already recorded for job', jobId, '— skipping')
+    if (job.deposit_paid || job.status === 'completed') {
+      console.log('Webhook: payment already recorded for job', resolvedJobId, '— skipping')
       return Response.json({ received: true })
     }
 
+    const jobUpdate =
+      paymentType === 'invoice'
+        ? {
+            // Invoice payment — mark remaining balance as cleared, move to completed
+            remaining_amount: 0,
+            status: 'completed' as const,
+            stripe_session_id: session.id,
+          }
+        : {
+            // Deposit payment — standard flow
+            deposit_paid: true,
+            status: 'scheduled' as const,
+            stripe_session_id: session.id,
+          }
+
     const { error: updateError } = await supabase
       .from('jobs')
-      .update({
-        deposit_paid: true,
-        status: 'scheduled',
-        stripe_session_id: session.id,
-      })
-      .eq('id', jobId)
+      .update(jobUpdate)
+      .eq('id', resolvedJobId)
 
     if (updateError) {
-      console.error('Webhook: failed to update job', jobId, updateError)
+      console.error('Webhook: failed to update job', resolvedJobId, updateError)
       // Return 500 so Stripe retries — idempotency check above prevents double processing
       return Response.json({ error: 'DB update failed' }, { status: 500 })
     }
 
-    console.log('Webhook: job', jobId, 'marked scheduled — sending confirmation emails')
+    console.log('Webhook: job', resolvedJobId, 'marked scheduled — sending confirmation emails')
 
     const { data: updatedJob } = await supabase
       .from('jobs')
       .select('*')
-      .eq('id', jobId)
+      .eq('id', resolvedJobId)
       .single()
 
     // Send Templates 4 + 5 — never block webhook response on email failure
     try {
-      if (updatedJob) {
+      if (updatedJob && paymentType !== 'invoice') {
         await Promise.all([sendCustomerBooked(updatedJob), sendOwnerBooked(updatedJob)])
-        console.log('Webhook: confirmation emails sent for job', jobId)
+        console.log('Webhook: confirmation emails sent for job', resolvedJobId)
       }
     } catch (emailError) {
       console.error('Webhook: confirmation emails failed (non-blocking):', emailError)
@@ -142,8 +156,8 @@ export async function POST(request: Request) {
       ).catch(() => {})
     }
 
-    // Fire job-scheduled webhook for n8n day-before reminder
-    if (updatedJob) {
+    // Fire job-scheduled webhook for n8n day-before reminder — deposit only
+    if (updatedJob && paymentType !== 'invoice') {
       const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? ''
       const webhookSecret = process.env.N8N_WEBHOOK_SECRET ?? ''
       fetch(`${siteUrl}/api/webhooks/job-scheduled`, {

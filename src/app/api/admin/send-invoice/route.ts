@@ -109,6 +109,7 @@ export async function POST(request: Request) {
       stripe_payment_link: paymentLink.url,
       approved_price: total,
       remaining_amount: amountDue,
+      status: 'approved',
     })
     .eq('id', jobId)
 
