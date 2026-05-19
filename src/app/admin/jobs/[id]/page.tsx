@@ -202,6 +202,38 @@ function SubmissionCard({ job }: { job: any }) {
           </>
         )}
 
+        {/* Home Type — editable */}
+        <div className="flex min-h-[32px] items-start gap-4 py-1">
+          <dt className="w-32 shrink-0 pt-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
+            Home Type
+          </dt>
+          <dd className="flex-1">
+            <select name="home_type" defaultValue={job.home_type ?? ''} className={inputClass}>
+              <option value="">— Unknown —</option>
+              <option value="apartment">Apartment</option>
+              <option value="condo">Condo</option>
+              <option value="townhouse">Townhouse</option>
+              <option value="single_family">Single Family Home</option>
+            </select>
+          </dd>
+        </div>
+
+        {/* Pets — read only */}
+        {job.pets && job.pets !== 'none' && (
+          <div className="flex min-h-[32px] items-start gap-4 py-1">
+            <dt className="w-32 shrink-0 text-xs font-semibold uppercase tracking-wide text-slate-400 pt-1">Pets</dt>
+            <dd className="pt-1 text-sm text-slate-900">{petsMap[job.pets] ?? job.pets}</dd>
+          </div>
+        )}
+
+        {/* Condition — read only, residential only */}
+        {job.condition && job.type !== 'commercial' && (
+          <div className="flex min-h-[32px] items-start gap-4 py-1">
+            <dt className="w-32 shrink-0 text-xs font-semibold uppercase tracking-wide text-slate-400 pt-1">Condition</dt>
+            <dd className="pt-1 text-sm text-slate-900">{conditionMap[job.condition] ?? job.condition}</dd>
+          </div>
+        )}
+
         <div className="flex items-start gap-4 py-1">
           <dt className="w-32 shrink-0 pt-1 text-xs font-semibold uppercase tracking-wide text-slate-400">
             Add-ons

@@ -365,9 +365,6 @@ export function QuoteCard({ job }: { job: any }) {
           </Button>
         )}
 
-        {/* SECONDARY ACTIONS */}
-        {!job.deposit_paid && ['new', 'under_review'].includes(overrideStatus) && (<button onClick={() => setShowCompose(true)} className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg bg-(--color-brand) px-4 py-3 text-sm font-semibold text-white transition-colors duration-200 hover:bg-(--color-brand-hover)">Contact customer</button>)}
-        {!job.deposit_paid && overrideStatus === 'contacted' && (<button onClick={() => setShowCompose(true)} className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition-colors duration-200 hover:bg-slate-50">Send another message</button>)}
         {!job.deposit_paid && (
           <Button
             variant="brand-outline"
