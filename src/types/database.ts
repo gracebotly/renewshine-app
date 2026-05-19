@@ -17,6 +17,7 @@ export type JobStatus =
   | 'partial'
   | 'new'
   | 'under_review'
+  | 'contacted'
   | 'approved'
   | 'scheduled'
   | 'completed'
@@ -81,7 +82,11 @@ export interface Database {
           created_at: string
           satisfaction_score: number | null
           automation_paused_until: string | null
-          preferred_contact: 'email' | 'phone' | null
+          contacted_at: string | null
+          contact_method: 'email' | 'sms' | 'external' | null
+          contact_note: string | null
+          home_type: 'apartment' | 'condo' | 'townhouse' | 'single_family' | null
+          preferred_contact: 'email' | 'phone' | 'text' | null
         }
         Insert: {
           type?: JobType | null
@@ -115,7 +120,11 @@ export interface Database {
           notes?: string | null
           satisfaction_score?: number | null
           automation_paused_until?: string | null
-          preferred_contact?: 'email' | 'phone' | null
+          contacted_at?: string | null
+          contact_method?: 'email' | 'sms' | 'external' | null
+          contact_note?: string | null
+          home_type?: 'apartment' | 'condo' | 'townhouse' | 'single_family' | null
+          preferred_contact?: 'email' | 'phone' | 'text' | null
         }
         Update: Partial<Database['public']['Tables']['jobs']['Row']>
         Relationships: []
@@ -175,7 +184,15 @@ export interface Database {
           tags: string[]
           created_at: string
         }
-        Insert: Omit<Database['public']['Tables']['sms_conversations']['Row'], 'id' | 'created_at' | 'unread_count'> & { unread_count?: number }
+        Insert: Omit<
+          Database['public']['Tables']['sms_conversations']['Row'],
+          'id' | 'created_at' | 'unread_count' | 'last_message_at' | 'notes' | 'tags'
+        > & {
+          unread_count?: number
+          last_message_at?: string | null
+          notes?: string | null
+          tags?: string[]
+        }
         Update: Partial<Database['public']['Tables']['sms_conversations']['Insert']>
         Relationships: []
       }

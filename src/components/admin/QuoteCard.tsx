@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Bell } from 'lucide-react'
 import { InvoicePanel } from '@/components/admin/InvoicePanel'
+import { ComposeSheet } from '@/components/admin/ComposeSheet'
 
 const STATUS_VARIANTS = {
   new: 'neutral',
@@ -55,14 +56,8 @@ export function QuoteCard({ job }: { job: any }) {
   )
   const [confirmedDate, setConfirmedDate] = React.useState<string>('')
   const [loadingStripe, setLoadingStripe] = React.useState(false)
-  const [loadingCash, setLoadingCash] = React.useState(false)
   const [successMsg, setSuccessMsg] = React.useState('')
   const [errorMsg, setErrorMsg] = React.useState('')
-  const [loadingReview, setLoadingReview] = React.useState(false)
-  const [loadingDecline, setLoadingDecline] = React.useState(false)
-  const [showDeclineConfirm, setShowDeclineConfirm] = React.useState(false)
-  const [declineReason, setDeclineReason] = React.useState('')
-  const [declineReferral, setDeclineReferral] = React.useState('')
   const [loadingResend, setLoadingResend] = React.useState(false)
   const [overrideStatus, setOverrideStatus] = React.useState(job.status)
   const [loadingOverride, setLoadingOverride] = React.useState(false)
@@ -70,6 +65,8 @@ export function QuoteCard({ job }: { job: any }) {
   const [reminderSent, setReminderSent] = React.useState(false)
   const [loadingComplete, setLoadingComplete] = React.useState(false)
   const [completedConfirm, setCompletedConfirm] = React.useState(false)
+  const [showCompose, setShowCompose] = React.useState(false)
+  const [localContactNote, setLocalContactNote] = React.useState<string | null>(job.contact_note ?? null)
 
   const canApprove = Boolean(confirmedDate && approvedPrice && Number(approvedPrice) > 0 && !job.deposit_paid)
 
@@ -111,64 +108,18 @@ export function QuoteCard({ job }: { job: any }) {
     setLoadingStripe(false)
   }
 
-  const handleCash = async () => {
-    setLoadingCash(true)
-    setErrorMsg('')
-    setSuccessMsg('')
-    const res = await fetch('/api/admin/mark-cash-paid', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ jobId: job.id, approvedPrice: Number(approvedPrice), confirmedDate }),
-    })
-    if (res.ok) {
-      setSuccessMsg('Cash deposit recorded ✓ — job is now scheduled.')
-    } else {
-      setErrorMsg('Failed to record cash payment. Please try again.')
-    }
-    setLoadingCash(false)
+
+
+
+
+  const handleMarkSentExternally = async () => {
+    setLoadingStripe(true); setErrorMsg(''); setSuccessMsg('')
+    const res = await fetch('/api/admin/update-job-status', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ jobId: job.id, status: 'approved', confirmedDate, approvedPrice: Number(approvedPrice) }) })
+    if (res.ok) { setSuccessMsg('Marked as approved — quote sent externally ✓'); setOverrideStatus('approved') } else setErrorMsg('Failed to update status. Please try again.')
+    setLoadingStripe(false)
   }
 
-  const handleMarkUnderReview = async () => {
-    setLoadingReview(true)
-    setErrorMsg('')
-    setSuccessMsg('')
-    const res = await fetch('/api/admin/update-job-status', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ jobId: job.id, status: 'under_review' }),
-    })
-    if (res.ok) {
-      setSuccessMsg('Status updated to Under Review ✓')
-      setOverrideStatus('under_review')
-    } else {
-      setErrorMsg('Failed to update status.')
-    }
-    setLoadingReview(false)
-  }
-
-  const handleDecline = async () => {
-    if (!declineReason.trim()) return
-    setLoadingDecline(true)
-    setErrorMsg('')
-    setSuccessMsg('')
-    const res = await fetch('/api/admin/decline-job', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        jobId: job.id,
-        reason: declineReason.trim(),
-        referral: declineReferral.trim() || null,
-      }),
-    })
-    if (res.ok) {
-      setSuccessMsg('Request declined — decline email sent to customer.')
-      setShowDeclineConfirm(false)
-      setOverrideStatus('cancelled')
-    } else {
-      setErrorMsg('Failed to decline request. Please try again.')
-    }
-    setLoadingDecline(false)
-  }
+  const handleComposeSuccess = (note: string) => { setShowCompose(false); setLocalContactNote(note); setOverrideStatus('contacted'); setSuccessMsg('Message sent ✓ — job marked as contacted.') }
 
   const handleResendLink = async () => {
     setLoadingResend(true)
@@ -265,6 +216,7 @@ export function QuoteCard({ job }: { job: any }) {
           <p className="mt-0.5 text-xs text-amber-600">Set price and confirmed date below</p>
         </div>
       )}
+      {overrideStatus === 'contacted' && (<div className="rounded-t-xl border-b border-amber-100 bg-amber-50 px-5 py-4"><p className="text-sm font-bold text-amber-700">💬 Contacted</p><p className="mt-0.5 text-xs text-amber-600">{localContactNote ?? 'Waiting on customer response'}</p></div>)}
       {overrideStatus === 'approved' && !job.deposit_paid && (
         <div className="rounded-t-xl border-b border-blue-100 bg-blue-50 px-5 py-4">
           <p className="text-sm font-bold text-blue-700">💳 Awaiting Deposit</p>
@@ -382,25 +334,29 @@ export function QuoteCard({ job }: { job: any }) {
         )}
 
         {/* PRIMARY ACTION — full width, dominant */}
+        {!job.deposit_paid && ['new', 'under_review'].includes(overrideStatus) && (<button onClick={() => setShowCompose(true)} className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg bg-(--color-brand) px-4 py-3 text-sm font-semibold text-white transition-colors duration-200 hover:bg-(--color-brand-hover)">Contact customer</button>)}
+        {!job.deposit_paid && overrideStatus === 'contacted' && (<button onClick={() => setShowCompose(true)} className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition-colors duration-200 hover:bg-slate-50">Send another message</button>)}
         {!job.deposit_paid && (
           <Button
             onClick={handleStripe}
-            disabled={!canApprove || loadingStripe || loadingCash}
+            disabled={!canApprove || loadingStripe}
             className="w-full py-3 text-base font-semibold"
           >
-            {loadingStripe ? 'Sending…' : 'Send Quote'}
+            {loadingStripe ? 'Sending…' : 'Send quote via email + Stripe'}
           </Button>
         )}
 
         {/* SECONDARY ACTIONS */}
+        {!job.deposit_paid && ['new', 'under_review'].includes(overrideStatus) && (<button onClick={() => setShowCompose(true)} className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg bg-(--color-brand) px-4 py-3 text-sm font-semibold text-white transition-colors duration-200 hover:bg-(--color-brand-hover)">Contact customer</button>)}
+        {!job.deposit_paid && overrideStatus === 'contacted' && (<button onClick={() => setShowCompose(true)} className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition-colors duration-200 hover:bg-slate-50">Send another message</button>)}
         {!job.deposit_paid && (
           <Button
             variant="brand-outline"
-            onClick={handleCash}
-            disabled={!canApprove || loadingStripe || loadingCash}
+            onClick={handleMarkSentExternally}
+            disabled={!canApprove || loadingStripe}
             className="w-full"
           >
-            {loadingCash ? 'Recording…' : '💵 Mark as Cash Paid'}
+            Mark as sent externally (text / call)
           </Button>
         )}
 
@@ -449,71 +405,6 @@ export function QuoteCard({ job }: { job: any }) {
           </div>
         )}
 
-        {/* Decline */}
-        {!job.deposit_paid && overrideStatus !== 'cancelled' && overrideStatus !== 'completed' && (
-          <div>
-            {!showDeclineConfirm ? (
-              <button
-                onClick={() => setShowDeclineConfirm(true)}
-                className="w-full cursor-pointer rounded-lg border border-red-200 px-4 py-2 text-sm font-medium text-red-600 transition-colors duration-200 hover:bg-red-50"
-              >
-                Decline Request
-              </button>
-            ) : (
-              <div className="space-y-3 rounded-lg border border-red-200 bg-red-50 p-4">
-                <p className="text-sm font-semibold text-red-700">Decline this request</p>
-                <p className="text-xs text-red-600">A decline email will be sent to the customer automatically.</p>
-
-                <label className="block space-y-1">
-                  <span className="text-xs font-semibold uppercase tracking-wide text-red-700">
-                    Reason <span className="normal-case font-normal">(required — shown to customer)</span>
-                  </span>
-                  <textarea
-                    value={declineReason}
-                    onChange={(e) => setDeclineReason(e.target.value)}
-                    rows={3}
-                    placeholder="After reviewing your photos, the level of buildup is beyond what our team is equipped to handle safely."
-                    className="w-full resize-none rounded-lg border border-red-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-offset-0"
-                  />
-                </label>
-
-                <label className="block space-y-1">
-                  <span className="text-xs font-semibold uppercase tracking-wide text-red-700">
-                    Referral <span className="normal-case font-normal">(optional — e.g. "ServiceMaster Clean 301-555-0100")</span>
-                  </span>
-                  <input
-                    type="text"
-                    value={declineReferral}
-                    onChange={(e) => setDeclineReferral(e.target.value)}
-                    placeholder="Leave blank for a generic referral line"
-                    className="w-full rounded-lg border border-red-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-offset-0"
-                  />
-                </label>
-
-                <div className="flex gap-2 pt-1">
-                  <button
-                    onClick={handleDecline}
-                    disabled={loadingDecline || !declineReason.trim()}
-                    className="flex-1 cursor-pointer rounded-lg bg-red-600 px-3 py-2 text-sm font-medium text-white transition-colors duration-200 hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    {loadingDecline ? 'Sending…' : 'Send Decline & Email Customer'}
-                  </button>
-                  <button
-                    onClick={() => {
-                      setShowDeclineConfirm(false)
-                      setDeclineReason('')
-                      setDeclineReferral('')
-                    }}
-                    className="flex-1 cursor-pointer rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition-colors duration-200 hover:bg-slate-50"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
         {/* Helper text */}
         {!canApprove && !job.deposit_paid && overrideStatus !== 'cancelled' && (
           <p className="text-center text-xs text-slate-400">Set confirmed date and price to enable actions</p>
@@ -525,6 +416,8 @@ export function QuoteCard({ job }: { job: any }) {
 
         {/* Invoice */}
         <InvoicePanel job={job} />
+
+        {showCompose && <ComposeSheet job={job} mediaCount={job.job_media?.length ?? 0} onClose={() => setShowCompose(false)} onSuccess={handleComposeSuccess} />}
 
       </div>
     </div>

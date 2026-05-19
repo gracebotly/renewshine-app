@@ -1,7 +1,7 @@
 import { createServerClient } from '@/lib/supabase/server'
 import type { Job } from '@/types/database'
 
-const VALID_STATUSES = ['new', 'under_review', 'approved', 'scheduled', 'completed', 'cancelled']
+const VALID_STATUSES = ['new', 'under_review', 'contacted', 'approved', 'scheduled', 'completed', 'cancelled']
 import { requireAdmin } from '@/lib/require-admin'
 
 export async function PATCH(request: Request) {
@@ -12,7 +12,17 @@ export async function PATCH(request: Request) {
     return Response.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const { jobId, status, notes, address } = await request.json()
+  const {
+    jobId,
+    status,
+    notes,
+    address,
+    confirmedDate,
+    approvedPrice,
+    contactedAt,
+    contactMethod,
+    contactNote,
+  } = await request.json()
 
   if (!jobId) return Response.json({ error: 'jobId required' }, { status: 400 })
   if (status && !VALID_STATUSES.includes(status)) {
@@ -24,6 +34,20 @@ export async function PATCH(request: Request) {
   if (status) updates.status = status
   if (notes !== undefined) updates.notes = notes
   if (address !== undefined) updates.address = address
+
+  if (status === 'contacted') {
+    if (contactedAt) updates.contacted_at = contactedAt
+    if (contactMethod) updates.contact_method = contactMethod
+    if (contactNote !== undefined) updates.contact_note = contactNote
+  }
+
+  if (status === 'approved') {
+    if (confirmedDate) updates.confirmed_date = confirmedDate
+    if (approvedPrice && Number(approvedPrice) > 0) {
+      updates.approved_price = Number(approvedPrice)
+      updates.remaining_amount = Math.max(Number(approvedPrice) - 100, 0)
+    }
+  }
 
   const { error } = await supabase.from('jobs').update(updates).eq('id', jobId)
   if (error) return Response.json({ error: error.message }, { status: 500 })

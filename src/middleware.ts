@@ -6,7 +6,9 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   if (pathname === '/admin/login' || pathname.startsWith('/auth/')) {
-    return NextResponse.next()
+    const res = NextResponse.next()
+    res.headers.set('x-pathname', pathname)
+    return res
   }
 
   let supabaseResponse = NextResponse.next({ request })
@@ -37,6 +39,8 @@ export async function middleware(request: NextRequest) {
   if (!user) {
     return NextResponse.redirect(new URL('/admin/login', request.url))
   }
+
+  supabaseResponse.headers.set('x-pathname', pathname)
 
   return supabaseResponse
 }
