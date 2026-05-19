@@ -28,9 +28,10 @@ export async function POST(req: NextRequest) {
   const from     = params['From'] ?? ''
   const body     = params['Body'] ?? ''
   const sid      = params['MessageSid'] ?? ''
-  const mediaUrl = params['MediaUrl0'] ?? null
 
-  if (!from || !body) {
+  // Allow photo-only MMS: body may be empty if customer sent just an image
+  const mediaUrl = params['MediaUrl0'] ?? null
+  if (!from || (!body && !mediaUrl)) {
     return new NextResponse(EMPTY_TWIML, { status: 200, headers: { 'Content-Type': 'text/xml' } })
   }
 
@@ -173,7 +174,7 @@ async function storeInInbox({
         contact_name:         contactName,
         lead_source:          leadSource,
         last_message_at:      new Date().toISOString(),
-        last_message_preview: body.slice(0, 100),
+        last_message_preview: body ? body.slice(0, 100) : '📷 Photo',
         status:               'needs_reply',
         notes:                null,
         tags:                 [],
@@ -191,7 +192,7 @@ async function storeInInbox({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   await (supabase.rpc as any)('increment_unread', {
     conv_id: conv.id,
-    preview: body.slice(0, 100),
+    preview: body ? body.slice(0, 100) : '📷 Photo',
   })
 
   await supabase.from('sms_messages').insert({
@@ -214,7 +215,9 @@ async function storeInInbox({
 
   // Owner backup SMS — only for human replies, not for structured replies (YES/NO/scores)
   if (!skipOwnerAlert) {
-    const preview = body.length > 60 ? `${body.slice(0, 60)}…` : body
+    const preview = !body && mediaUrl
+      ? '📷 sent a photo'
+      : body.length > 60 ? `${body.slice(0, 60)}…` : body
     sendSms(
       process.env.OWNER_PHONE ?? null,
       `New RenewShine text from ${displayName}: "${preview}" — ${siteUrl}/admin/inbox`
