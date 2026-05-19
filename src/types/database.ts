@@ -184,7 +184,15 @@ export interface Database {
           tags: string[]
           created_at: string
         }
-        Insert: Omit<Database['public']['Tables']['sms_conversations']['Row'], 'id' | 'created_at' | 'unread_count'> & { unread_count?: number }
+        Insert: Omit<
+          Database['public']['Tables']['sms_conversations']['Row'],
+          'id' | 'created_at' | 'unread_count' | 'last_message_at' | 'notes' | 'tags'
+        > & {
+          unread_count?: number
+          last_message_at?: string | null
+          notes?: string | null
+          tags?: string[]
+        }
         Update: Partial<Database['public']['Tables']['sms_conversations']['Insert']>
         Relationships: []
       }
