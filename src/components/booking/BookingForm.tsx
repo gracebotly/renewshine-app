@@ -332,9 +332,8 @@ export function BookingForm() {
         availability_time_pref: resTimePref,
         media_urls: resMediaEncoded,
         preferred_contact: resPreferredContact,
-        notes: resHomeType
-          ? `[${resHomeType.replace('_', ' ')}]${resNotes ? ' ' + resNotes : ''}`.trim()
-          : resNotes,
+        home_type: resHomeType || null,
+        notes: resNotes || null,
       }
 
       let response: Response

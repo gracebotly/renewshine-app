@@ -49,6 +49,7 @@ function SubmissionCard({ job }: { job: any }) {
         service_frequency: String(formData.get('service_frequency') ?? '') || null,
         add_ons: selectedAddOns,
         notes: String(formData.get('notes') ?? '') || null,
+        home_type: (String(formData.get('home_type') ?? '') || null) as any,
       })
       .eq('id', job.id)
     // Reload the page after save so the right panel re-reads updated job data
@@ -73,6 +74,9 @@ function SubmissionCard({ job }: { job: any }) {
     bi_weekly: 'Bi-weekly',
     monthly: 'Monthly',
   }
+  const petsMap: Record<string, string> = { none: 'No pets', cat: 'Cat', dog: 'Dog', other: 'Other pets' }
+  const conditionMap: Record<string, string> = { maintained: 'Well maintained', some_buildup: 'Some buildup', heavy_buildup: 'Heavy buildup', reset: 'Full reset needed' }
+  const preferredContactMap: Record<string, string> = { email: 'Email', phone: 'Phone call', text: 'Text' }
 
 
   const availStr = (() => {
@@ -135,6 +139,8 @@ function SubmissionCard({ job }: { job: any }) {
             <input name="client_phone" defaultValue={job.client_phone ?? ''} className={`${inputClass} select-all`} />
           </dd>
         </div>
+
+        {job.preferred_contact && <div className="flex min-h-[32px] items-start gap-4 py-1"><dt className="w-32 shrink-0 text-xs font-semibold uppercase tracking-wide text-slate-400 pt-1">Pref. Contact</dt><dd className="text-sm text-slate-900">{preferredContactMap[job.preferred_contact] ?? job.preferred_contact}</dd></div>}
 
         <div className="flex min-h-[32px] items-start gap-4 py-1">
           <dt className="w-32 shrink-0 text-xs font-semibold uppercase tracking-wide text-slate-400 pt-2">
