@@ -25,11 +25,13 @@ export async function POST(req: NextRequest) {
     return new NextResponse('Forbidden', { status: 403 })
   }
 
-  const from = params['From'] ?? ''
-  const body = params['Body'] ?? ''
-  const sid  = params['MessageSid'] ?? ''
+  const from     = params['From'] ?? ''
+  const body     = params['Body'] ?? ''
+  const sid      = params['MessageSid'] ?? ''
 
-  if (!from || !body) {
+  // Allow photo-only MMS: body may be empty if customer sent just an image
+  const mediaUrl = params['MediaUrl0'] ?? null
+  if (!from || (!body && !mediaUrl)) {
     return new NextResponse(EMPTY_TWIML, { status: 200, headers: { 'Content-Type': 'text/xml' } })
   }
 
@@ -84,7 +86,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Store in inbox too so you can see the rating reply in the thread
-    await storeInInbox({ supabase, from, body, sid, siteUrl, skipOwnerAlert: true })
+    await storeInInbox({ supabase, from, body, sid, siteUrl, skipOwnerAlert: true, mediaUrl })
 
     return new NextResponse(EMPTY_TWIML, { status: 200, headers: { 'Content-Type': 'text/xml' } })
   }
@@ -99,7 +101,7 @@ export async function POST(req: NextRequest) {
       `✅ ${from} confirmed their appointment.`
     ).catch(err => console.error('owner YES alert failed:', err))
 
-    await storeInInbox({ supabase, from, body, sid, siteUrl, skipOwnerAlert: true })
+    await storeInInbox({ supabase, from, body, sid, siteUrl, skipOwnerAlert: true, mediaUrl })
 
     return new NextResponse(EMPTY_TWIML, { status: 200, headers: { 'Content-Type': 'text/xml' } })
   }
@@ -115,7 +117,7 @@ export async function POST(req: NextRequest) {
       `⚠️ ${from} replied NO to their appointment confirmation. Reschedule needed.`
     ).catch(err => console.error('owner NO alert failed:', err))
 
-    await storeInInbox({ supabase, from, body, sid, siteUrl, skipOwnerAlert: true })
+    await storeInInbox({ supabase, from, body, sid, siteUrl, skipOwnerAlert: true, mediaUrl })
 
     return new NextResponse(EMPTY_TWIML, { status: 200, headers: { 'Content-Type': 'text/xml' } })
   }
@@ -128,7 +130,7 @@ export async function POST(req: NextRequest) {
     .eq('client_phone', from)
     .in('status', ['approved', 'scheduled', 'completed'])
 
-  await storeInInbox({ supabase, from, body, sid, siteUrl, skipOwnerAlert: false })
+  await storeInInbox({ supabase, from, body, sid, siteUrl, skipOwnerAlert: false, mediaUrl })
 
   return new NextResponse(EMPTY_TWIML, { status: 200, headers: { 'Content-Type': 'text/xml' } })
 }
@@ -136,7 +138,7 @@ export async function POST(req: NextRequest) {
 // ─── Shared: store message in SMS inbox ──────────────────────────────────────
 
 async function storeInInbox({
-  supabase, from, body, sid, siteUrl, skipOwnerAlert,
+  supabase, from, body, sid, siteUrl, skipOwnerAlert, mediaUrl,
 }: {
   supabase: ReturnType<typeof createServerClient>
   from: string
@@ -144,6 +146,7 @@ async function storeInInbox({
   sid: string
   siteUrl: string
   skipOwnerAlert: boolean
+  mediaUrl: string | null
 }) {
   const { data: matchingJob } = await supabase
     .from('jobs')
@@ -171,7 +174,7 @@ async function storeInInbox({
         contact_name:         contactName,
         lead_source:          leadSource,
         last_message_at:      new Date().toISOString(),
-        last_message_preview: body.slice(0, 100),
+        last_message_preview: body ? body.slice(0, 100) : '📷 Photo',
         status:               'needs_reply',
         notes:                null,
         tags:                 [],
@@ -189,7 +192,7 @@ async function storeInInbox({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   await (supabase.rpc as any)('increment_unread', {
     conv_id: conv.id,
-    preview: body.slice(0, 100),
+    preview: body ? body.slice(0, 100) : '📷 Photo',
   })
 
   await supabase.from('sms_messages').insert({
@@ -197,6 +200,7 @@ async function storeInInbox({
     direction:       'inbound',
     body,
     twilio_sid:      sid,
+    media_url:       mediaUrl ?? null,
   })
 
   const displayName = conv.contact_name ?? from
@@ -211,7 +215,9 @@ async function storeInInbox({
 
   // Owner backup SMS — only for human replies, not for structured replies (YES/NO/scores)
   if (!skipOwnerAlert) {
-    const preview = body.length > 60 ? `${body.slice(0, 60)}…` : body
+    const preview = !body && mediaUrl
+      ? '📷 sent a photo'
+      : body.length > 60 ? `${body.slice(0, 60)}…` : body
     sendSms(
       process.env.OWNER_PHONE ?? null,
       `New RenewShine text from ${displayName}: "${preview}" — ${siteUrl}/admin/inbox`

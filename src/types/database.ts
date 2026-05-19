@@ -203,10 +203,14 @@ export interface Database {
           direction: 'inbound' | 'outbound'
           body: string
           twilio_sid: string | null
+          media_url: string | null
           created_at: string
         }
-        Insert: Omit<Database['public']['Tables']['sms_messages']['Row'], 'id' | 'created_at' | 'twilio_sid'> & { twilio_sid?: string | null }
-        Update: Partial<Database['public']['Tables']['sms_messages']['Insert']>
+        Insert: Omit<Database['public']['Tables']['sms_messages']['Row'], 'id' | 'created_at' | 'twilio_sid' | 'media_url'> & {
+          twilio_sid?: string | null
+          media_url?: string | null
+        }
+        Update: Partial<Database['public']['Tables']['sms_messages']['Insert']> & { media_url?: string | null }
         Relationships: []
       }
       conversation_events: {

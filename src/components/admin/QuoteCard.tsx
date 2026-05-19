@@ -119,6 +119,25 @@ export function QuoteCard({ job }: { job: any }) {
     setLoadingStripe(false)
   }
 
+
+  const handleMarkScheduled = async () => {
+    setLoadingStripe(true)
+    setErrorMsg('')
+    setSuccessMsg('')
+    const res = await fetch('/api/admin/update-job-status', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ jobId: job.id, status: 'scheduled' }),
+    })
+    if (res.ok) {
+      setSuccessMsg('Job marked as scheduled ✓')
+      setOverrideStatus('scheduled')
+    } else {
+      setErrorMsg('Failed to update status. Please try again.')
+    }
+    setLoadingStripe(false)
+  }
+
   const handleComposeSuccess = (note: string) => { setShowCompose(false); setLocalContactNote(note); setOverrideStatus('contacted'); setSuccessMsg('Message sent ✓ — job marked as contacted.') }
 
   const handleResendLink = async () => {
@@ -346,9 +365,6 @@ export function QuoteCard({ job }: { job: any }) {
           </Button>
         )}
 
-        {/* SECONDARY ACTIONS */}
-        {!job.deposit_paid && ['new', 'under_review'].includes(overrideStatus) && (<button onClick={() => setShowCompose(true)} className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg bg-(--color-brand) px-4 py-3 text-sm font-semibold text-white transition-colors duration-200 hover:bg-(--color-brand-hover)">Contact customer</button>)}
-        {!job.deposit_paid && overrideStatus === 'contacted' && (<button onClick={() => setShowCompose(true)} className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition-colors duration-200 hover:bg-slate-50">Send another message</button>)}
         {!job.deposit_paid && (
           <Button
             variant="brand-outline"
@@ -360,8 +376,19 @@ export function QuoteCard({ job }: { job: any }) {
           </Button>
         )}
 
+        {/* Mark as scheduled — for manually collected cash/invoice payments */}
+        {overrideStatus === 'approved' && !job.deposit_paid && (
+          <button
+            onClick={handleMarkScheduled}
+            disabled={loadingStripe}
+            className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition-colors duration-200 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            Mark as scheduled (payment collected manually)
+          </button>
+        )}
+
         {/* Scheduled job actions */}
-        {job.deposit_paid && (
+        {(job.deposit_paid || overrideStatus === 'scheduled') && (
           <div className="space-y-3">
             <button
               onClick={handleReminder}

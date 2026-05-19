@@ -32,6 +32,7 @@ interface Message {
   conversation_id: string
   direction: 'inbound' | 'outbound'
   body: string
+  media_url: string | null
   created_at: string
 }
 
@@ -299,6 +300,7 @@ export default function InboxPage() {
       conversation_id: activeConv.id,
       direction: 'outbound',
       body: message,
+      media_url: null,
       created_at: new Date().toISOString(),
     }
     setMessages(p => [...p, optimistic])
@@ -687,7 +689,22 @@ export default function InboxPage() {
                                   : 'rounded-bl-md bg-white text-slate-900 shadow-sm border border-slate-100'
                               )}
                             >
-                              <p className="whitespace-pre-wrap break-words">{msg.body}</p>
+                              {msg.body && <p className="whitespace-pre-wrap break-words">{msg.body}</p>}
+                              {msg.media_url && (
+                                <a
+                                  href={msg.media_url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="mt-1.5 block"
+                                >
+                                  <img
+                                    src={msg.media_url}
+                                    alt="Photo from customer"
+                                    className="max-w-[220px] rounded-lg border border-slate-200 object-cover"
+                                    style={{ maxHeight: 280 }}
+                                  />
+                                </a>
+                              )}
                             </div>
                           </div>
                         </motion.div>
