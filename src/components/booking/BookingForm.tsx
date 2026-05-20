@@ -3,7 +3,7 @@
 import * as React from 'react'
 import * as Checkbox from '@radix-ui/react-checkbox'
 import { useRouter } from 'next/navigation'
-import { AlertTriangle, Check, Loader2, Minus, Plus } from 'lucide-react'
+import { AlertTriangle, Building2, Camera, Check, CheckCircle, ChevronLeft, ChevronRight, HardHat, Home, Loader2, Minus, Plus } from 'lucide-react'
 import { AvailabilityPicker, type SchedulingMode } from '@/components/booking/AvailabilityPicker'
 import { MediaUpload } from '@/components/booking/MediaUpload'
 import { Button } from '@/components/ui/button'
@@ -72,6 +72,7 @@ export function BookingForm() {
   // ── Flow + tab switch ──────────────────────────────────────────────────────
   const [flowType, setFlowType] = React.useState<FlowType>('residential')
   const [pendingSwitch, setPendingSwitch] = React.useState<FlowType | null>(null)
+  const [bookingTypeLocked, setBookingTypeLocked] = React.useState(false)
 
   // ── Step counters ──────────────────────────────────────────────────────────
   const [resStep, setResStep] = React.useState(1)
@@ -190,6 +191,7 @@ export function BookingForm() {
   }
 
   const handleTabClick = (target: FlowType) => {
+    if (bookingTypeLocked) return
     if (target === flowType) return
     const currentHasData = flowType === 'residential' ? hasResData : hasComData
     if (currentHasData) {
@@ -301,6 +303,7 @@ export function BookingForm() {
     if (!validateResidentialStep()) return
     if (resStep === 1) {
       await savePartialLead()
+      setBookingTypeLocked(true)
     }
     setResStep((s) => Math.min(5, s + 1))
   }
@@ -475,13 +478,13 @@ export function BookingForm() {
 
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
-    <div className="flex h-full flex-col bg-white">
+    <div className="min-h-screen bg-[#F5F3EF]"><div className="w-full max-w-2xl mx-auto px-0 sm:px-4 pt-0 sm:pt-8 pb-16"><div className="bg-white sm:rounded-2xl sm:shadow-sm sm:border sm:border-slate-100 overflow-hidden flex h-full flex-col">
 
       {/* ── PINNED HEADER ─────────────────────────────────────────────── */}
-      <div className="shrink-0 border-b border-slate-100 bg-white px-4 pt-4 pb-3 sm:px-6">
+      <div className="shrink-0 border-b border-slate-100 bg-white px-5 sm:px-8 pt-5 sm:pt-7 pb-4">
 
         {/* Flow type tabs — ONLY visible on Step 1 */}
-        {((flowType === 'residential' && resStep === 1) ||
+        {!bookingTypeLocked && ((flowType === 'residential' && resStep === 1) ||
           (flowType !== 'residential' && comStep === 1)) && (
           <div className="mb-3 flex gap-2 flex-wrap">
             {(['residential', 'commercial', 'post_construction'] as const).map((type) => (
@@ -532,6 +535,18 @@ export function BookingForm() {
         ) : null}
 
         {/* Progress bar */}
+        <div className="flex items-center justify-between mb-3">
+          <span className="text-xs text-slate-500 font-sans tabular-nums">
+            Step {flowType === 'residential' ? `${resStep} of 5` : `${comStep} of 3`}
+          </span>
+          {bookingTypeLocked ? (
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-brand-muted text-brand text-xs font-medium tracking-wide uppercase font-sans">
+              <CheckCircle className="h-3.5 w-3.5" />
+              {flowType === 'residential' ? 'Residential Clean' : flowType === 'commercial' ? 'Commercial Clean' : 'Post-Construction'}
+            </span>
+          ) : null}
+        </div>
+
         <div className="flex items-center gap-3 mb-2">
           <div className="flex-1 h-1.5 rounded-full bg-slate-100">
             <div
@@ -586,7 +601,7 @@ export function BookingForm() {
 
       {/* ── SCROLLABLE STEP CONTENT ────────────────────────────────────── */}
       {/* This area scrolls independently — the header and footer never move */}
-      <div className="flex-1 overflow-y-auto px-4 py-5 sm:px-6">
+      <div className="flex-1 overflow-y-auto px-5 sm:px-8 py-6 sm:py-8">
         {flowType === 'residential' ? (
           <div className="space-y-5 pb-4">
             {resStep === 1 ? (
@@ -927,7 +942,7 @@ export function BookingForm() {
                 <label className="block space-y-1.5">
                   <span className="text-sm font-medium text-slate-900">Notes</span>
                   <textarea
-                    className="flex min-h-[80px] w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 transition-colors duration-200 hover:border-slate-300 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-(--color-brand) focus:ring-offset-0"
+                    className="flex min-h-[80px] w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-base sm:text-sm text-slate-900 placeholder:text-slate-400 transition-colors duration-200 hover:border-slate-300 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-(--color-brand) focus:ring-offset-0"
                     placeholder="How do we get in?"
                     value={resNotes}
                     onChange={(e) => setResNotes(e.target.value)}
@@ -936,6 +951,9 @@ export function BookingForm() {
 
                 <div className="space-y-1.5">
                   <p className="text-sm font-medium text-slate-900">Show us your space</p>
+                  <div className="border-2 border-dashed border-slate-200 rounded-2xl p-6 text-center">
+                    <Camera className="w-6 h-6 text-brand mx-auto" />
+                  </div>
                   <p className="text-xs text-slate-500">
                     The more we can see, the more accurate your quote. A 60-second walkthrough video works best.
                   </p>
@@ -1196,7 +1214,7 @@ export function BookingForm() {
               <label className="block space-y-1">
                 <span className="text-sm font-medium text-slate-900">Notes</span>
                 <textarea
-                  className="flex min-h-[100px] w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 transition-colors duration-200 hover:border-slate-300 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-(--color-brand) focus:ring-offset-0"
+                  className="flex min-h-[100px] w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-base sm:text-sm text-slate-900 placeholder:text-slate-400 transition-colors duration-200 hover:border-slate-300 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-(--color-brand) focus:ring-offset-0"
                   placeholder={flowType === 'post_construction'
                     ? 'Project scope, phases complete, dusty areas, access instructions, any special requirements...'
                     : 'Access instructions, security codes, areas of focus, any special requirements...'}
@@ -1237,7 +1255,7 @@ export function BookingForm() {
 
       {/* ── PINNED FOOTER — Back / Next ───────────────────────────────── */}
       {/* Only shows Back and Next. Submit stays inside step content above. */}
-      <div className="shrink-0 border-t border-slate-100 bg-white px-4 py-3 sm:px-6">
+      <div className="sticky bottom-0 left-0 right-0 shrink-0 border-t border-slate-100 bg-white px-5 sm:px-8 py-4">
         <div className="flex justify-between gap-3">
           <Button
             type="button"
@@ -1253,6 +1271,7 @@ export function BookingForm() {
               savingPartial
             }
           >
+            <ChevronLeft className="w-4 h-4" />
             Back
           </Button>
 
@@ -1264,7 +1283,7 @@ export function BookingForm() {
             >
               {savingPartial
                 ? <><Loader2 size={14} className="animate-spin" /> Saving…</>
-                : 'Next'}
+                : <>Continue <ChevronRight className="w-4 h-4" /></>}
             </Button>
           ) : null}
 
@@ -1279,6 +1298,6 @@ export function BookingForm() {
           ) : null}
         </div>
       </div>
-    </div>
+    </div></div></div>
   )
 }
