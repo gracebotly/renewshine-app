@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { supabaseBrowser } from '@/lib/supabase/client'
@@ -9,31 +9,52 @@ import { ALLOWED_ADMIN_EMAILS } from '@/lib/allowed-emails'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { motion } from 'motion/react'
-import { Mail, CheckCircle } from 'lucide-react'
+import { Mail, CheckCircle, ArrowLeft } from 'lucide-react'
 
-type Stage = 'form' | 'sent'
+// Three stages:
+// 'form'    — enter email
+// 'code'    — enter 6-digit OTP that Supabase sent in the email
+// 'success' — signed in, redirecting
+type Stage = 'form' | 'code' | 'success'
 
 export default function AdminLoginPage() {
   const [email, setEmail] = React.useState('')
+  const [code, setCode] = React.useState('')
   const [error, setError] = React.useState('')
   const [loading, setLoading] = React.useState(false)
   const [stage, setStage] = React.useState<Stage>('form')
-
+  const [resendCooldown, setResendCooldown] = React.useState(0)
+  const codeInputRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
 
+  // If already logged in, skip straight to admin
   useEffect(() => {
     supabaseBrowser.auth.getSession().then(({ data: { session } }) => {
       if (session) router.replace('/admin')
     })
   }, [router])
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  // Focus the code input when we enter the code stage
+  useEffect(() => {
+    if (stage === 'code') {
+      setTimeout(() => codeInputRef.current?.focus(), 100)
+    }
+  }, [stage])
+
+  // Resend cooldown countdown
+  useEffect(() => {
+    if (resendCooldown <= 0) return
+    const t = setTimeout(() => setResendCooldown((c) => c - 1), 1000)
+    return () => clearTimeout(t)
+  }, [resendCooldown])
+
+  // ── Step 1: send OTP to email ─────────────────────────────────────────────
+  const handleSendCode = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
 
     const normalized = email.trim().toLowerCase()
 
-    // Allowlist check — never send a magic link to unknown emails
     if (!ALLOWED_ADMIN_EMAILS.map((e) => e.toLowerCase()).includes(normalized)) {
       setError('This email is not authorized to access the admin panel.')
       return
@@ -44,8 +65,10 @@ export default function AdminLoginPage() {
     const { error: authError } = await supabaseBrowser.auth.signInWithOtp({
       email: normalized,
       options: {
+        // Keep emailRedirectTo so the magic link in the email still works
+        // on desktop. On iOS PWA, Grace uses the 6-digit code instead.
         emailRedirectTo: `${window.location.origin}/auth/callback`,
-        shouldCreateUser: false, // Never create new Supabase users — staff must already exist
+        shouldCreateUser: false,
       },
     })
 
@@ -56,7 +79,71 @@ export default function AdminLoginPage() {
       return
     }
 
-    setStage('sent')
+    setStage('code')
+    setResendCooldown(60) // prevent spam — 60s before resend is allowed
+  }
+
+  // ── Step 2: verify the 6-digit code ──────────────────────────────────────
+  const handleVerifyCode = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError('')
+
+    const trimmedCode = code.replace(/\s/g, '').trim()
+
+    if (trimmedCode.length !== 6) {
+      setError('Please enter the full 6-digit code.')
+      return
+    }
+
+    setLoading(true)
+
+    const { error: verifyError } = await supabaseBrowser.auth.verifyOtp({
+      email: email.trim().toLowerCase(),
+      token: trimmedCode,
+      type: 'email',
+    })
+
+    setLoading(false)
+
+    if (verifyError) {
+      // Common errors: "Token has expired or is invalid" / "OTP expired"
+      if (verifyError.message.toLowerCase().includes('expired')) {
+        setError('This code has expired. Request a new one below.')
+      } else if (verifyError.message.toLowerCase().includes('invalid')) {
+        setError('Incorrect code. Check your email and try again.')
+      } else {
+        setError(verifyError.message)
+      }
+      return
+    }
+
+    setStage('success')
+    router.replace('/admin')
+  }
+
+  // ── Resend: same as handleSendCode but without the form event ────────────
+  const handleResend = async () => {
+    if (resendCooldown > 0) return
+    setError('')
+    setCode('')
+    setLoading(true)
+
+    const { error: authError } = await supabaseBrowser.auth.signInWithOtp({
+      email: email.trim().toLowerCase(),
+      options: {
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
+        shouldCreateUser: false,
+      },
+    })
+
+    setLoading(false)
+
+    if (authError) {
+      setError(authError.message)
+      return
+    }
+
+    setResendCooldown(60)
   }
 
   return (
@@ -82,14 +169,15 @@ export default function AdminLoginPage() {
             </div>
             <h1 className="font-display text-2xl font-bold text-slate-900">Staff Access</h1>
             <p className="mt-1 text-sm text-slate-600">
-              {stage === 'form'
-                ? 'Enter your email to receive a sign-in link.'
-                : 'Check your inbox.'}
+              {stage === 'form' && 'Enter your email to receive a sign-in code.'}
+              {stage === 'code' && 'Enter the 6-digit code from your email.'}
+              {stage === 'success' && 'Signed in — redirecting…'}
             </p>
           </div>
 
-          {stage === 'form' ? (
-            <form onSubmit={handleSubmit} className="space-y-4">
+          {/* ── Stage: form ── */}
+          {stage === 'form' && (
+            <form onSubmit={handleSendCode} className="space-y-4">
               <label className="block space-y-1">
                 <span className="text-sm font-medium text-slate-900">Email address</span>
                 <Input
@@ -102,43 +190,101 @@ export default function AdminLoginPage() {
                 />
               </label>
 
-              {error ? (
-                <p className="text-sm text-red-600">{error}</p>
-              ) : null}
+              {error && <p className="text-sm text-red-600">{error}</p>}
 
-              <Button type="submit" className="w-full cursor-pointer" disabled={loading}>
+              <Button
+                type="submit"
+                className="w-full cursor-pointer"
+                disabled={loading}
+              >
                 {loading ? (
-                  'Sending link…'
+                  'Sending code…'
                 ) : (
                   <span className="flex items-center justify-center gap-2">
                     <Mail size={15} />
-                    Send sign-in link
+                    Send sign-in code
                   </span>
                 )}
               </Button>
             </form>
-          ) : (
-            /* Sent state — clean confirmation */
-            <div className="space-y-4 text-center">
-              <div className="flex justify-center">
-                <CheckCircle size={40} className="text-emerald-500" />
+          )}
+
+          {/* ── Stage: code ── */}
+          {stage === 'code' && (
+            <form onSubmit={handleVerifyCode} className="space-y-4">
+
+              {/* Email reminder */}
+              <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
+                <p className="text-xs text-slate-500">Code sent to</p>
+                <p className="text-sm font-medium text-slate-900 truncate">{email}</p>
               </div>
-              <div>
-                <p className="font-medium text-slate-900">Link sent to</p>
-                <p className="text-sm text-slate-600 mt-0.5 break-all">{email}</p>
-              </div>
-              <p className="text-sm text-slate-500">
-                Click the link in your email to sign in. You can close this tab.
-              </p>
-              <button
-                type="button"
-                onClick={() => { setStage('form'); setEmail(''); setError('') }}
-                className="text-xs text-slate-400 hover:text-slate-600 transition-colors duration-200 cursor-pointer"
+
+              <label className="block space-y-1">
+                <span className="text-sm font-medium text-slate-900">6-digit code</span>
+                <Input
+                  ref={codeInputRef}
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  maxLength={6}
+                  value={code}
+                  onChange={(e) => {
+                    // Strip non-digits as you type
+                    setCode(e.target.value.replace(/\D/g, ''))
+                    setError('')
+                  }}
+                  placeholder="000000"
+                  className="text-center text-2xl tracking-widest font-mono"
+                  autoComplete="one-time-code"
+                  required
+                />
+              </label>
+
+              {error && <p className="text-sm text-red-600">{error}</p>}
+
+              <Button
+                type="submit"
+                className="w-full cursor-pointer"
+                disabled={loading || code.length !== 6}
               >
-                Use a different email
-              </button>
+                {loading ? 'Verifying…' : 'Sign in'}
+              </Button>
+
+              {/* Resend + back */}
+              <div className="flex items-center justify-between pt-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setStage('form')
+                    setCode('')
+                    setError('')
+                  }}
+                  className="flex items-center gap-1 text-xs text-slate-400 hover:text-slate-600 cursor-pointer transition-colors duration-200"
+                >
+                  <ArrowLeft size={12} />
+                  Change email
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleResend}
+                  disabled={resendCooldown > 0 || loading}
+                  className="text-xs text-slate-400 hover:text-slate-600 cursor-pointer transition-colors duration-200 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : 'Resend code'}
+                </button>
+              </div>
+            </form>
+          )}
+
+          {/* ── Stage: success ── */}
+          {stage === 'success' && (
+            <div className="flex flex-col items-center gap-3 py-2">
+              <CheckCircle size={40} className="text-emerald-500" />
+              <p className="text-sm text-slate-600">Taking you to the dashboard…</p>
             </div>
           )}
+
         </div>
       </motion.div>
     </div>
