@@ -27,6 +27,9 @@ export function InvoicePanel({ job }: { job: any }) {
   const [loading, setLoading] = React.useState(false)
   const [success, setSuccess] = React.useState('')
   const [error, setError] = React.useState('')
+  const [markingPaid, setMarkingPaid] = React.useState(false)
+  const [markPaidSuccess, setMarkPaidSuccess] = React.useState('')
+  const [markPaidError, setMarkPaidError] = React.useState('')
 
   const depositPaid = job.deposit_paid ? (job.deposit_amount ?? 100) : 0
   const subtotal = lineItems.reduce((sum, i) => sum + (parseFloat(i.amount) || 0), 0)
@@ -104,16 +107,47 @@ export function InvoicePanel({ job }: { job: any }) {
     setLoading(false)
   }
 
+  async function handleMarkPaidExternally() {
+    setMarkingPaid(true)
+    setMarkPaidError('')
+    setMarkPaidSuccess('')
+    const res = await fetch('/api/admin/mark-invoice-paid', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ jobId: job.id }),
+    })
+    if (res.ok) {
+      setMarkPaidSuccess('Marked as paid — job is now complete ✓')
+    } else {
+      const err = await res.json().catch(() => ({}))
+      setMarkPaidError(err.error ?? 'Failed to mark as paid. Try again.')
+    }
+    setMarkingPaid(false)
+  }
+
   return (
     <div className="border-t border-slate-100 pt-4 mt-2">
       {!open ? (
-        <button
-          onClick={handleOpen}
-          className="w-full cursor-pointer rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition-colors duration-200 hover:bg-slate-50 flex items-center justify-center gap-2"
-        >
-          <span>📄</span>
-          <span>Send Invoice</span>
-        </button>
+        <div className="space-y-2">
+          <button
+            onClick={handleOpen}
+            className="w-full cursor-pointer rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition-colors duration-200 hover:bg-slate-50 flex items-center justify-center gap-2"
+          >
+            <span>📄</span>
+            <span>Send Invoice</span>
+          </button>
+          {job.stripe_payment_link && job.status !== 'completed' && (
+            <button
+              onClick={handleMarkPaidExternally}
+              disabled={markingPaid}
+              className="w-full cursor-pointer rounded-lg border border-slate-200 bg-white px-4 py-2 text-xs font-medium text-slate-500 transition-colors duration-200 hover:bg-slate-50 hover:text-slate-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              {markingPaid ? 'Saving…' : 'Mark invoice paid externally (cash / Zelle / transfer)'}
+            </button>
+          )}
+          {markPaidSuccess && <p className="text-xs font-medium text-emerald-600 bg-emerald-50 border border-emerald-100 rounded-lg px-3 py-2">{markPaidSuccess}</p>}
+          {markPaidError && <p className="text-xs font-medium text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2">{markPaidError}</p>}
+        </div>
       ) : (
         <div className="rounded-xl border border-slate-200 bg-slate-50 p-5 space-y-4">
 
