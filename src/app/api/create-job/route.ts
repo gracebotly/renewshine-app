@@ -63,6 +63,7 @@ export async function POST(request: Request) {
       estimated_price_high: jobData.estimated_price_high ?? 0,
       notes: jobData.notes || null,
       preferred_contact: jobData.preferred_contact || null,
+      sms_opt_in: jobData.sms_opt_in ?? true,
     })
     .select()
     .single()

@@ -142,6 +142,26 @@ function SubmissionCard({ job }: { job: any }) {
 
         {job.preferred_contact && <div className="flex min-h-[32px] items-start gap-4 py-1"><dt className="w-32 shrink-0 text-xs font-semibold uppercase tracking-wide text-slate-400 pt-1">Pref. Contact</dt><dd className="text-sm text-slate-900">{preferredContactMap[job.preferred_contact] ?? job.preferred_contact}</dd></div>}
 
+        {/* SMS opt-in — always show so you know their consent status */}
+        <div className="flex min-h-[32px] items-start gap-4 py-1">
+          <dt className="w-32 shrink-0 text-xs font-semibold uppercase tracking-wide text-slate-400 pt-1">
+            SMS Opt-in
+          </dt>
+          <dd className="pt-1 text-sm text-slate-900">
+            {job.sms_opt_in === true ? (
+              <span className="inline-flex items-center gap-1.5 text-emerald-700">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                Opted in
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 text-slate-500">
+                <span className="h-1.5 w-1.5 rounded-full bg-slate-300" />
+                Not opted in
+              </span>
+            )}
+          </dd>
+        </div>
+
         <div className="flex min-h-[32px] items-start gap-4 py-1">
           <dt className="w-32 shrink-0 text-xs font-semibold uppercase tracking-wide text-slate-400 pt-2">
             Address
