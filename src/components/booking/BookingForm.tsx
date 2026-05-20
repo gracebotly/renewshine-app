@@ -119,6 +119,7 @@ export function BookingForm() {
   const [resEndDate, setResEndDate] = React.useState('')
   const [resTimePref, setResTimePref] = React.useState<TimePreference | ''>('')
   const [resSchedulingMode, setResSchedulingMode] = React.useState<SchedulingMode>('specific')
+  const [comSchedulingMode, setComSchedulingMode] = React.useState<SchedulingMode>('flexible')
 
   // Step 5 — final
   const [resNotes, setResNotes] = React.useState('')
@@ -193,6 +194,7 @@ export function BookingForm() {
     setComFrequency('one_time')
     setComAddress('')
     setComStartDate('')
+    setComSchedulingMode('flexible')
     setComEndDate('')
     setComTimePref('')
     setComNotes('')
@@ -1270,8 +1272,8 @@ export function BookingForm() {
           {comStep === 3 ? (
             <div className="space-y-5">
               <AvailabilityPicker
-                schedulingMode="flexible"
-                onSchedulingModeChange={() => {}}
+                schedulingMode={comSchedulingMode}
+                onSchedulingModeChange={setComSchedulingMode}
                 startDate={comStartDate}
                 endDate={comEndDate}
                 timePreference={comTimePref}
