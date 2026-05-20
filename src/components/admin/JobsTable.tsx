@@ -116,6 +116,7 @@ export function JobsTable({ jobs }: { jobs: JobRecord[] }) {
 
   const [activeTab, setActiveTab] = React.useState<TabFilter>(initialTab)
   const [query, setQuery] = React.useState('')
+  const [smsFilter, setSmsFilter] = React.useState(false)
   const router = useRouter()
 
   React.useEffect(() => {
@@ -136,7 +137,11 @@ export function JobsTable({ jobs }: { jobs: JobRecord[] }) {
         const q = query.toLowerCase()
         return j.client_name?.toLowerCase().includes(q) || j.client_email?.toLowerCase().includes(q)
       })
-  }, [activeTab, jobs, query])
+      .filter((j) => {
+        if (!smsFilter) return true
+        return (j as any).sms_opt_in === true
+      })
+  }, [activeTab, jobs, query, smsFilter])
 
   return (
     <div>
@@ -145,6 +150,34 @@ export function JobsTable({ jobs }: { jobs: JobRecord[] }) {
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
           <input type="text" placeholder="Search by name or email…" value={query} onChange={(e) => setQuery(e.target.value)} className="w-full rounded-lg border border-slate-200 bg-white py-2.5 pl-9 pr-3 text-sm text-slate-900 placeholder:text-slate-400 transition-colors duration-200 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-(--color-brand) sm:max-w-sm sm:py-2" />
         </div>
+      </div>
+
+
+
+      {/* SMS Opted In filter chip */}
+      <div className="mb-3 flex items-center gap-2">
+        <button
+          type="button"
+          onClick={() => setSmsFilter((prev) => !prev)}
+          className={`inline-flex cursor-pointer items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors duration-200 ${
+            smsFilter
+              ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+              : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300 hover:text-slate-700'
+          }`}
+        >
+          <span className={`h-1.5 w-1.5 rounded-full ${smsFilter ? 'bg-emerald-500' : 'bg-slate-300'}`} />
+          SMS Opted In
+          {smsFilter && (
+            <span className="ml-0.5 font-semibold text-emerald-600">
+              · {filteredJobs.length}
+            </span>
+          )}
+        </button>
+        {smsFilter && (
+          <span className="text-xs text-slate-400">
+            Showing customers who consented to text messages
+          </span>
+        )}
       </div>
 
       <div className="mb-4 -mx-4 sm:mx-0">
