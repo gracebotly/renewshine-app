@@ -3,7 +3,7 @@
 import * as React from 'react'
 import * as Checkbox from '@radix-ui/react-checkbox'
 import { useRouter } from 'next/navigation'
-import { AlertTriangle, Check, Loader2, Minus, Plus } from 'lucide-react'
+import { AlertTriangle, Building2, Camera, Check, CheckCircle, ChevronLeft, ChevronRight, HardHat, Home, Loader2, Minus, Plus } from 'lucide-react'
 import { AvailabilityPicker, type SchedulingMode } from '@/components/booking/AvailabilityPicker'
 import { MediaUpload } from '@/components/booking/MediaUpload'
 import { Button } from '@/components/ui/button'
@@ -72,6 +72,7 @@ export function BookingForm() {
   // ── Flow + tab switch ──────────────────────────────────────────────────────
   const [flowType, setFlowType] = React.useState<FlowType>('residential')
   const [pendingSwitch, setPendingSwitch] = React.useState<FlowType | null>(null)
+  const [bookingTypeLocked, setBookingTypeLocked] = React.useState(false)
 
   // ── Step counters ──────────────────────────────────────────────────────────
   const [resStep, setResStep] = React.useState(1)
@@ -90,9 +91,15 @@ export function BookingForm() {
   const [resName, setResName] = React.useState('')
   const [resEmail, setResEmail] = React.useState('')
   const [resPhone, setResPhone] = React.useState('')
+  // Shared contact data — persists across tab switches on Step 1
+  const [sharedName, setSharedName] = React.useState('')
+  const [sharedEmail, setSharedEmail] = React.useState('')
+  const [sharedPhone, setSharedPhone] = React.useState('')
+  const [sharedSmsOptIn, setSharedSmsOptIn] = React.useState(false)
+  const [sharedTermsAgreed, setSharedTermsAgreed] = React.useState(true)
   // Consent checkboxes — shared across all flows
   const [smsOptIn, setSmsOptIn] = React.useState(false)
-  const [termsAgreed, setTermsAgreed] = React.useState(false)
+  const [termsAgreed, setTermsAgreed] = React.useState(true)
 
   // Step 2 — home details
   const [resHomeType, setResHomeType] = React.useState<'apartment' | 'townhouse' | 'single_family' | 'condo' | ''>('')
@@ -135,10 +142,10 @@ export function BookingForm() {
 
   // ── Derived ────────────────────────────────────────────────────────────────
   const hasResData =
-    resStep > 1 || resAddress !== '' || resName !== '' || resEmail !== '' || resPhone !== '' || resMediaEncoded.length > 0
+    resStep > 1 || resAddress !== '' || sharedName !== '' || sharedEmail !== '' || sharedPhone !== '' || resMediaEncoded.length > 0
 
   const hasComData =
-    comStep > 1 || businessName !== '' || contactName !== '' || comEmail !== '' || comPhone !== '' || comMediaEncoded.length > 0
+    comStep > 1 || businessName !== '' || sharedName !== '' || sharedEmail !== '' || sharedPhone !== '' || comMediaEncoded.length > 0
 
   // ── Helpers ────────────────────────────────────────────────────────────────
   const toggleAddOn = (id: string) => {
@@ -165,7 +172,7 @@ export function BookingForm() {
     setResSchedulingMode('specific')
     setResPhone('')
     setSmsOptIn(false)
-    setTermsAgreed(false)
+    setTermsAgreed(true)
     setResNotes('')
     setResMediaEncoded([])
   }
@@ -177,7 +184,7 @@ export function BookingForm() {
     setComEmail('')
     setComPhone('')
     setSmsOptIn(false)
-    setTermsAgreed(false)
+    setTermsAgreed(true)
     setPropertyType(nextFlow === 'post_construction' ? 'new_build' : 'office')
     setSquareFootage('')
     setComFrequency('one_time')
@@ -190,15 +197,51 @@ export function BookingForm() {
   }
 
   const handleTabClick = (target: FlowType) => {
+    if (bookingTypeLocked) return
     if (target === flowType) return
-    const currentHasData = flowType === 'residential' ? hasResData : hasComData
-    if (currentHasData) {
-      setPendingSwitch(target)
-    } else {
+
+    const isOnStep1 =
+      (flowType === 'residential' && resStep === 1) ||
+      (flowType !== 'residential' && comStep === 1)
+
+    if (isOnStep1) {
+      if (flowType === 'residential') {
+        setResHomeType('')
+        setBedrooms(2)
+        setBathrooms(1)
+        setResPets('')
+        setResCondition('')
+        setServiceType('standard')
+        setSelectedAddOns([])
+        setResFrequency('one_time')
+        setResAddress('')
+        setResStartDate('')
+        setResEndDate('')
+        setResTimePref('')
+        setResSchedulingMode('specific')
+        setResNotes('')
+        setResMediaEncoded([])
+        setResStep(1)
+      } else {
+        setPropertyType(target === 'post_construction' ? 'new_build' : 'office')
+        setSquareFootage('')
+        setComFrequency('one_time')
+        setComAddress('')
+        setComStartDate('')
+        setComEndDate('')
+        setComTimePref('')
+        setComNotes('')
+        setComMediaEncoded([])
+        setComStep(1)
+      }
       setFlowType(target)
       setErrors({})
       setSubmitError('')
+      setPendingSwitch(null)
+      return
     }
+
+    setPendingSwitch(target)
   }
 
   const confirmSwitch = () => {
@@ -206,6 +249,11 @@ export function BookingForm() {
     const type = pendingSwitch
     if (flowType === 'residential') resetResidential()
     else resetCommercial(type)
+    setSharedName('')
+    setSharedEmail('')
+    setSharedPhone('')
+    setSharedSmsOptIn(false)
+    setSharedTermsAgreed(true)
     setFlowType(type)
     if (type === 'post_construction') {
       setPropertyType('new_build')
@@ -229,9 +277,9 @@ export function BookingForm() {
         body: JSON.stringify({
           type: 'residential',
           status: 'partial',
-          client_name: resName || 'Unknown',
-          client_email: resEmail,
-          client_phone: rawPhone(resPhone) || null,
+          client_name: sharedName || 'Unknown',
+          client_email: sharedEmail,
+          client_phone: rawPhone(sharedPhone) || null,
         }),
       })
       const data = await response.json()
@@ -252,11 +300,11 @@ export function BookingForm() {
     const nextErrors: Record<string, string> = {}
 
     if (resStep === 1) {
-      if (!resName.trim()) nextErrors.resName = 'Name is required'
-      if (!resEmail.trim()) nextErrors.resEmail = 'Email is required'
-      else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(resEmail)) nextErrors.resEmail = 'Enter a valid email address'
-      if (rawPhone(resPhone).length < 10) nextErrors.resPhone = 'Enter a valid 10-digit phone number'
-      if (!termsAgreed) nextErrors.termsAgreed = 'You must agree to the Terms and Privacy Policy to continue'
+      if (!sharedName.trim()) nextErrors.resName = 'Name is required'
+      if (!sharedEmail.trim()) nextErrors.resEmail = 'Email is required'
+      else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(sharedEmail)) nextErrors.resEmail = 'Enter a valid email address'
+      if (rawPhone(sharedPhone).length < 10) nextErrors.resPhone = 'Enter a valid 10-digit phone number'
+      if (!sharedTermsAgreed) nextErrors.termsAgreed = 'You must agree to the Terms and Privacy Policy to continue'
     }
 
     if (resStep === 2) {
@@ -281,10 +329,10 @@ export function BookingForm() {
     const nextErrors: Record<string, string> = {}
     if (comStep === 1) {
       if (!businessName.trim()) nextErrors.businessName = 'Business name is required'
-      if (!contactName.trim()) nextErrors.contactName = 'Contact name is required'
-      if (!comEmail.trim()) nextErrors.comEmail = 'Email is required'
-      if (rawPhone(comPhone).length < 10) nextErrors.comPhone = 'Enter a valid 10-digit phone number'
-      if (!termsAgreed) nextErrors.termsAgreed = 'You must agree to the Terms and Privacy Policy to continue'
+      if (!sharedName.trim()) nextErrors.contactName = 'Contact name is required'
+      if (!sharedEmail.trim()) nextErrors.comEmail = 'Email is required'
+      if (rawPhone(sharedPhone).length < 10) nextErrors.comPhone = 'Enter a valid 10-digit phone number'
+      if (!sharedTermsAgreed) nextErrors.termsAgreed = 'You must agree to the Terms and Privacy Policy to continue'
     }
     if (comStep === 2 && !comAddress.trim()) nextErrors.comAddress = 'Address is required'
     if (comStep === 3) {
@@ -301,6 +349,7 @@ export function BookingForm() {
     if (!validateResidentialStep()) return
     if (resStep === 1) {
       await savePartialLead()
+      setBookingTypeLocked(true)
     }
     setResStep((s) => Math.min(5, s + 1))
   }
@@ -314,9 +363,10 @@ export function BookingForm() {
     try {
       const payload = {
         type: 'residential',
-        client_name: resName,
-        client_email: resEmail,
-        client_phone: rawPhone(resPhone),
+        client_name: sharedName,
+        client_email: sharedEmail,
+        client_phone: rawPhone(sharedPhone),
+        sms_opt_in: sharedSmsOptIn,
         address: resAddress,
         service_type: serviceType,
         service_frequency: resFrequency,
@@ -358,9 +408,9 @@ export function BookingForm() {
       const resData = await response.json()
 
       const resParams = new URLSearchParams({
-        name: resName,
-        email: resEmail,
-        phone: rawPhone(resPhone),
+        name: sharedName,
+        email: sharedEmail,
+        phone: rawPhone(sharedPhone),
         jobId: resData.jobId ?? '',
       })
       router.push(`/booking-submitted?${resParams.toString()}`)
@@ -382,9 +432,10 @@ export function BookingForm() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           type: 'commercial',
-          client_name: contactName,
-          client_email: comEmail,
-          client_phone: rawPhone(comPhone),
+          client_name: sharedName,
+          client_email: sharedEmail,
+          client_phone: rawPhone(sharedPhone),
+          sms_opt_in: sharedSmsOptIn,
           business_name: businessName,
           address: comAddress,
           square_footage: squareFootage ? Number(squareFootage) : null,
@@ -407,9 +458,9 @@ export function BookingForm() {
       const comData = await response.json()
 
       const comParams = new URLSearchParams({
-        name: contactName,
-        email: comEmail,
-        phone: rawPhone(comPhone),
+        name: sharedName,
+        email: sharedEmail,
+        phone: rawPhone(sharedPhone),
         jobId: comData.jobId ?? '',
       })
       router.push(`/booking-submitted?${comParams.toString()}`)
@@ -475,13 +526,13 @@ export function BookingForm() {
 
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
-    <div className="flex h-full flex-col bg-white">
+    <div className="min-h-screen bg-[#F5F3EF]"><div className="w-full max-w-2xl mx-auto px-0 sm:px-4 pt-0 sm:pt-8 pb-16"><div className="bg-white sm:rounded-2xl sm:shadow-sm sm:border sm:border-slate-100 overflow-hidden flex h-full flex-col">
 
       {/* ── PINNED HEADER ─────────────────────────────────────────────── */}
-      <div className="shrink-0 border-b border-slate-100 bg-white px-4 pt-4 pb-3 sm:px-6">
+      <div className="shrink-0 border-b border-slate-100 bg-white px-5 sm:px-8 pt-5 sm:pt-7 pb-4">
 
         {/* Flow type tabs — ONLY visible on Step 1 */}
-        {((flowType === 'residential' && resStep === 1) ||
+        {!bookingTypeLocked && ((flowType === 'residential' && resStep === 1) ||
           (flowType !== 'residential' && comStep === 1)) && (
           <div className="mb-3 flex gap-2 flex-wrap">
             {(['residential', 'commercial', 'post_construction'] as const).map((type) => (
@@ -532,6 +583,18 @@ export function BookingForm() {
         ) : null}
 
         {/* Progress bar */}
+        <div className="flex items-center justify-between mb-3">
+          <span className="text-xs text-slate-500 font-sans tabular-nums">
+            Step {flowType === 'residential' ? `${resStep} of 5` : `${comStep} of 3`}
+          </span>
+          {bookingTypeLocked ? (
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-brand-muted text-brand text-xs font-medium tracking-wide uppercase font-sans">
+              <CheckCircle className="h-3.5 w-3.5" />
+              {flowType === 'residential' ? 'Residential Clean' : flowType === 'commercial' ? 'Commercial Clean' : 'Post-Construction'}
+            </span>
+          ) : null}
+        </div>
+
         <div className="flex items-center gap-3 mb-2">
           <div className="flex-1 h-1.5 rounded-full bg-slate-100">
             <div
@@ -586,29 +649,29 @@ export function BookingForm() {
 
       {/* ── SCROLLABLE STEP CONTENT ────────────────────────────────────── */}
       {/* This area scrolls independently — the header and footer never move */}
-      <div className="flex-1 overflow-y-auto px-4 py-5 sm:px-6">
+      <div className="flex-1 overflow-y-auto px-5 sm:px-8 py-6 sm:py-8">
         {flowType === 'residential' ? (
           <div className="space-y-5 pb-4">
             {resStep === 1 ? (
               <div className="space-y-5">
                 <label className="block space-y-1.5">
-                  <span className="text-sm font-medium text-slate-900">Your Name</span>
+                  <span className="text-sm font-medium text-slate-900">Your Name <span className="text-red-500">*</span></span>
                   <Input
                     placeholder="Jane Smith"
-                    value={resName}
-                    onChange={(e) => setResName(e.target.value)}
+                    value={sharedName}
+                    onChange={(e) => setSharedName(e.target.value)}
                     error={Boolean(errors.resName)}
                   />
                   {errors.resName ? <p className="text-sm text-red-600">{errors.resName}</p> : null}
                 </label>
 
                 <label className="block space-y-1.5">
-                  <span className="text-sm font-medium text-slate-900">Email Address</span>
+                  <span className="text-sm font-medium text-slate-900">Email Address <span className="text-red-500">*</span></span>
                   <Input
                     type="email"
                     placeholder="jane@email.com"
-                    value={resEmail}
-                    onChange={(e) => setResEmail(e.target.value)}
+                    value={sharedEmail}
+                    onChange={(e) => setSharedEmail(e.target.value)}
                     error={Boolean(errors.resEmail)}
                   />
                   {errors.resEmail ? <p className="text-sm text-red-600">{errors.resEmail}</p> : null}
@@ -616,12 +679,12 @@ export function BookingForm() {
                 </label>
 
                 <label className="block space-y-1.5">
-                  <span className="text-sm font-medium text-slate-900">Phone Number</span>
+                  <span className="text-sm font-medium text-slate-900">Phone Number <span className="text-red-500">*</span></span>
                   <Input
                     type="tel"
                     placeholder="(301) 555-1234"
-                    value={resPhone}
-                    onChange={(e) => setResPhone(formatPhone(e.target.value))}
+                    value={sharedPhone}
+                    onChange={(e) => setSharedPhone(formatPhone(e.target.value))}
                     error={Boolean(errors.resPhone)}
                   />
                   {errors.resPhone ? <p className="text-sm text-red-600">{errors.resPhone}</p> : null}
@@ -632,8 +695,8 @@ export function BookingForm() {
                   <label className="flex items-start gap-3 cursor-pointer">
                     <input
                       type="checkbox"
-                      checked={smsOptIn}
-                      onChange={(e) => setSmsOptIn(e.target.checked)}
+                      checked={sharedSmsOptIn}
+                      onChange={(e) => setSharedSmsOptIn(e.target.checked)}
                       className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer rounded border-slate-300 accent-[hsl(var(--color-brand))]"
                     />
                     <span className="text-xs text-slate-600 leading-relaxed">
@@ -644,8 +707,8 @@ export function BookingForm() {
                   <label className="flex items-start gap-3 cursor-pointer">
                     <input
                       type="checkbox"
-                      checked={termsAgreed}
-                      onChange={(e) => setTermsAgreed(e.target.checked)}
+                      checked={sharedTermsAgreed}
+                      onChange={(e) => setSharedTermsAgreed(e.target.checked)}
                       className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer rounded border-slate-300 accent-[hsl(var(--color-brand))]"
                     />
                     <span className="text-xs text-slate-600 leading-relaxed">
@@ -927,7 +990,7 @@ export function BookingForm() {
                 <label className="block space-y-1.5">
                   <span className="text-sm font-medium text-slate-900">Notes</span>
                   <textarea
-                    className="flex min-h-[80px] w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 transition-colors duration-200 hover:border-slate-300 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-(--color-brand) focus:ring-offset-0"
+                    className="flex min-h-[80px] w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-base sm:text-sm text-slate-900 placeholder:text-slate-400 transition-colors duration-200 hover:border-slate-300 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-(--color-brand) focus:ring-offset-0"
                     placeholder="How do we get in?"
                     value={resNotes}
                     onChange={(e) => setResNotes(e.target.value)}
@@ -936,6 +999,9 @@ export function BookingForm() {
 
                 <div className="space-y-1.5">
                   <p className="text-sm font-medium text-slate-900">Show us your space</p>
+                  <div className="border-2 border-dashed border-slate-200 rounded-2xl p-6 text-center">
+                    <Camera className="w-6 h-6 text-brand mx-auto" />
+                  </div>
                   <p className="text-xs text-slate-500">
                     The more we can see, the more accurate your quote. A 60-second walkthrough video works best.
                   </p>
@@ -1054,27 +1120,27 @@ export function BookingForm() {
             {comStep === 1 ? (
               <div className="space-y-4">
                 <label className="block space-y-1">
-                <span className="text-sm font-medium text-slate-900">Business Name</span>
+                <span className="text-sm font-medium text-slate-900">Business Name <span className="text-red-500">*</span></span>
                 <Input value={businessName} onChange={(e) => setBusinessName(e.target.value)} error={Boolean(errors.businessName)} />
                 {errors.businessName ? <p className="text-sm text-red-600">{errors.businessName}</p> : null}
               </label>
               <label className="block space-y-1">
-                <span className="text-sm font-medium text-slate-900">Your Name</span>
-                <Input value={contactName} onChange={(e) => setContactName(e.target.value)} error={Boolean(errors.contactName)} />
+                <span className="text-sm font-medium text-slate-900">Your Name <span className="text-red-500">*</span></span>
+                <Input value={sharedName} onChange={(e) => setSharedName(e.target.value)} error={Boolean(errors.contactName)} />
                 {errors.contactName ? <p className="text-sm text-red-600">{errors.contactName}</p> : null}
               </label>
               <label className="block space-y-1">
-                <span className="text-sm font-medium text-slate-900">Email</span>
-                <Input type="email" value={comEmail} onChange={(e) => setComEmail(e.target.value)} error={Boolean(errors.comEmail)} />
+                <span className="text-sm font-medium text-slate-900">Email <span className="text-red-500">*</span></span>
+                <Input type="email" value={sharedEmail} onChange={(e) => setSharedEmail(e.target.value)} error={Boolean(errors.comEmail)} />
                 {errors.comEmail ? <p className="text-sm text-red-600">{errors.comEmail}</p> : null}
               </label>
               <label className="block space-y-1">
-                <span className="text-sm font-medium text-slate-900">Phone Number</span>
+                <span className="text-sm font-medium text-slate-900">Phone Number <span className="text-red-500">*</span></span>
                 <Input
                   type="tel"
                   placeholder="(301) 555-1234"
-                  value={comPhone}
-                  onChange={(e) => setComPhone(formatPhone(e.target.value))}
+                  value={sharedPhone}
+                  onChange={(e) => setSharedPhone(formatPhone(e.target.value))}
                   error={Boolean(errors.comPhone)}
                 />
                 {errors.comPhone ? <p className="text-sm text-red-600">{errors.comPhone}</p> : null}
@@ -1085,8 +1151,8 @@ export function BookingForm() {
                 <label className="flex items-start gap-3 cursor-pointer">
                   <input
                     type="checkbox"
-                    checked={smsOptIn}
-                    onChange={(e) => setSmsOptIn(e.target.checked)}
+                    checked={sharedSmsOptIn}
+                    onChange={(e) => setSharedSmsOptIn(e.target.checked)}
                     className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer rounded border-slate-300 accent-[hsl(var(--color-brand))]"
                   />
                   <span className="text-xs text-slate-600 leading-relaxed">
@@ -1097,8 +1163,8 @@ export function BookingForm() {
                 <label className="flex items-start gap-3 cursor-pointer">
                   <input
                     type="checkbox"
-                    checked={termsAgreed}
-                    onChange={(e) => setTermsAgreed(e.target.checked)}
+                    checked={sharedTermsAgreed}
+                    onChange={(e) => setSharedTermsAgreed(e.target.checked)}
                     className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer rounded border-slate-300 accent-[hsl(var(--color-brand))]"
                   />
                   <span className="text-xs text-slate-600 leading-relaxed">
@@ -1196,7 +1262,7 @@ export function BookingForm() {
               <label className="block space-y-1">
                 <span className="text-sm font-medium text-slate-900">Notes</span>
                 <textarea
-                  className="flex min-h-[100px] w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 transition-colors duration-200 hover:border-slate-300 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-(--color-brand) focus:ring-offset-0"
+                  className="flex min-h-[100px] w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-base sm:text-sm text-slate-900 placeholder:text-slate-400 transition-colors duration-200 hover:border-slate-300 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-(--color-brand) focus:ring-offset-0"
                   placeholder={flowType === 'post_construction'
                     ? 'Project scope, phases complete, dusty areas, access instructions, any special requirements...'
                     : 'Access instructions, security codes, areas of focus, any special requirements...'}
@@ -1237,7 +1303,7 @@ export function BookingForm() {
 
       {/* ── PINNED FOOTER — Back / Next ───────────────────────────────── */}
       {/* Only shows Back and Next. Submit stays inside step content above. */}
-      <div className="shrink-0 border-t border-slate-100 bg-white px-4 py-3 sm:px-6">
+      <div className="sticky bottom-0 left-0 right-0 shrink-0 border-t border-slate-100 bg-white px-5 sm:px-8 py-4">
         <div className="flex justify-between gap-3">
           <Button
             type="button"
@@ -1253,6 +1319,7 @@ export function BookingForm() {
               savingPartial
             }
           >
+            <ChevronLeft className="w-4 h-4" />
             Back
           </Button>
 
@@ -1264,7 +1331,7 @@ export function BookingForm() {
             >
               {savingPartial
                 ? <><Loader2 size={14} className="animate-spin" /> Saving…</>
-                : 'Next'}
+                : <>Continue <ChevronRight className="w-4 h-4" /></>}
             </Button>
           ) : null}
 
@@ -1279,6 +1346,6 @@ export function BookingForm() {
           ) : null}
         </div>
       </div>
-    </div>
+    </div></div></div>
   )
 }

@@ -54,7 +54,6 @@ export async function POST(request: Request) {
       square_footage: jobData.square_footage ?? null,
       condition: jobData.condition || null,
       pets: jobData.pets || null,
-      home_entry: jobData.home_entry || null,
       business_name: jobData.business_name || null,
       availability_start: jobData.availability_start || null,
       availability_end: jobData.availability_end || null,
@@ -63,6 +62,7 @@ export async function POST(request: Request) {
       estimated_price_high: jobData.estimated_price_high ?? 0,
       notes: jobData.notes || null,
       preferred_contact: jobData.preferred_contact || null,
+      sms_opt_in: jobData.sms_opt_in ?? true,
     })
     .select()
     .single()

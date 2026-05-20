@@ -23,13 +23,14 @@ export async function POST(request: Request) {
     return Response.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const { jobId, lineItems, dueDate, businessName, preparedForAddress, notes } = await request.json() as {
+  const { jobId, lineItems, dueDate, businessName, preparedForAddress, notes, depositCredit: depositCreditOverride } = await request.json() as {
     jobId: string
     lineItems: InvoiceLineItem[]
     dueDate: string       // ISO date string — always required, sent by client
     businessName?: string
     preparedForAddress?: string
     notes?: string
+    depositCredit?: number
   }
 
   if (!jobId || !lineItems || lineItems.length === 0) {
@@ -62,7 +63,7 @@ export async function POST(request: Request) {
   }
 
   const total = lineItems.reduce((sum, item) => sum + item.amount, 0)
-  const depositPaid = job.deposit_paid ? (job.deposit_amount ?? 100) : 0
+  const depositPaid = typeof depositCreditOverride === 'number' ? depositCreditOverride : (job.deposit_paid ? (job.deposit_amount ?? 100) : 0)
   const amountDue = Math.max(total - depositPaid, 0)
 
   if (amountDue <= 0) {

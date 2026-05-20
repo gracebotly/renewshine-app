@@ -140,7 +140,30 @@ function SubmissionCard({ job }: { job: any }) {
           </dd>
         </div>
 
-        {job.preferred_contact && <div className="flex min-h-[32px] items-start gap-4 py-1"><dt className="w-32 shrink-0 text-xs font-semibold uppercase tracking-wide text-slate-400 pt-1">Pref. Contact</dt><dd className="text-sm text-slate-900">{preferredContactMap[job.preferred_contact] ?? job.preferred_contact}</dd></div>}
+        <Row
+          label="Pref. Contact"
+          value={preferredContactMap[job.preferred_contact ?? ''] ?? '—'}
+        />
+
+        {/* SMS opt-in — always show so you know their consent status */}
+        <div className="flex min-h-[32px] items-start gap-4 py-1">
+          <dt className="w-32 shrink-0 text-xs font-semibold uppercase tracking-wide text-slate-400 pt-1">
+            SMS Opt-in
+          </dt>
+          <dd className="pt-1 text-sm text-slate-900">
+            {(job as any).sms_opt_in === true ? (
+              <span className="inline-flex items-center gap-1.5 text-emerald-700">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                Opted in
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 text-slate-500">
+                <span className="h-1.5 w-1.5 rounded-full bg-slate-300" />
+                Not opted in
+              </span>
+            )}
+          </dd>
+        </div>
 
         <div className="flex min-h-[32px] items-start gap-4 py-1">
           <dt className="w-32 shrink-0 text-xs font-semibold uppercase tracking-wide text-slate-400 pt-2">
@@ -150,15 +173,6 @@ function SubmissionCard({ job }: { job: any }) {
             <input name="address" defaultValue={job.address ?? ''} placeholder="Service address" className={inputClass} />
           </dd>
         </div>
-
-        {job.type === 'commercial' && (
-          <>
-            <Row label="Business" value={job.business_name} />
-            <Row label="Sq Footage" value={job.square_footage ? `${job.square_footage} sq ft` : null} />
-            <Row label="Condition" value={job.condition} />
-          </>
-        )}
-
         {/* ── SERVICE ── */}
         <Section title="Service" />
 
@@ -218,21 +232,28 @@ function SubmissionCard({ job }: { job: any }) {
           </dd>
         </div>
 
-        {/* Pets — read only */}
-        {job.pets && job.pets !== 'none' && (
-          <div className="flex min-h-[32px] items-start gap-4 py-1">
-            <dt className="w-32 shrink-0 text-xs font-semibold uppercase tracking-wide text-slate-400 pt-1">Pets</dt>
-            <dd className="pt-1 text-sm text-slate-900">{petsMap[job.pets] ?? job.pets}</dd>
-          </div>
-        )}
+        <Row
+          label="Business"
+          value={job.business_name ?? '—'}
+        />
 
-        {/* Condition — read only, residential only */}
-        {job.condition && job.type !== 'commercial' && (
-          <div className="flex min-h-[32px] items-start gap-4 py-1">
-            <dt className="w-32 shrink-0 text-xs font-semibold uppercase tracking-wide text-slate-400 pt-1">Condition</dt>
-            <dd className="pt-1 text-sm text-slate-900">{conditionMap[job.condition] ?? job.condition}</dd>
-          </div>
-        )}
+        <Row
+          label="Sq Footage"
+          value={job.square_footage ? `${job.square_footage.toLocaleString()} sq ft` : '—'}
+        />
+
+        {/* Pets — always show, residential and commercial */}
+        <Row
+          label="Pets"
+          value={petsMap[job.pets ?? ''] ?? (job.pets ? job.pets : '—')}
+        />
+
+        {/* Condition — always show */}
+        <Row
+          label="Condition"
+          value={conditionMap[job.condition ?? ''] ?? (job.condition ? job.condition : '—')}
+        />
+
 
         <div className="flex items-start gap-4 py-1">
           <dt className="w-32 shrink-0 pt-1 text-xs font-semibold uppercase tracking-wide text-slate-400">
@@ -283,18 +304,18 @@ function SubmissionCard({ job }: { job: any }) {
         />
 
         {/* ── NOTES ── */}
-        <Section title="Notes" />
+        <Section title="Customer Notes" />
 
         <div className="flex items-start gap-4 py-1">
           <dt className="w-32 shrink-0 text-xs font-semibold uppercase tracking-wide text-slate-400 pt-2">
-            Notes
+            From customer
           </dt>
           <dd className="flex-1">
             <textarea
               name="notes"
               defaultValue={job.notes ?? ''}
               rows={3}
-              placeholder="Internal notes visible only to you…"
+              placeholder="No notes provided by customer"
               className={`${inputClass} resize-none`}
             />
           </dd>
