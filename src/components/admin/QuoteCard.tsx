@@ -67,6 +67,7 @@ export function QuoteCard({ job }: { job: any }) {
   const [completedConfirm, setCompletedConfirm] = React.useState(false)
   const [showCompose, setShowCompose] = React.useState(false)
   const [localContactNote, setLocalContactNote] = React.useState<string | null>(job.contact_note ?? null)
+  const [step2Mode, setStep2Mode] = React.useState<'choose' | 'deposit' | 'invoice'>('choose')
 
   const canApprove = Boolean(confirmedDate && approvedPrice && Number(approvedPrice) > 0 && !job.deposit_paid)
 
@@ -355,25 +356,37 @@ export function QuoteCard({ job }: { job: any }) {
         {/* PRIMARY ACTION — full width, dominant */}
         {!job.deposit_paid && ['new', 'under_review'].includes(overrideStatus) && (<button onClick={() => setShowCompose(true)} className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg bg-(--color-brand) px-4 py-3 text-sm font-semibold text-white transition-colors duration-200 hover:bg-(--color-brand-hover)">Contact customer</button>)}
         {!job.deposit_paid && overrideStatus === 'contacted' && (<button onClick={() => setShowCompose(true)} className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition-colors duration-200 hover:bg-slate-50">Send another message</button>)}
-        {!job.deposit_paid && (
-          <Button
-            onClick={handleStripe}
-            disabled={!canApprove || loadingStripe}
-            className="w-full py-3 text-base font-semibold"
-          >
-            {loadingStripe ? 'Sending…' : 'Send quote via email + Stripe'}
-          </Button>
-        )}
-
-        {!job.deposit_paid && (
-          <Button
-            variant="brand-outline"
-            onClick={handleMarkSentExternally}
-            disabled={!canApprove || loadingStripe}
-            className="w-full"
-          >
-            Mark as sent externally (text / call)
-          </Button>
+        {!job.deposit_paid && overrideStatus === 'contacted' && (
+          <>
+            {!showCompose && !step2Mode && null}
+            {!showCompose && (
+              <div className="space-y-2">
+                {step2Mode === 'choose' && (
+                  <>
+                    <button onClick={() => setStep2Mode('deposit')} className="w-full cursor-pointer rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700">Send deposit link — $100</button>
+                    <button onClick={() => setStep2Mode('invoice')} className="w-full cursor-pointer rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700">Send invoice directly</button>
+                  </>
+                )}
+                {step2Mode === 'deposit' && (
+                  <>
+                    <button onClick={() => setStep2Mode('choose')} className="text-xs text-slate-400 hover:text-slate-600">← Back</button>
+                    <Button onClick={handleStripe} disabled={!canApprove || loadingStripe} className="w-full py-3 text-base font-semibold">
+                      {loadingStripe ? 'Sending…' : 'Send quote via email + Stripe'}
+                    </Button>
+                    <Button variant="brand-outline" onClick={handleMarkSentExternally} disabled={!canApprove || loadingStripe} className="w-full">
+                      Mark as sent externally (text / call)
+                    </Button>
+                  </>
+                )}
+                {step2Mode === 'invoice' && (
+                  <div className="space-y-2">
+                    <button onClick={() => setStep2Mode('choose')} className="text-xs text-slate-400 hover:text-slate-600">← Back</button>
+                    <InvoicePanel job={job} />
+                  </div>
+                )}
+              </div>
+            )}
+          </>
         )}
 
         {/* Mark as scheduled — for manually collected cash/invoice payments */}
