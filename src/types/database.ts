@@ -65,6 +65,8 @@ export interface Database {
           pets: 'none' | 'cat' | 'dog' | 'other' | null
           home_entry: 'home' | 'lockbox' | 'fob' | 'other' | null
           sms_opt_in: boolean
+          property_type: string | null
+          property_other_description: string | null
           business_name: string | null
           service_frequency: string | null
           availability_start: string | null
@@ -105,6 +107,8 @@ export interface Database {
           pets?: 'none' | 'cat' | 'dog' | 'other' | null
           home_entry?: 'home' | 'lockbox' | 'fob' | 'other' | null
           sms_opt_in?: boolean
+          property_type?: string | null
+          property_other_description?: string | null
           business_name?: string | null
           service_frequency?: string | null
           availability_start?: string | null

@@ -236,6 +236,17 @@ function SubmissionCard({ job }: { job: any }) {
           label="Business"
           value={job.business_name ?? '—'}
         />
+        {/* Property type — commercial and post-construction */}
+        <Row
+          label="Property Type"
+          value={
+            (job as any).property_type
+              ? (job as any).property_type === 'other' && (job as any).property_other_description
+                ? `Other — ${(job as any).property_other_description}`
+                : String((job as any).property_type).replace('_', ' ')
+              : '—'
+          }
+        />
 
         <Row
           label="Sq Footage"

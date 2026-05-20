@@ -131,6 +131,7 @@ export function BookingForm() {
   const [comEmail, setComEmail] = React.useState('')
   const [comPhone, setComPhone] = React.useState('')
   const [propertyType, setPropertyType] = React.useState<'office' | 'retail' | 'warehouse' | 'other' | 'new_build' | 'renovation' | 'construction' | 'commercial'>('office')
+  const [propertyOtherDescription, setPropertyOtherDescription] = React.useState('')
   const [squareFootage, setSquareFootage] = React.useState('')
   const [comFrequency, setComFrequency] = React.useState<Frequency>('one_time')
   const [comAddress, setComAddress] = React.useState('')
@@ -175,6 +176,7 @@ export function BookingForm() {
     setTermsAgreed(true)
     setResNotes('')
     setResMediaEncoded([])
+    setPropertyOtherDescription('')
   }
 
   const resetCommercial = (nextFlow: FlowType = flowType) => {
@@ -186,6 +188,7 @@ export function BookingForm() {
     setSmsOptIn(false)
     setTermsAgreed(true)
     setPropertyType(nextFlow === 'post_construction' ? 'new_build' : 'office')
+    setPropertyOtherDescription('')
     setSquareFootage('')
     setComFrequency('one_time')
     setComAddress('')
@@ -260,6 +263,7 @@ export function BookingForm() {
     } else {
       setPropertyType('office')
     }
+    setPropertyOtherDescription('')
     setPendingSwitch(null)
     setErrors({})
     setSubmitError('')
@@ -334,7 +338,12 @@ export function BookingForm() {
       if (rawPhone(sharedPhone).length < 10) nextErrors.comPhone = 'Enter a valid 10-digit phone number'
       if (!sharedTermsAgreed) nextErrors.termsAgreed = 'You must agree to the Terms and Privacy Policy to continue'
     }
-    if (comStep === 2 && !comAddress.trim()) nextErrors.comAddress = 'Address is required'
+    if (comStep === 2) {
+      if (propertyType === 'other' && !propertyOtherDescription.trim()) {
+        nextErrors.propertyOtherDescription = 'Please describe your space'
+      }
+      if (!comAddress.trim()) nextErrors.comAddress = 'Address is required'
+    }
     if (comStep === 3) {
       if (!comStartDate) nextErrors.comStartDate = 'Earliest date is required'
       if (!comEndDate) nextErrors.comEndDate = 'Latest date is required'
@@ -452,6 +461,9 @@ export function BookingForm() {
           add_ons: [],
           estimated_price_low: 0,
           estimated_price_high: 0,
+          property_type: propertyType,
+          property_other_description:
+            propertyType === 'other' ? propertyOtherDescription : null,
         }),
       })
       if (!response.ok) throw new Error('Failed')
@@ -638,11 +650,6 @@ export function BookingForm() {
                   ? (flowType === 'post_construction' ? 'About your project' : 'About your space')
                   : 'Scheduling & details'}
             </h2>
-            <p className="mt-0.5 text-xs text-slate-500">
-              {comStep === 1 ? "We'll reach out to confirm details as soon as possible."
-                : comStep === 2 ? 'Estimate is fine — we confirm during walkthrough.'
-                : "We'll confirm availability as soon as possible."}
-            </p>
           </div>
         )}
       </div>
@@ -1204,12 +1211,28 @@ export function BookingForm() {
                   ))}
                 </div>
               </div>
+              {propertyType === 'other' && (
+                <label className="block space-y-1">
+                  <span className="text-sm font-medium text-slate-900">
+                    Please describe your space <span className="text-red-500">*</span>
+                  </span>
+                  <Input
+                    type="text"
+                    placeholder="e.g. Dance studio, storage facility, medical office…"
+                    value={propertyOtherDescription}
+                    onChange={(e) => setPropertyOtherDescription(e.target.value)}
+                    error={Boolean(errors.propertyOtherDescription)}
+                  />
+                  {errors.propertyOtherDescription && (
+                    <p className="text-sm text-red-600">{errors.propertyOtherDescription}</p>
+                  )}
+                </label>
+              )}
               <label className="block space-y-1">
                 <span className="text-sm font-medium text-slate-900">
                   {flowType === 'post_construction' ? 'Approximate Square Footage (Total Build/Reno Area)' : 'Approximate Square Footage'}
                 </span>
                 <Input type="number" placeholder="e.g. 2000" value={squareFootage} onChange={(e) => setSquareFootage(e.target.value)} />
-                <p className="text-xs text-slate-500">Estimate is fine — we confirm during walkthrough</p>
               </label>
               <div>
                 <p className="mb-2 font-medium text-slate-900">Cleaning Frequency</p>
@@ -1275,7 +1298,14 @@ export function BookingForm() {
                 <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Submission Summary</p>
                 <div className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
                   <div><p className="text-xs text-slate-500">Business</p><p className="font-medium text-slate-900">{businessName || '—'}</p></div>
-                  <div><p className="text-xs text-slate-500">Property type</p><p className="font-medium text-slate-900 capitalize">{propertyType}</p></div>
+                  <div>
+                    <p className="text-xs text-slate-500">Property type</p>
+                    <p className="font-medium text-slate-900 capitalize">
+                      {propertyType === 'other' && propertyOtherDescription
+                        ? `Other — ${propertyOtherDescription}`
+                        : propertyType.replace('_', ' ')}
+                    </p>
+                  </div>
                   <div><p className="text-xs text-slate-500">Square footage</p><p className="font-medium text-slate-900">{squareFootage ? `~${Number(squareFootage).toLocaleString()} sq ft` : 'Not provided'}</p></div>
                   <div>
                     <p className="text-xs text-slate-500">Frequency</p>
