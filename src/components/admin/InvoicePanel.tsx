@@ -31,9 +31,17 @@ export function InvoicePanel({ job }: { job: any }) {
   const [markPaidSuccess, setMarkPaidSuccess] = React.useState('')
   const [markPaidError, setMarkPaidError] = React.useState('')
 
-  const depositPaid = job.deposit_paid ? (job.deposit_amount ?? 100) : 0
+  // Deposit credit — pre-fill from DB but fully overridable
+  const [applyDeposit, setApplyDeposit] = React.useState<boolean>(
+    job.deposit_paid === true
+  )
+  const [depositCreditAmount, setDepositCreditAmount] = React.useState<string>(
+    String(job.deposit_amount ?? 100)
+  )
+
+  const depositCredit = applyDeposit ? (parseFloat(depositCreditAmount) || 0) : 0
   const subtotal = lineItems.reduce((sum, i) => sum + (parseFloat(i.amount) || 0), 0)
-  const amountDue = Math.max(subtotal - depositPaid, 0)
+  const amountDue = Math.max(subtotal - depositCredit, 0)
 
   // Re-initialize due date to 48hrs from now each time panel opens
   function handleOpen() {
@@ -90,6 +98,7 @@ export function InvoicePanel({ job }: { job: any }) {
         businessName: businessName || undefined,
         preparedForAddress: preparedForAddress || undefined,
         notes: notes || undefined,
+        depositCredit,
       }),
     })
 
@@ -232,6 +241,60 @@ export function InvoicePanel({ job }: { job: any }) {
             </button>
           </div>
 
+          {/* Deposit Credit */}
+          <div className="space-y-2 rounded-lg border border-slate-200 bg-white p-4">
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                Deposit Credit
+              </p>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <span className="text-xs text-slate-500">
+                  {applyDeposit ? 'Applied' : 'Not applied'}
+                </span>
+                <div
+                  onClick={() => setApplyDeposit((prev) => !prev)}
+                  className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors duration-200 cursor-pointer ${
+                    applyDeposit ? 'bg-(--color-brand)' : 'bg-slate-200'
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform duration-200 ${
+                      applyDeposit ? 'translate-x-4' : 'translate-x-1'
+                    }`}
+                  />
+                </div>
+              </label>
+            </div>
+
+            {applyDeposit && (
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-slate-500 shrink-0">Amount paid:</span>
+                <div className="relative flex-1 max-w-[120px]">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-slate-400 pointer-events-none">
+                    $
+                  </span>
+                  <input
+                    type="number"
+                    min="0"
+                    step="1"
+                    value={depositCreditAmount}
+                    onChange={(e) => setDepositCreditAmount(e.target.value)}
+                    className="w-full rounded-lg border border-slate-200 bg-white pl-6 pr-3 py-2 text-sm font-mono text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-(--color-brand) focus:ring-offset-0 transition-colors duration-200"
+                  />
+                </div>
+                <span className="text-xs text-emerald-600 font-medium">
+                  will be deducted
+                </span>
+              </div>
+            )}
+
+            {!applyDeposit && (
+              <p className="text-xs text-slate-400">
+                Toggle on if the client paid a deposit — it will be deducted from the invoice total.
+              </p>
+            )}
+          </div>
+
           {/* Notes */}
           <div className="space-y-1">
             <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
@@ -254,10 +317,10 @@ export function InvoicePanel({ job }: { job: any }) {
                 <span>Subtotal</span>
                 <span className="font-mono tabular-nums">${subtotal.toFixed(2)}</span>
               </div>
-              {depositPaid > 0 && (
+              {depositCredit > 0 && (
                 <div className="flex justify-between px-4 py-2.5 text-slate-500 border-b border-slate-100">
-                  <span>Deposit paid</span>
-                  <span className="font-mono tabular-nums text-emerald-600">−${depositPaid.toFixed(2)}</span>
+                  <span>Deposit credit</span>
+                  <span className="font-mono tabular-nums text-emerald-600">−${depositCredit.toFixed(2)}</span>
                 </div>
               )}
               <div className="flex justify-between bg-(--color-brand) px-4 py-3 font-semibold text-white">

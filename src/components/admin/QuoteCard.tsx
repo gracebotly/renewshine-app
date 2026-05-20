@@ -67,7 +67,7 @@ export function QuoteCard({ job }: { job: any }) {
   const [completedConfirm, setCompletedConfirm] = React.useState(false)
   const [showCompose, setShowCompose] = React.useState(false)
   const [localContactNote, setLocalContactNote] = React.useState<string | null>(job.contact_note ?? null)
-  const [step2Mode, setStep2Mode] = React.useState<'choose' | 'deposit' | 'invoice'>('choose')
+  const [step2Mode, setStep2Mode] = React.useState<'choose' | 'deposit'>('choose')
 
   const canApprove = Boolean(confirmedDate && approvedPrice && Number(approvedPrice) > 0 && !job.deposit_paid)
 
@@ -364,7 +364,6 @@ export function QuoteCard({ job }: { job: any }) {
                 {step2Mode === 'choose' && (
                   <>
                     <button onClick={() => setStep2Mode('deposit')} className="w-full cursor-pointer rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700">Send deposit link — $100</button>
-                    <button onClick={() => setStep2Mode('invoice')} className="w-full cursor-pointer rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700">Send invoice directly</button>
                   </>
                 )}
                 {step2Mode === 'deposit' && (
@@ -377,12 +376,6 @@ export function QuoteCard({ job }: { job: any }) {
                       Mark as sent externally (text / call)
                     </Button>
                   </>
-                )}
-                {step2Mode === 'invoice' && (
-                  <div className="space-y-2">
-                    <button onClick={() => setStep2Mode('choose')} className="text-xs text-slate-400 hover:text-slate-600">← Back</button>
-                    <InvoicePanel job={job} />
-                  </div>
                 )}
               </div>
             )}

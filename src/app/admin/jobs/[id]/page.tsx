@@ -283,18 +283,18 @@ function SubmissionCard({ job }: { job: any }) {
         />
 
         {/* ── NOTES ── */}
-        <Section title="Notes" />
+        <Section title="Customer Notes" />
 
         <div className="flex items-start gap-4 py-1">
           <dt className="w-32 shrink-0 text-xs font-semibold uppercase tracking-wide text-slate-400 pt-2">
-            Notes
+            From customer
           </dt>
           <dd className="flex-1">
             <textarea
               name="notes"
               defaultValue={job.notes ?? ''}
               rows={3}
-              placeholder="Internal notes visible only to you…"
+              placeholder="No notes provided by customer"
               className={`${inputClass} resize-none`}
             />
           </dd>
