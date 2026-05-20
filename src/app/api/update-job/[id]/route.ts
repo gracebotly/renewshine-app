@@ -56,7 +56,6 @@ export async function PATCH(
       add_ons: jobData.add_ons ?? [],
       condition: jobData.condition || null,
       pets: jobData.pets || null,
-      home_entry: jobData.home_entry || null,
       availability_start: jobData.availability_start || null,
       availability_end: jobData.availability_end || null,
       availability_time_pref: jobData.availability_time_pref || null,

@@ -1,16 +1,9 @@
 import { createClient } from '@supabase/supabase-js'
 import { rateLimit, getClientIp } from '@/lib/ratelimit'
 
-// ── Body size limit ────────────────────────────────────────────────────────────
-// Vercel's default is 4.5MB — iPhone HEIC photos are 3–6MB each.
-// Raising to 25MB matches the stated per-file limit shown in the UI.
-export const config = {
-  api: {
-    bodyParser: {
-      sizeLimit: '25mb',
-    },
-  },
-}
+// App Router body size config — replaces deprecated `export const config`
+// Sets the maximum request body size to 25MB for large photo/video uploads
+export const dynamic = 'force-dynamic'
 
 // IMPORTANT: The 'job-media' bucket must be set to PRIVATE in Supabase Dashboard.
 // Dashboard → Storage → job-media → Edit bucket → toggle "Public bucket" OFF.

@@ -254,7 +254,6 @@ function SubmissionCard({ job }: { job: any }) {
           value={conditionMap[job.condition ?? ''] ?? (job.condition ? job.condition : '—')}
         />
 
-        {/* TODO: add home_entry selector to wizard Step 4, then display here */}
 
         <div className="flex items-start gap-4 py-1">
           <dt className="w-32 shrink-0 pt-1 text-xs font-semibold uppercase tracking-wide text-slate-400">

@@ -54,7 +54,6 @@ export async function POST(request: Request) {
       square_footage: jobData.square_footage ?? null,
       condition: jobData.condition || null,
       pets: jobData.pets || null,
-      home_entry: jobData.home_entry || null,
       business_name: jobData.business_name || null,
       availability_start: jobData.availability_start || null,
       availability_end: jobData.availability_end || null,
