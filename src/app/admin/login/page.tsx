@@ -65,9 +65,6 @@ export default function AdminLoginPage() {
     const { error: authError } = await supabaseBrowser.auth.signInWithOtp({
       email: normalized,
       options: {
-        // Keep emailRedirectTo so the magic link in the email still works
-        // on desktop. On iOS PWA, Grace uses the 6-digit code instead.
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
         shouldCreateUser: false,
       },
     })
@@ -131,7 +128,6 @@ export default function AdminLoginPage() {
     const { error: authError } = await supabaseBrowser.auth.signInWithOtp({
       email: email.trim().toLowerCase(),
       options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
         shouldCreateUser: false,
       },
     })
