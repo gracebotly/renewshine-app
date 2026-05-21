@@ -55,29 +55,24 @@ export default function AdminLoginPage() {
 
     const normalized = email.trim().toLowerCase()
 
-    if (!ALLOWED_ADMIN_EMAILS.map((e) => e.toLowerCase()).includes(normalized)) {
-      setError('This email is not authorized to access the admin panel.')
-      return
-    }
-
     setLoading(true)
 
-    const { error: authError } = await supabaseBrowser.auth.signInWithOtp({
-      email: normalized,
-      options: {
-        shouldCreateUser: false,
-      },
+    const res = await fetch('/api/admin/send-otp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: normalized }),
     })
 
+    const data = await res.json()
     setLoading(false)
 
-    if (authError) {
-      setError(authError.message)
+    if (!res.ok) {
+      setError(data.error ?? 'Failed to send code.')
       return
     }
 
     setStage('code')
-    setResendCooldown(60) // prevent spam — 60s before resend is allowed
+    setResendCooldown(60)
   }
 
   // ── Step 2: verify the 6-digit code ──────────────────────────────────────
@@ -94,23 +89,28 @@ export default function AdminLoginPage() {
 
     setLoading(true)
 
-    const { error: verifyError } = await supabaseBrowser.auth.verifyOtp({
-      email: email.trim().toLowerCase(),
-      token: trimmedCode,
-      type: 'magiclink',
+    const res = await fetch('/api/admin/verify-otp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: email.trim().toLowerCase(), code: trimmedCode }),
     })
 
+    const data = await res.json()
     setLoading(false)
 
-    if (verifyError) {
-      // Common errors: "Token has expired or is invalid" / "OTP expired"
-      if (verifyError.message.toLowerCase().includes('expired')) {
-        setError('This code has expired. Request a new one below.')
-      } else if (verifyError.message.toLowerCase().includes('invalid')) {
-        setError('Incorrect code. Check your email and try again.')
-      } else {
-        setError(verifyError.message)
-      }
+    if (!res.ok) {
+      setError(data.error ?? 'Verification failed.')
+      return
+    }
+
+    // Set the Supabase session client-side from the server-issued tokens
+    const { error: sessionError } = await supabaseBrowser.auth.setSession({
+      access_token: data.access_token,
+      refresh_token: data.refresh_token,
+    })
+
+    if (sessionError) {
+      setError('Failed to sign in. Try again.')
       return
     }
 
@@ -118,24 +118,24 @@ export default function AdminLoginPage() {
     router.replace('/admin')
   }
 
-  // ── Resend: same as handleSendCode but without the form event ────────────
+  // ── Resend: calls send-otp again, resets cooldown ────────────────────────
   const handleResend = async () => {
     if (resendCooldown > 0) return
     setError('')
     setCode('')
     setLoading(true)
 
-    const { error: authError } = await supabaseBrowser.auth.signInWithOtp({
-      email: email.trim().toLowerCase(),
-      options: {
-        shouldCreateUser: false,
-      },
+    const res = await fetch('/api/admin/send-otp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: email.trim().toLowerCase() }),
     })
 
+    const data = await res.json()
     setLoading(false)
 
-    if (authError) {
-      setError(authError.message)
+    if (!res.ok) {
+      setError(data.error ?? 'Failed to resend code.')
       return
     }
 
