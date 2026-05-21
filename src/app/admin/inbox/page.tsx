@@ -529,13 +529,13 @@ export default function InboxPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ conversationId: conv.id }),
     })
-    setConversations(p => p.map(c => c.id === conv.id ? { ...c, unread_count: 0 } : c))
+    setConversations(p => sortConversations(p.map(c => c.id === conv.id ? { ...c, unread_count: 0 } : c)))
   }
 
   const updateStatus = async (convId: string, status: ConvStatus) => {
     await supabaseBrowser.from('sms_conversations').update({ status }).eq('id', convId)
     setActiveConv(p => p ? { ...p, status } : p)
-    setConversations(p => p.map(c => c.id === convId ? { ...c, status } : c))
+    setConversations(p => sortConversations(p.map(c => c.id === convId ? { ...c, status } : c)))
   }
 
   const saveNotes = async () => {
@@ -630,6 +630,12 @@ export default function InboxPage() {
       _optimistic: true,
     }
     setMessages(p => [...p, optimistic])
+    setConversations(p => sortConversations(p.map(c => c.id === activeConv.id ? {
+      ...c,
+      last_message_at: optimistic.created_at,
+      last_message_preview: message || (pendingMedia.length > 0 ? 'Media attachment' : c.last_message_preview),
+      status: c.status === 'needs_reply' ? 'open' : c.status,
+    } : c)))
 
     const capturedMedia = [...pendingMedia]
     setPendingMedia([])
