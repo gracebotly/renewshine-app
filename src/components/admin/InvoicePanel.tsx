@@ -17,7 +17,7 @@ function getDefault48hrDate(): string {
   return `${year}-${month}-${day}`
 }
 
-export function InvoicePanel({ job }: { job: any }) {
+export function InvoicePanel({ job, onClose }: { job: any; onClose?: () => void }) {
   const [open, setOpen] = React.useState(false)
   const [lineItems, setLineItems] = React.useState<LineItem[]>([{ description: '', amount: '' }])
   const [businessName, setBusinessName] = React.useState(job.business_name ?? '')
@@ -164,6 +164,14 @@ export function InvoicePanel({ job }: { job: any }) {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-semibold text-slate-900">Send Invoice</p>
+              {onClose && (
+              <button
+                onClick={onClose}
+                className="flex items-center gap-1 cursor-pointer text-xs text-slate-400 hover:text-slate-600 transition-colors duration-200"
+              >
+                ← Back
+              </button>
+            )}
               <p className="text-xs text-slate-500 mt-0.5">
                 Stripe payment link + branded email to{' '}
                 <span className="font-medium text-slate-700">{job.client_email}</span>
