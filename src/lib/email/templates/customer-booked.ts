@@ -2,90 +2,83 @@ import type { Job } from '@/types/database'
 import { baseTemplate, badge, heading, para, divider, infoTable, infoRow, trustStrip } from './base'
 
 export function customerBookedTemplate(job: Job): { subject: string; html: string } {
-  const subject = `You're booked: RenewShine is confirmed`
   const firstName = job.client_name.split(' ')[0]
+  const subject = `Your RenewShine clean is confirmed — see you soon`
 
   const serviceLabel =
     job.service_type === 'standard' ? 'Standard Clean'
     : job.service_type === 'deep' ? 'Deep Clean'
     : job.service_type === 'move_out' ? 'Move-In / Move-Out'
+    : job.service_type === 'post_construction' ? 'Post-Construction'
     : 'Cleaning Service'
 
   const confirmedDateStr = job.confirmed_date
     ? new Date(job.confirmed_date).toLocaleDateString('en-US', {
         weekday: 'long', month: 'long', day: 'numeric', year: 'numeric',
       })
-    : 'Not confirmed'
+    : '—'
 
   const timePrefMap: Record<string, string> = {
-    morning: 'Morning (8am to 12pm)',
-    afternoon: 'Afternoon (12pm to 5pm)',
-    early_morning: '8am to 10am',
-    mid_morning: '10am to 12pm',
-    noon: '12pm to 2pm',
-    early_afternoon: '2pm to 4pm',
-    late_afternoon: '4pm to 6pm',
-    flexible: 'Flexible (Any Time)',
+    morning:         'Morning (8am – 12pm)',
+    afternoon:       'Afternoon (12pm – 5pm)',
+    early_morning:   '8am – 10am',
+    mid_morning:     '10am – 12pm',
+    noon:            '12pm – 2pm',
+    early_afternoon: '2pm – 4pm',
+    late_afternoon:  '4pm – 6pm',
+    flexible:        'Flexible',
   }
   const timePref = job.availability_time_pref
-    ? (timePrefMap[job.availability_time_pref] ?? 'Flexible (Any Time)')
-    : 'Flexible (Any Time)'
+    ? (timePrefMap[job.availability_time_pref] ?? 'Flexible')
+    : 'Flexible'
 
-  const remaining = job.remaining_amount ?? ((job.approved_price ?? 0) - 100)
+  const remaining = job.remaining_amount ?? (job.approved_price ?? 0)
 
   const content = `
-  ${badge("You're All Set!", 'green')}
-  ${heading(`${firstName}, your clean is confirmed.`)}
-  ${para('Your deposit has been received and your booking is locked in. Here are your full details:')}
+    ${badge('Booking confirmed', 'green')}
+    ${heading(`${firstName}, you’re all set.`)}
+    ${para('Your booking is confirmed. Here’s everything you need for your appointment.')}
 
-  ${infoTable(
-    infoRow('Confirmed date', confirmedDateStr !== '—' ? confirmedDateStr : 'Not confirmed') +
-    infoRow('Arrival window', timePref) +
-    infoRow('Service', serviceLabel) +
-    infoRow('Address', job.address ?? 'Not set') +
-    infoRow('Deposit paid', '$100.00') +
-    infoRow('Remaining balance', `$${remaining.toFixed(2)} (due after clean)`)
-  )}
+    ${infoTable(
+      infoRow('Date', confirmedDateStr) +
+      infoRow('Arrival window', timePref) +
+      infoRow('Service', serviceLabel) +
+      infoRow('Address', job.address ?? '—')
+    )}
 
-  ${divider}
+    ${divider}
 
-  <p style="margin:0 0 12px;font-size:15px;font-weight:600;color:#0f172a;">What to expect on service day</p>
+    <p style="margin:0 0 10px;font-size:13px;font-weight:600;color:#0f172a;text-transform:uppercase;letter-spacing:0.04em;">What happens next</p>
 
-  <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="margin:0 0 20px;">
-    <tbody>
-      <tr>
-        <td style="padding:10px 0;vertical-align:top;width:24px;font-size:13px;font-weight:700;color:#4A7C59;">1.</td>
-        <td style="padding:10px 0 10px 8px;vertical-align:top;">
-          <p style="margin:0;font-size:14px;font-weight:600;color:#0f172a;">We arrive in your confirmed window</p>
-          <p style="margin:4px 0 0;font-size:13px;color:#64748b;">${timePref} on ${confirmedDateStr}.</p>
-        </td>
-      </tr>
-      <tr>
-        <td style="padding:10px 0;vertical-align:top;width:24px;font-size:13px;font-weight:700;color:#4A7C59;">2.</td>
-        <td style="padding:10px 0 10px 8px;vertical-align:top;">
-          <p style="margin:0;font-size:14px;font-weight:600;color:#0f172a;">We handle everything on your checklist</p>
-          <p style="margin:4px 0 0;font-size:13px;color:#64748b;">Every task in your ${serviceLabel} will be completed. We reviewed your photos and arrive prepared.</p>
-        </td>
-      </tr>
-      <tr>
-        <td style="padding:10px 0;vertical-align:top;width:24px;font-size:13px;font-weight:700;color:#4A7C59;">3.</td>
-        <td style="padding:10px 0 10px 8px;vertical-align:top;">
-          <p style="margin:0;font-size:14px;font-weight:600;color:#0f172a;">Pay the remaining balance only after the clean is complete</p>
-          <p style="margin:4px 0 0;font-size:13px;color:#64748b;">You will receive a payment link for $${remaining.toFixed(2)} once the job is done. Not before.</p>
-        </td>
-      </tr>
-      <tr>
-        <td style="padding:10px 0;vertical-align:top;width:24px;font-size:13px;font-weight:700;color:#4A7C59;">4.</td>
-        <td style="padding:10px 0 10px 8px;vertical-align:top;">
-          <p style="margin:0;font-size:14px;font-weight:600;color:#0f172a;">Questions before your appointment?</p>
-          <p style="margin:4px 0 0;font-size:13px;color:#64748b;">Reply to this email or call us at (771) 253-9204. We respond quickly.</p>
-        </td>
-      </tr>
-    </tbody>
-  </table>
+    <table width="100%" cellpadding="0" cellspacing="0" role="presentation"
+      style="background:#f8faf9;border:1px solid #d1e7d9;border-radius:8px;margin:0 0 22px;">
+      <tbody>
+        <tr>
+          <td style="padding:13px 16px;vertical-align:top;width:36px;border-bottom:1px solid #e8f0eb;">
+            <div style="width:24px;height:24px;border-radius:50%;background:#4A7C59;color:#fff;font-size:11px;font-weight:700;text-align:center;line-height:24px;">1</div>
+          </td>
+          <td style="padding:13px 16px 13px 0;font-size:13px;color:#0f172a;line-height:1.5;vertical-align:middle;border-bottom:1px solid #e8f0eb;">We’ll reach out before your appointment to confirm access and any details</td>
+        </tr>
+        <tr>
+          <td style="padding:13px 16px;vertical-align:top;width:36px;border-bottom:1px solid #e8f0eb;">
+            <div style="width:24px;height:24px;border-radius:50%;background:#4A7C59;color:#fff;font-size:11px;font-weight:700;text-align:center;line-height:24px;">2</div>
+          </td>
+          <td style="padding:13px 16px 13px 0;font-size:13px;color:#0f172a;line-height:1.5;vertical-align:middle;border-bottom:1px solid #e8f0eb;">We arrive in your confirmed window and complete every item in your ${serviceLabel}</td>
+        </tr>
+        <tr>
+          <td style="padding:13px 16px;vertical-align:top;width:36px;">
+            <div style="width:24px;height:24px;border-radius:50%;background:#4A7C59;color:#fff;font-size:11px;font-weight:700;text-align:center;line-height:24px;">3</div>
+          </td>
+          <td style="padding:13px 16px 13px 0;font-size:13px;color:#0f172a;line-height:1.5;vertical-align:middle;">${remaining > 0 ? `A payment link for the remaining balance of $${remaining.toFixed(2)} is sent after the clean is complete—not before` : 'Payment will be handled after the clean is complete'}</td>
+        </tr>
+      </tbody>
+    </table>
 
-  ${trustStrip()}
-`
+    ${trustStrip()}
+  `
 
-  return { subject, html: baseTemplate(content, `You're booked! Your cleaner arrives ${confirmedDateStr}.`) }
+  return {
+    subject,
+    html: baseTemplate(content, `You’re booked with RenewShine. We’ll see you on ${confirmedDateStr}.`),
+  }
 }
