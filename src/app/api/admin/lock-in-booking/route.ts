@@ -1,5 +1,6 @@
 import { createServerClient } from '@/lib/supabase/server'
 import { requireAdmin } from '@/lib/require-admin'
+import type { Job } from '@/types/database'
 
 export async function POST(request: Request) {
   try {
@@ -11,7 +12,7 @@ export async function POST(request: Request) {
   const { jobId, confirmedDate, finalPrice, bookingNotes } = await request.json()
   if (!jobId) return Response.json({ error: 'jobId is required' }, { status: 400 })
   const supabase = createServerClient()
-  const updates: Record<string, unknown> = {}
+  const updates: Partial<Job> = {}
   if (confirmedDate) updates.confirmed_date = confirmedDate
   if (finalPrice !== undefined && finalPrice !== null && finalPrice !== '') {
     updates.approved_price = Number(finalPrice)
