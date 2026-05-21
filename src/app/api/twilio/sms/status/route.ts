@@ -25,12 +25,13 @@ export async function POST(req: NextRequest) {
 
   const supabase = createServerClient()
 
-  const updateData: Record<string, unknown> = { twilio_status: status }
-  if (status === 'delivered') {
-    updateData.delivered_at = new Date().toISOString()
-  }
-
-  await supabase.from('sms_messages').update(updateData).eq('twilio_sid', sid)
+  await supabase
+    .from('sms_messages')
+    .update({
+      twilio_status: status,
+      ...(status === 'delivered' ? { delivered_at: new Date().toISOString() } : {}),
+    })
+    .eq('twilio_sid', sid)
 
   return new NextResponse('OK', { status: 200 })
 }
