@@ -286,6 +286,22 @@ export interface Database {
           },
         ]
       }
+      admin_otp_codes: {
+        Row: {
+          email: string
+          code: string
+          expires_at: string
+          created_at: string
+        }
+        Insert: {
+          email: string
+          code: string
+          expires_at: string
+          created_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['admin_otp_codes']['Insert']>
+        Relationships: []
+      }
     }
     Views: Record<string, never>
     Functions: Record<string, never>
