@@ -36,8 +36,29 @@ interface Message {
   body: string
   media_url: string | null
   media_urls?: string[]
+  twilio_status?: string | null
+  delivered_at?: string | null
   created_at: string
   _optimistic?: boolean
+}
+
+
+interface JobSnapshot {
+  id: string
+  service_type: string | null
+  bedrooms: number | null
+  bathrooms: number | null
+  address: string | null
+  status: string
+  deposit_paid: boolean
+  estimated_price_low: number | null
+  estimated_price_high: number | null
+  approved_price: number | null
+  remaining_amount: number | null
+  stripe_payment_link: string | null
+  service_frequency: string | null
+  confirmed_date: string | null
+  created_at: string
 }
 
 interface ConversationEvent {
@@ -145,6 +166,32 @@ function getAvatarColor(phone: string): string {
   return AVATAR_COLORS[sum % AVATAR_COLORS.length]
 }
 
+function formatServiceType(type: string | null): string {
+  if (!type) return 'Unknown service'
+  return { standard: 'Standard Clean', deep: 'Deep Clean', move_out: 'Move-In/Out', post_construction: 'Post-Construction' }[type] ?? type
+}
+
+function formatJobStatus(status: string): { label: string; color: string } {
+  const map: Record<string, { label: string; color: string }> = {
+    new:          { label: 'New',           color: 'bg-slate-100 text-slate-600' },
+    partial:      { label: 'Partial',       color: 'bg-slate-100 text-slate-500' },
+    under_review: { label: 'In Review',     color: 'bg-amber-100 text-amber-700' },
+    contacted:    { label: 'Contacted',     color: 'bg-blue-100 text-blue-700' },
+    approved:     { label: 'Quote Sent',    color: 'bg-purple-100 text-purple-700' },
+    scheduled:    { label: 'Scheduled',     color: 'bg-[#e8f3ec] text-[#4A7C59]' },
+    completed:    { label: 'Completed',     color: 'bg-emerald-100 text-emerald-700' },
+    cancelled:    { label: 'Cancelled',     color: 'bg-red-100 text-red-500' },
+  }
+  return map[status] ?? { label: status, color: 'bg-slate-100 text-slate-500' }
+}
+
+function formatPrice(low: number | null, high: number | null, approved: number | null): string {
+  if (approved) return `$${approved.toLocaleString()}`
+  if (low && high) return `$${low.toLocaleString()}–$${high.toLocaleString()}`
+  if (low) return `$${low.toLocaleString()}+`
+  return 'No estimate'
+}
+
 function getMediaType(file: File): 'image' | 'video' | 'file' {
   if (file.type.startsWith('image/')) return 'image'
   if (file.type.startsWith('video/')) return 'video'
@@ -217,6 +264,67 @@ function AttachmentStrip({
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
+function JobDrawer({
+  job,
+  loading,
+  expanded,
+  onToggle,
+}: {
+  job: JobSnapshot | null
+  loading: boolean
+  expanded: boolean
+  onToggle: () => void
+}) {
+  if (loading) {
+    return (
+      <div className="shrink-0 border-b border-slate-200 bg-white px-4 py-3">
+        <div className="flex items-center gap-2">
+          <div className="h-4 w-24 rounded bg-slate-100 animate-pulse" />
+          <div className="h-4 w-16 rounded bg-slate-100 animate-pulse" />
+        </div>
+      </div>
+    )
+  }
+  if (!job) return null
+  const statusBadge = formatJobStatus(job.status)
+  const priceLabel = formatPrice(job.estimated_price_low, job.estimated_price_high, job.approved_price)
+  const serviceLabel = formatServiceType(job.service_type)
+  const depositLabel = job.deposit_paid ? 'Deposit paid' : job.status === 'approved' ? 'Deposit pending' : null
+  return (
+    <div className="shrink-0 border-b border-slate-200 bg-white">
+      <button onClick={onToggle} className="w-full flex items-center justify-between px-4 py-2.5 cursor-pointer hover:bg-slate-50 transition-colors duration-150">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className={cn('shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium', statusBadge.color)}>{statusBadge.label}</span>
+          <span className="text-xs font-medium text-slate-700 truncate">{serviceLabel}</span>
+          <span className="text-xs text-slate-400 font-mono shrink-0">{priceLabel}</span>
+          {depositLabel && <span className={cn('shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium', job.deposit_paid ? 'bg-[#e8f3ec] text-[#4A7C59]' : 'bg-amber-100 text-amber-700')}>{depositLabel}</span>}
+        </div>
+        <ChevronDown size={14} className={cn('shrink-0 text-slate-400 transition-transform duration-200', expanded ? 'rotate-180' : '')} />
+      </button>
+      <AnimatePresence initial={false}>
+        {expanded && (
+          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.2, ease: 'easeInOut' }} className="overflow-hidden">
+            <div className="px-4 pb-4 space-y-3">
+              <div className="grid grid-cols-2 gap-x-4 gap-y-2 pt-1">
+                {job.service_type && <div><p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400">Service</p><p className="text-xs text-slate-700 mt-0.5">{serviceLabel}</p></div>}
+                {(job.bedrooms || job.bathrooms) && <div><p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400">Size</p><p className="text-xs text-slate-700 mt-0.5">{[job.bedrooms && `${job.bedrooms}BR`, job.bathrooms && `${job.bathrooms}BA`].filter(Boolean).join(' / ')}</p></div>}
+                {job.service_frequency && <div><p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400">Frequency</p><p className="text-xs text-slate-700 mt-0.5 capitalize">{job.service_frequency.replace('_', '-')}</p></div>}
+                {job.confirmed_date && <div><p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400">Date</p><p className="text-xs text-slate-700 mt-0.5">{new Date(job.confirmed_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</p></div>}
+              </div>
+              {job.address && <div><p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400">Address</p><div className="flex items-start gap-2 mt-0.5"><p className="text-xs text-slate-700 flex-1">{job.address}</p><button onClick={() => navigator.clipboard.writeText(job.address!)} className="shrink-0 rounded-md border border-slate-200 px-2 py-0.5 text-[10px] text-slate-500 hover:border-slate-300 hover:text-slate-700 transition-colors duration-150 cursor-pointer">Copy</button></div></div>}
+              {!job.deposit_paid && job.remaining_amount && job.remaining_amount > 0 && <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2"><p className="text-xs font-medium text-amber-800">Balance due: <span className="font-mono">${job.remaining_amount.toLocaleString()}</span></p></div>}
+              <div className="flex flex-wrap gap-2 pt-1">
+                <a href={`/admin/jobs/${job.id}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 hover:border-slate-300 hover:text-slate-900 transition-colors duration-150 cursor-pointer">Open Job ↗</a>
+                {job.status === 'approved' && !job.deposit_paid && job.stripe_payment_link && <button onClick={async () => { await navigator.clipboard.writeText(job.stripe_payment_link!); alert('Deposit link copied to clipboard') }} className="flex items-center gap-1.5 rounded-lg bg-[#4A7C59] px-3 py-1.5 text-xs font-medium text-white hover:bg-[#3d6b4a] transition-colors duration-150 cursor-pointer">Copy Deposit Link</button>}
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  )
+}
+
 export default function InboxPage() {
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [activeConv, setActiveConv] = useState<Conversation | null>(null)
@@ -234,6 +342,9 @@ export default function InboxPage() {
   const [notesSaving, setNotesSaving] = useState(false)
   const [notesSaved, setNotesSaved] = useState(false)
   const [showCrmPanel, setShowCrmPanel] = useState(false)
+  const [jobSnapshot, setJobSnapshot] = useState<JobSnapshot | null>(null)
+  const [jobLoading, setJobLoading] = useState(false)
+  const [showJobDrawer, setShowJobDrawer] = useState(false)
   const [pendingMedia, setPendingMedia] = useState<PendingMedia[]>([])
   const [mediaError, setMediaError] = useState<string | null>(null)
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null)
@@ -249,7 +360,16 @@ export default function InboxPage() {
       .from('sms_conversations')
       .select('*')
       .order('last_message_at', { ascending: false })
-    setConversations((data ?? []) as Conversation[])
+
+    const sorted = (data ?? []).sort((a, b) => {
+      // needs_reply always floats to top
+      if (a.status === 'needs_reply' && b.status !== 'needs_reply') return -1
+      if (b.status === 'needs_reply' && a.status !== 'needs_reply') return 1
+      // Within same status group, sort by recency
+      return new Date(b.last_message_at).getTime() - new Date(a.last_message_at).getTime()
+    })
+
+    setConversations(sorted as Conversation[])
   }, [])
 
   const loadMessages = useCallback(async (convId: string) => {
@@ -314,7 +434,27 @@ export default function InboxPage() {
     setPendingMedia([])
     setReply('')
     setNotes(conv.notes ?? '')
+    setJobSnapshot(null)
+    setShowJobDrawer(false)
     await loadMessages(conv.id)
+
+    if (conv.contact_phone) {
+      setJobLoading(true)
+      const { data: job } = await supabaseBrowser
+        .from('jobs')
+        .select(`
+          id, service_type, bedrooms, bathrooms, address, status,
+          deposit_paid, estimated_price_low, estimated_price_high,
+          approved_price, remaining_amount, stripe_payment_link,
+          service_frequency, confirmed_date, created_at
+        `)
+        .eq('client_phone', conv.contact_phone)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+      setJobSnapshot(job as JobSnapshot | null)
+      setJobLoading(false)
+    }
 
     const { data: evtData } = await supabaseBrowser
       .from('conversation_events')
@@ -500,9 +640,7 @@ export default function InboxPage() {
   }
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    // On mobile (touch devices), Enter should NOT send — it should add a newline
-    // On desktop, Enter sends; Shift+Enter adds a newline
-    const isMobile = window.matchMedia('(hover: none) and (pointer: coarse)').matches
+    const isMobile = navigator.maxTouchPoints > 0
     if (e.key === 'Enter' && !e.shiftKey && !isMobile) {
       e.preventDefault()
       sendReply()
@@ -789,6 +927,13 @@ export default function InboxPage() {
                   </div>
                 </div>
 
+                <JobDrawer
+                  job={jobSnapshot}
+                  loading={jobLoading}
+                  expanded={showJobDrawer}
+                  onToggle={() => setShowJobDrawer(p => !p)}
+                />
+
                 {/* Mobile: slim status bar */}
                 <div className="sm:hidden flex items-center justify-between border-b border-slate-100 bg-white px-4 py-2">
                   <div className="relative flex items-center">
@@ -810,7 +955,7 @@ export default function InboxPage() {
                 </div>
 
                 {/* Messages scroll area */}
-                <div className="flex-1 overflow-y-auto px-4 py-4 space-y-1">
+                <div className="flex-1 overflow-y-auto overscroll-y-contain px-4 py-4 space-y-1">
                   <AnimatePresence initial={false}>
                     {[
                       ...messages.map(m => ({ ...m, _type: 'message' as const })),
@@ -947,13 +1092,26 @@ export default function InboxPage() {
                                   )}
                                 </div>
 
-                                {/* Sent/delivered indicator for outbound */}
+                                {/* Delivery state indicator for outbound */}
                                 {isOut && (
                                   <div className="mt-0.5 flex items-center gap-1 pr-1">
-                                    {(msg as Message)._optimistic ? (
-                                      <Clock size={9} className="text-slate-300" />
+                                    {msg._optimistic ? (
+                                      // Still uploading / in-flight
+                                      <div className="h-2.5 w-2.5 rounded-full border border-slate-300 border-t-transparent animate-spin" />
+                                    ) : msg.twilio_status === 'failed' || msg.twilio_status === 'undelivered' ? (
+                                      // Failed — red indicator
+                                      <span className="text-[10px] text-red-400 font-medium">Failed</span>
+                                    ) : msg.twilio_status === 'delivered' ? (
+                                      // Delivered — double check + timestamp
+                                      <span className="text-[10px] text-[#4A7C59] flex items-center gap-0.5">
+                                        <CheckCheck size={10} />
+                                        {msg.delivered_at
+                                          ? new Date(msg.delivered_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+                                          : 'Delivered'}
+                                      </span>
                                     ) : (
-                                      <CheckCheck size={10} className="text-[#4A7C59]" />
+                                      // Sent but not yet delivered
+                                      <CheckCheck size={10} className="text-slate-300" />
                                     )}
                                   </div>
                                 )}

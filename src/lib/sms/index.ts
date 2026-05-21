@@ -1,11 +1,5 @@
 import { twilioClient } from './client'
 
-/**
- * Send an SMS or MMS via Twilio.
- * - Pass `mediaUrls` (array of publicly accessible URLs) to send MMS.
- * - Never throws — same non-blocking pattern as Resend email functions.
- * - Silently skips if `to` is null/empty or Twilio env vars are not set.
- */
 export async function sendSms(
   to: string | null,
   body: string,
@@ -15,15 +9,17 @@ export async function sendSms(
   if (!twilioClient) return
 
   const from = process.env.TWILIO_PHONE_NUMBER!
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? ''
 
   try {
     const params: Parameters<typeof twilioClient.messages.create>[0] = {
       to,
       from,
       body,
+      // Delivery status callback — populates twilio_status in sms_messages
+      statusCallback: siteUrl ? `${siteUrl}/api/twilio/sms/status` : undefined,
     }
 
-    // Only attach mediaUrl if we have actual URLs to send
     if (mediaUrls && mediaUrls.length > 0) {
       params.mediaUrl = mediaUrls
     }

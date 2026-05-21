@@ -210,13 +210,22 @@ export interface Database {
           body: string
           twilio_sid: string | null
           media_url: string | null
+          media_urls: string[]
+          twilio_status: string | null
+          delivered_at: string | null
           created_at: string
         }
-        Insert: Omit<Database['public']['Tables']['sms_messages']['Row'], 'id' | 'created_at' | 'twilio_sid' | 'media_url'> & {
+        Insert: Omit<
+          Database['public']['Tables']['sms_messages']['Row'],
+          'id' | 'created_at' | 'twilio_sid' | 'media_url' | 'media_urls' | 'twilio_status' | 'delivered_at'
+        > & {
           twilio_sid?: string | null
           media_url?: string | null
+          media_urls?: string[]
+          twilio_status?: string | null
+          delivered_at?: string | null
         }
-        Update: Partial<Database['public']['Tables']['sms_messages']['Insert']> & { media_url?: string | null }
+        Update: Partial<Database['public']['Tables']['sms_messages']['Insert']>
         Relationships: []
       }
       conversation_events: {
