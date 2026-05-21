@@ -6,7 +6,7 @@ import {
   Send, ArrowLeft, Bell, BellOff,
   ChevronDown, Zap, Phone, MessageSquare,
   X, Image as ImageIcon, FileText, Video,
-  CheckCheck, Clock,
+  CheckCheck, Clock, User,
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'motion/react'
 import { cn } from '@/lib/utils'
@@ -198,6 +198,18 @@ function getMediaType(file: File): 'image' | 'video' | 'file' {
   return 'file'
 }
 
+/**
+ * For Twilio media URLs, route through our proxy so the browser
+ * can load them without needing Twilio credentials.
+ * Blob URLs (optimistic preview) and Vercel Blob URLs pass through unchanged.
+ */
+function resolveMediaUrl(url: string): string {
+  if (url.includes('api.twilio.com')) {
+    return `/api/twilio/media?url=${encodeURIComponent(url)}`
+  }
+  return url
+}
+
 // Max 10 attachments per MMS (Twilio limit)
 const MAX_ATTACHMENTS = 10
 // Max 5MB per attachment (Twilio MMS limit is ~5MB for most carriers)
@@ -325,6 +337,51 @@ function JobDrawer({
   )
 }
 
+function ContactCard({
+  conv,
+  job,
+  onClose,
+}: {
+  conv: Conversation
+  job: JobSnapshot | null
+  onClose: () => void
+}) {
+  return (
+    <motion.div initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }} transition={{ type: 'spring', damping: 28, stiffness: 280 }} className="absolute inset-0 z-20 flex flex-col bg-white sm:relative sm:w-72 sm:border-l sm:border-slate-200">
+      <div className="shrink-0 flex items-center justify-between border-b border-slate-200 px-4 py-3" style={{ paddingTop: 'max(12px, env(safe-area-inset-top))' }}>
+        <p className="text-sm font-semibold text-slate-900">Contact</p>
+        <button onClick={onClose} className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-slate-400 hover:bg-slate-200 hover:text-slate-600 transition-colors duration-150 cursor-pointer">
+          <X size={14} />
+        </button>
+      </div>
+      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-5">
+        <div className="flex flex-col items-center gap-2 pt-2 pb-1">
+          <Avatar name={conv.contact_name} phone={conv.contact_phone} size="lg" />
+          <div className="text-center">
+            <p className="text-base font-semibold text-slate-900">{conv.contact_name ?? formatPhone(conv.contact_phone)}</p>
+            {conv.contact_name && <p className="text-xs text-slate-400 mt-0.5">{formatPhone(conv.contact_phone)}</p>}
+          </div>
+          <div className="flex gap-2 mt-1">
+            <a href={`tel:${conv.contact_phone}`} className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 hover:border-slate-300 hover:text-slate-900 transition-colors duration-150"><Phone size={12} />Call</a>
+            <button onClick={() => navigator.clipboard.writeText(conv.contact_phone)} className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-500 hover:border-slate-300 hover:text-slate-700 transition-colors duration-150 cursor-pointer">Copy number</button>
+          </div>
+        </div>
+        <div>
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400 mb-2">Lead Info</p>
+          <div className="space-y-2">
+            <div className="flex items-center justify-between"><span className="text-xs text-slate-500">Source</span><span className={cn('rounded px-1.5 py-0.5 text-[10px] font-medium', SOURCE_COLORS[conv.lead_source])}>{SOURCE_LABELS[conv.lead_source]}</span></div>
+            <div className="flex items-center justify-between"><span className="text-xs text-slate-500">Status</span><span className={cn('rounded px-1.5 py-0.5 text-[10px] font-medium', STATUS_COLORS[conv.status])}>{STATUS_LABELS[conv.status]}</span></div>
+            <div className="flex items-center justify-between"><span className="text-xs text-slate-500">First contact</span><span className="text-xs text-slate-700">{new Date(conv.last_message_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span></div>
+          </div>
+        </div>
+        {(conv.tags ?? []).length > 0 && <div><p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400 mb-2">Tags</p><div className="flex flex-wrap gap-1.5">{(conv.tags ?? []).map(tag => <span key={tag} className="rounded-full border border-[#4A7C59]/20 bg-[#e8f3ec] px-2.5 py-0.5 text-[10px] font-medium text-[#4A7C59]">{tag}</span>)}</div></div>}
+        {job && <div><p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400 mb-2">Latest Job</p><div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 space-y-2"><div className="flex items-center justify-between"><span className="text-xs font-medium text-slate-700">{formatServiceType(job.service_type)}</span><span className={cn('rounded px-1.5 py-0.5 text-[10px] font-medium', formatJobStatus(job.status).color)}>{formatJobStatus(job.status).label}</span></div><div className="flex items-center justify-between"><span className="text-xs text-slate-500">Estimate</span><span className="text-xs font-mono text-slate-700">{formatPrice(job.estimated_price_low, job.estimated_price_high, job.approved_price)}</span></div>{job.address && <div><span className="text-xs text-slate-500">Address</span><p className="text-xs text-slate-700 mt-0.5">{job.address}</p></div>}<a href={`/admin/jobs/${job.id}`} target="_blank" rel="noopener noreferrer" className="block text-center rounded-lg border border-slate-200 bg-white py-1.5 text-xs font-medium text-slate-600 hover:border-slate-300 hover:text-slate-900 transition-colors duration-150 mt-1">Open Job ↗</a></div></div>}
+        {conv.notes && <div><p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400 mb-2">Notes</p><p className="text-xs text-slate-600 leading-relaxed">{conv.notes}</p></div>}
+      </div>
+    </motion.div>
+  )
+}
+
 export default function InboxPage() {
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [activeConv, setActiveConv] = useState<Conversation | null>(null)
@@ -348,6 +405,7 @@ export default function InboxPage() {
   const [pendingMedia, setPendingMedia] = useState<PendingMedia[]>([])
   const [mediaError, setMediaError] = useState<string | null>(null)
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null)
+  const [showContactCard, setShowContactCard] = useState(false)
 
   const bottomRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
@@ -355,22 +413,21 @@ export default function InboxPage() {
 
   // ── Data loading ──────────────────────────────────────────────────────────
 
+  const sortConversations = useCallback((convs: Conversation[]): Conversation[] => {
+    return [...convs].sort((a, b) => {
+      if (a.status === 'needs_reply' && b.status !== 'needs_reply') return -1
+      if (b.status === 'needs_reply' && a.status !== 'needs_reply') return 1
+      return new Date(b.last_message_at).getTime() - new Date(a.last_message_at).getTime()
+    })
+  }, [])
+
   const loadConversations = useCallback(async () => {
     const { data } = await supabaseBrowser
       .from('sms_conversations')
       .select('*')
       .order('last_message_at', { ascending: false })
-
-    const sorted = (data ?? []).sort((a, b) => {
-      // needs_reply always floats to top
-      if (a.status === 'needs_reply' && b.status !== 'needs_reply') return -1
-      if (b.status === 'needs_reply' && a.status !== 'needs_reply') return 1
-      // Within same status group, sort by recency
-      return new Date(b.last_message_at).getTime() - new Date(a.last_message_at).getTime()
-    })
-
-    setConversations(sorted as Conversation[])
-  }, [])
+    setConversations(sortConversations((data ?? []) as Conversation[]))
+  }, [sortConversations])
 
   const loadMessages = useCallback(async (convId: string) => {
     const { data } = await supabaseBrowser
@@ -406,6 +463,9 @@ export default function InboxPage() {
         }
         loadConversations()
       })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'sms_conversations' }, () => {
+        loadConversations()
+      })
       .subscribe()
     return () => { supabaseBrowser.removeChannel(channel) }
   }, [activeConv, loadConversations])
@@ -431,6 +491,7 @@ export default function InboxPage() {
     setShowThread(true)
     setShowQuickPanel(false)
     setShowCrmPanel(false)
+    setShowContactCard(false)
     setPendingMedia([])
     setReply('')
     setNotes(conv.notes ?? '')
@@ -573,46 +634,37 @@ export default function InboxPage() {
     const capturedMedia = [...pendingMedia]
     setPendingMedia([])
 
-    try {
-      if (capturedMedia.length > 0) {
-        // ── MMS path: FormData with files ──────────────────────────────────
-        const fd = new FormData()
-        fd.append('conversationId', activeConv.id)
-        fd.append('to', activeConv.contact_phone)
-        fd.append('message', message)
-        for (const att of capturedMedia) {
-          fd.append('media', att.file)
-        }
-        await fetch('/api/admin/sms-reply', { method: 'POST', body: fd })
-      } else {
-        // ── SMS path: JSON ─────────────────────────────────────────────────
-        await fetch('/api/admin/sms-reply', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            conversationId: activeConv.id,
-            to: activeConv.contact_phone,
-            message,
-          }),
-        })
-      }
-
-      setJustSent(true)
-      setTimeout(() => setJustSent(false), 2500)
-
-      // Clean up object URLs from optimistic preview
+    if (capturedMedia.length > 0) {
+      const fd = new FormData()
+      fd.append('conversationId', activeConv.id)
+      fd.append('to', activeConv.contact_phone)
+      fd.append('message', message)
       for (const att of capturedMedia) {
-        if (att.previewUrl) URL.revokeObjectURL(att.previewUrl)
+        fd.append('media', att.file)
       }
-    } catch (err) {
-      console.error('send failed:', err)
-      setMessages(p => p.filter(m => m.id !== optimistic.id))
-      if (!text) setReply(message)
-      setPendingMedia(capturedMedia)
-    } finally {
-      setSending(false)
-      textareaRef.current?.focus()
+      fetch('/api/admin/sms-reply', { method: 'POST', body: fd }).catch(err =>
+        console.error('MMS send failed:', err)
+      )
+    } else {
+      fetch('/api/admin/sms-reply', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          conversationId: activeConv.id,
+          to: activeConv.contact_phone,
+          message,
+        }),
+      }).catch(err => console.error('SMS send failed:', err))
     }
+
+    for (const att of capturedMedia) {
+      if (att.previewUrl) URL.revokeObjectURL(att.previewUrl)
+    }
+
+    setSending(false)
+    setJustSent(true)
+    setTimeout(() => setJustSent(false), 2500)
+    textareaRef.current?.focus()
   }
 
   const enablePush = async () => {
@@ -701,19 +753,19 @@ export default function InboxPage() {
           className="shrink-0 border-b border-slate-200 bg-white px-4 py-3 sm:px-6"
           style={{ paddingTop: 'max(12px, env(safe-area-inset-top))' }}
         >
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 min-w-0">
               {showThread ? (
                 <button
                   onClick={() => { setShowThread(false); setActiveConv(null); setPendingMedia([]) }}
-                  className="sm:hidden flex items-center gap-1.5 cursor-pointer rounded-lg px-2 py-1.5 text-sm font-medium text-[#4A7C59] hover:bg-[#e8f3ec] transition-colors duration-150 min-h-[44px]"
+                  className="sm:hidden flex items-center gap-1 cursor-pointer rounded-lg px-2 py-1.5 text-sm font-medium text-[#4A7C59] active:bg-[#e8f3ec] transition-colors duration-150 min-h-[44px] shrink-0"
                 >
-                  <ArrowLeft size={16} />
-                  Messages
+                  <ArrowLeft size={18} />
+                  <span className="text-sm font-semibold">Back</span>
                 </button>
               ) : (
                 <div className="flex items-center gap-2.5">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#4A7C59] text-white">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#4A7C59] text-white shrink-0">
                     <MessageSquare size={15} />
                   </div>
                   <div>
@@ -730,16 +782,16 @@ export default function InboxPage() {
                 </div>
               )}
 
-              {/* Mobile thread header — contact name */}
+              {/* Mobile thread header — contact name (center, truncated) */}
               {showThread && activeConv && (
-                <div className="sm:hidden flex items-center gap-2">
+                <div className="sm:hidden flex items-center gap-2 min-w-0 flex-1">
                   <Avatar name={activeConv.contact_name} phone={activeConv.contact_phone} size="sm" />
-                  <div>
-                    <p className="text-sm font-semibold text-slate-900 leading-tight">
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-slate-900 leading-tight truncate">
                       {activeConv.contact_name ?? formatPhone(activeConv.contact_phone)}
                     </p>
                     {activeConv.contact_name && (
-                      <p className="text-[10px] text-slate-400">{formatPhone(activeConv.contact_phone)}</p>
+                      <p className="text-[10px] text-slate-400 truncate">{formatPhone(activeConv.contact_phone)}</p>
                     )}
                   </div>
                 </div>
@@ -747,16 +799,24 @@ export default function InboxPage() {
             </div>
 
             {/* Right side actions */}
-            <div className="flex items-center gap-2">
-              {/* Call button — in thread on mobile */}
+            <div className="flex items-center gap-2 shrink-0">
               {showThread && activeConv && (
-                <a
-                  href={`tel:${activeConv.contact_phone}`}
-                  className="sm:hidden flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-slate-600 hover:bg-[#e8f3ec] hover:text-[#4A7C59] transition-colors duration-150 cursor-pointer"
-                  title={`Call ${formatPhone(activeConv.contact_phone)}`}
-                >
-                  <Phone size={16} />
-                </a>
+                <>
+                  <a
+                    href={`tel:${activeConv.contact_phone}`}
+                    className="sm:hidden flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-slate-600 active:bg-[#e8f3ec] active:text-[#4A7C59] transition-colors duration-150 cursor-pointer"
+                    title={`Call ${formatPhone(activeConv.contact_phone)}`}
+                  >
+                    <Phone size={16} />
+                  </a>
+                  <button
+                    onClick={() => setShowContactCard(p => !p)}
+                    className={cn('sm:hidden flex h-10 w-10 items-center justify-center rounded-full transition-colors duration-150 cursor-pointer', showContactCard ? 'bg-[#4A7C59] text-white' : 'bg-slate-100 text-slate-500')}
+                    title="Contact info"
+                  >
+                    <User size={16} />
+                  </button>
+                </>
               )}
 
               <button
@@ -857,7 +917,7 @@ export default function InboxPage() {
 
           {/* ── Thread panel ──────────────────────────────────────────────── */}
           <div className={cn(
-            'flex flex-1 flex-col bg-slate-50',
+            'relative flex flex-1 flex-col bg-slate-50',
             !showThread && 'hidden sm:flex'
           )}>
             {!activeConv ? (
@@ -1048,11 +1108,11 @@ export default function InboxPage() {
                                           <div
                                             key={idx}
                                             className="relative overflow-hidden rounded-xl cursor-pointer"
-                                            onClick={() => isImg && setLightboxUrl(url)}
+                                            onClick={() => isImg && setLightboxUrl(resolveMediaUrl(url))}
                                           >
                                             {isImg && (
                                               <img
-                                                src={url}
+                                                src={resolveMediaUrl(url)}
                                                 alt="Media"
                                                 className="w-full object-cover"
                                                 style={{ maxHeight: mediaArr.length === 1 ? 280 : 140 }}
@@ -1061,7 +1121,7 @@ export default function InboxPage() {
                                             )}
                                             {isVid && (
                                               <video
-                                                src={url}
+                                                src={resolveMediaUrl(url)}
                                                 controls
                                                 playsInline
                                                 className="w-full rounded-xl"
@@ -1325,9 +1385,15 @@ export default function InboxPage() {
                 </div>
               </>
             )}
-          </div>
+            </div>
 
-        </div>
+            <AnimatePresence>
+              {showContactCard && activeConv && (
+                <ContactCard conv={activeConv} job={jobSnapshot} onClose={() => setShowContactCard(false)} />
+              )}
+            </AnimatePresence>
+
+          </div>
       </div>
     </>
   )
