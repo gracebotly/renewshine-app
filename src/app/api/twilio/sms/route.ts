@@ -86,7 +86,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Store in inbox too so you can see the rating reply in the thread
-    await storeInInbox({ supabase, from, body, sid, siteUrl, skipOwnerAlert: true, mediaUrl })
+    await storeInInbox({ supabase, from, body, sid, siteUrl, skipOwnerAlert: true, mediaUrl, params })
 
     return new NextResponse(EMPTY_TWIML, { status: 200, headers: { 'Content-Type': 'text/xml' } })
   }
@@ -101,7 +101,7 @@ export async function POST(req: NextRequest) {
       `✅ ${from} confirmed their appointment.`
     ).catch(err => console.error('owner YES alert failed:', err))
 
-    await storeInInbox({ supabase, from, body, sid, siteUrl, skipOwnerAlert: true, mediaUrl })
+    await storeInInbox({ supabase, from, body, sid, siteUrl, skipOwnerAlert: true, mediaUrl, params })
 
     return new NextResponse(EMPTY_TWIML, { status: 200, headers: { 'Content-Type': 'text/xml' } })
   }
@@ -117,7 +117,7 @@ export async function POST(req: NextRequest) {
       `⚠️ ${from} replied NO to their appointment confirmation. Reschedule needed.`
     ).catch(err => console.error('owner NO alert failed:', err))
 
-    await storeInInbox({ supabase, from, body, sid, siteUrl, skipOwnerAlert: true, mediaUrl })
+    await storeInInbox({ supabase, from, body, sid, siteUrl, skipOwnerAlert: true, mediaUrl, params })
 
     return new NextResponse(EMPTY_TWIML, { status: 200, headers: { 'Content-Type': 'text/xml' } })
   }
@@ -130,7 +130,7 @@ export async function POST(req: NextRequest) {
     .eq('client_phone', from)
     .in('status', ['approved', 'scheduled', 'completed'])
 
-  await storeInInbox({ supabase, from, body, sid, siteUrl, skipOwnerAlert: false, mediaUrl })
+  await storeInInbox({ supabase, from, body, sid, siteUrl, skipOwnerAlert: false, mediaUrl, params })
 
   return new NextResponse(EMPTY_TWIML, { status: 200, headers: { 'Content-Type': 'text/xml' } })
 }
@@ -138,7 +138,7 @@ export async function POST(req: NextRequest) {
 // ─── Shared: store message in SMS inbox ──────────────────────────────────────
 
 async function storeInInbox({
-  supabase, from, body, sid, siteUrl, skipOwnerAlert, mediaUrl,
+  supabase, from, body, sid, siteUrl, skipOwnerAlert, mediaUrl, params,
 }: {
   supabase: ReturnType<typeof createServerClient>
   from: string
@@ -147,6 +147,7 @@ async function storeInInbox({
   siteUrl: string
   skipOwnerAlert: boolean
   mediaUrl: string | null
+  params: Record<string, string>
 }) {
   const { data: matchingJob } = await supabase
     .from('jobs')
@@ -195,12 +196,21 @@ async function storeInInbox({
     preview: body ? body.slice(0, 100) : '📷 Photo',
   })
 
+  // Collect all media URLs from the Twilio payload (up to 10 per MMS spec)
+  // params is available in scope from the parent POST handler
+  const allMediaUrls: string[] = []
+  for (let i = 0; i <= 9; i++) {
+    const url = params[`MediaUrl${i}`]
+    if (url) allMediaUrls.push(url)
+  }
+
   await supabase.from('sms_messages').insert({
     conversation_id: conv.id,
     direction:       'inbound',
     body,
     twilio_sid:      sid,
-    media_url:       mediaUrl ?? null,
+    media_url:       allMediaUrls[0] ?? null,   // backward compat
+    media_urls:      allMediaUrls,               // new multi-media column
   })
 
   const displayName = conv.contact_name ?? from
