@@ -100,7 +100,7 @@ export default function AdminLoginPage() {
     const { error: verifyError } = await supabaseBrowser.auth.verifyOtp({
       email: email.trim().toLowerCase(),
       token: trimmedCode,
-      type: 'email',
+      type: 'magiclink',
     })
 
     setLoading(false)
