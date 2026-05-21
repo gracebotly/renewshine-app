@@ -1,20 +1,34 @@
 import { twilioClient } from './client'
 
 /**
- * Send an SMS via Twilio.
- * Never throws — same non-blocking pattern as Resend email functions.
- * Silently skips if:
- *   - `to` is null or empty (customer has no phone on file)
- *   - Twilio env vars are not set (local dev without credentials)
+ * Send an SMS or MMS via Twilio.
+ * - Pass `mediaUrls` (array of publicly accessible URLs) to send MMS.
+ * - Never throws — same non-blocking pattern as Resend email functions.
+ * - Silently skips if `to` is null/empty or Twilio env vars are not set.
  */
-export async function sendSms(to: string | null, body: string): Promise<void> {
+export async function sendSms(
+  to: string | null,
+  body: string,
+  mediaUrls?: string[]
+): Promise<void> {
   if (!to) return
-  if (!twilioClient) return // env vars not set — skip silently
+  if (!twilioClient) return
 
   const from = process.env.TWILIO_PHONE_NUMBER!
 
   try {
-    await twilioClient.messages.create({ to, from, body })
+    const params: Parameters<typeof twilioClient.messages.create>[0] = {
+      to,
+      from,
+      body,
+    }
+
+    // Only attach mediaUrl if we have actual URLs to send
+    if (mediaUrls && mediaUrls.length > 0) {
+      params.mediaUrl = mediaUrls
+    }
+
+    await twilioClient.messages.create(params)
   } catch (err) {
     console.error('SMS send failed (non-blocking):', err)
   }
