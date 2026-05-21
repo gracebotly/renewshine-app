@@ -5,7 +5,12 @@ import type { NextRequest } from 'next/server'
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
-  if (pathname === '/admin/login' || pathname.startsWith('/auth/')) {
+  if (
+    pathname === '/admin/login' ||
+    pathname.startsWith('/auth/') ||
+    pathname === '/api/admin/send-otp' ||
+    pathname === '/api/admin/verify-otp'
+  ) {
     const res = NextResponse.next()
     res.headers.set('x-pathname', pathname)
     return res
