@@ -6,7 +6,7 @@ import {
   Send, ArrowLeft, Bell, BellOff,
   ChevronDown, Zap, Phone, MessageSquare,
   X, Image as ImageIcon, FileText, Video,
-  CheckCheck, Clock, User,
+  CheckCheck, Clock, LayoutGrid, User,
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'motion/react'
 import { cn } from '@/lib/utils'
@@ -806,6 +806,17 @@ export default function InboxPage() {
 
             {/* Right side actions */}
             <div className="flex items-center gap-2 shrink-0">
+              {/* Admin icon — only on conversation list, not inside a thread */}
+              {!showThread && (
+                <a
+                  href="/admin"
+                  className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-[#e8f3ec] hover:text-[#4A7C59] transition-colors duration-150 cursor-pointer"
+                  title="Back to Admin"
+                >
+                  <LayoutGrid size={16} />
+                </a>
+              )}
+
               {showThread && activeConv && (
                 <>
                   <a
