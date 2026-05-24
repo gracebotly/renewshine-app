@@ -9,7 +9,7 @@ const BORDER = '#e2e8f0'
 const BG_PAGE = '#f4f7f5'
 
 const LOGO_IMG = `<img
-  src="https://renewshine.co/images/logo-email.png"
+  src="https://renewshine.co/logo-primary.png"
   alt="RenewShine Premium Cleaning"
   width="160"
   height="44"
