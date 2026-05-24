@@ -41,11 +41,11 @@ export function baseTemplate(content: string, previewText: string): string {
           </tr>
           <tr>
             <td style="background:${BG_PAGE};padding:20px 32px;border-top:1px solid ${BORDER};">
-              <p style="margin:0;font-size:12px;color:${TEXT_MUTED};text-align:center;">RenewShine · DMV Area · DC, Maryland &amp; Virginia</p>
-              <p style="margin:6px 0 0;font-size:12px;color:${TEXT_MUTED};text-align:center;">
+              <p style="margin:0;font-size:12px;color:${TEXT_MUTED};text-align:center;">
                 <a href="mailto:hello@renewshine.co" style="color:${TEXT_MUTED};text-decoration:none;">hello@renewshine.co</a>
                 &nbsp;·&nbsp;
                 <a href="tel:+17712539204" style="color:${TEXT_MUTED};text-decoration:none;">(771) 253-9204</a>
+                &nbsp;·&nbsp; DMV Area
               </p>
               <p style="margin:6px 0 0;font-size:11px;color:#94a3b8;text-align:center;">© ${new Date().getFullYear()} RenewShine. All rights reserved.</p>
             </td>
