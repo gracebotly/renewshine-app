@@ -145,7 +145,7 @@ function QuoteComposer({
             type="number"
             value={depositAmount}
             onChange={(e) => setDepositAmount(e.target.value)}
-            min="1"
+            min="0"
             step="1"
             className={inputClass + ' font-mono'}
           />
@@ -184,15 +184,17 @@ function QuoteComposer({
       {/* Send buttons */}
       <button
         onClick={onSend}
-        disabled={quoteTotal <= depositAmt || loading || !hasDate}
+        disabled={quoteTotal <= 0 || loading || !hasDate}
         className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg bg-[#1A3F6F] px-4 py-3 text-sm font-semibold text-white transition-colors duration-200 hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {loading
           ? 'Sending…'
           : !hasDate
           ? 'Set a due date to send'
-          : quoteTotal > depositAmt
-          ? `Send quote + $${depositAmt.toFixed(0)} deposit link — $${quoteTotal.toFixed(2)} total`
+          : quoteTotal > 0
+          ? depositAmt > 0
+            ? `Send quote + $${depositAmt.toFixed(0)} deposit link — $${quoteTotal.toFixed(2)} total`
+            : `Send quote — $${quoteTotal.toFixed(2)} total (no deposit)`
           : 'Add line items to send'}
       </button>
       <button
@@ -253,7 +255,7 @@ export function QuoteCard({ job }: { job: any }) {
   const [quoteNotes, setQuoteNotes] = React.useState('')
 
   const quoteTotal = quoteItems.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0)
-  const depositAmount = parseFloat(quoteDepositAmount) || 100
+  const depositAmount = Number.isFinite(parseFloat(quoteDepositAmount)) ? parseFloat(quoteDepositAmount) : 0
 
   // Derived
   const hasBooking = Boolean(savedDate || savedPrice)
@@ -302,8 +304,8 @@ export function QuoteCard({ job }: { job: any }) {
       setErrorMsg('Set a deposit due date before sending.')
       return
     }
-    if (quoteTotal <= depositAmount) {
-      setErrorMsg('Total must be greater than the deposit amount.')
+    if (quoteTotal <= 0) {
+      setErrorMsg('Add at least one line item with an amount.')
       return
     }
     setLoadingStripe(true)

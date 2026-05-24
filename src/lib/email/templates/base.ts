@@ -8,17 +8,13 @@ const TEXT_MUTED = '#64748b'
 const BORDER = '#e2e8f0'
 const BG_PAGE = '#f4f7f5'
 
-const LOGO_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 172 44" width="172" height="44" style="display:block;">
-  <rect x="0" y="0" width="44" height="44" rx="10" fill="#FFFFFF" fill-opacity="0.15" stroke="#A8D4B5" stroke-width="1"/>
-  <path d="M8 22 Q22 8 36 22" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round"/>
-  <path d="M8 22 Q22 36 36 22" fill="none" stroke="#A8D4B5" stroke-width="1.5" stroke-linecap="round"/>
-  <circle cx="22" cy="15" r="3" fill="#FFFFFF"/>
-  <circle cx="22" cy="29" r="3" fill="#A8D4B5"/>
-  <text x="54" y="16" font-family="Arial, sans-serif" font-size="17" font-weight="700" fill="#FFFFFF" letter-spacing="-0.3">renew</text>
-  <text x="54" y="33" font-family="Arial, sans-serif" font-size="17" font-weight="300" fill="#A8D4B5" letter-spacing="-0.3">shine</text>
-  <line x1="54" y1="38" x2="172" y2="38" stroke="#A8D4B5" stroke-opacity="0.3" stroke-width="0.75"/>
-  <text x="54" y="43" font-family="Arial, sans-serif" font-size="6.5" font-weight="400" fill="#A8D4B5" letter-spacing="2">PREMIUM CLEANING</text>
-</svg>`
+const LOGO_IMG = `<img
+  src="https://renewshine.co/images/logo-email.png"
+  alt="RenewShine Premium Cleaning"
+  width="160"
+  height="44"
+  style="display:block;border:0;outline:none;text-decoration:none;"
+/>`
 
 export function baseTemplate(content: string, previewText: string): string {
   return `<!DOCTYPE html>
@@ -37,7 +33,7 @@ export function baseTemplate(content: string, previewText: string): string {
           style="max-width:600px;width:100%;background:#ffffff;border-radius:12px;overflow:hidden;border:1px solid ${BORDER};">
           <tr>
             <td style="background:${BRAND};padding:20px 28px;">
-              ${LOGO_SVG}
+              ${LOGO_IMG}
             </td>
           </tr>
           <tr>

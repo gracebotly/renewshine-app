@@ -4,7 +4,6 @@ import * as React from 'react'
 import { useDropzone } from 'react-dropzone'
 import { CheckCircle2, Film, Loader2, Upload, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { supabaseBrowser } from '@/lib/supabase/client'
 
 interface MediaUploadProps {
   onUpload: (encoded: string[]) => void
@@ -36,31 +35,27 @@ export function MediaUpload({ onUpload, uploadedEncoded }: MediaUploadProps) {
   const uploadFile = React.useCallback(
     async (file: File, id: string, previewUrl: string, resolvedContentType: string) => {
       try {
-        // Generate a random storage path — same pattern as the old server route
-        const ext = file.name.split('.').pop()?.toLowerCase() ||
-          (resolvedContentType === 'image/heic' ? 'heic' :
-           resolvedContentType === 'image/heif' ? 'heif' :
-           resolvedContentType === 'video/quicktime' ? 'mov' : 'bin')
-        const path = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
-
-        // Upload directly from browser to Supabase Storage.
-        // Bypasses Vercel entirely — no 4.5MB route handler limit.
-        const uploadFile = resolvedContentType !== file.type
+        // Route through server API — uses service role key which bypasses RLS.
+        // The browser anon key does NOT have storage insert permissions.
+        const fd = new FormData()
+        const fileToSend = resolvedContentType !== file.type
           ? new File([file], file.name, { type: resolvedContentType })
           : file
+        fd.append('file', fileToSend)
 
-        const { data, error: uploadError } = await supabaseBrowser.storage
-          .from('job-media')
-          .upload(path, uploadFile, {
-            contentType: resolvedContentType,
-            upsert: false,
-          })
+        const res = await fetch('/api/upload-media', {
+          method: 'POST',
+          body: fd,
+        })
 
-        if (uploadError || !data) {
-          throw new Error(uploadError?.message ?? 'Upload failed')
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}))
+          throw new Error((err as any).error ?? 'Upload failed')
         }
 
-        const encoded = `${data.path}|${resolvedContentType}`
+        const data = await res.json() as { path: string; contentType: string }
+
+        const encoded = `${data.path}|${data.contentType}`
         encodedRef.current = [...encodedRef.current, encoded]
         onUpload(encodedRef.current)
 
@@ -175,7 +170,7 @@ export function MediaUpload({ onUpload, uploadedEncoded }: MediaUploadProps) {
           {isDragActive ? 'Drop files here' : 'Upload photos or a video'}
         </p>
         <p className="mt-1 text-sm text-slate-600">
-          A <span className="font-medium text-slate-900">60-second walkthrough video</span> gives
+          A <span className="font-medium text-slate-900">short walkthrough video</span> gives
           us the most accurate picture. Photos of each room work too.
         </p>
         <p className="mt-3 text-xs text-slate-400">
