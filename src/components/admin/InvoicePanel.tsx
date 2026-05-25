@@ -29,6 +29,9 @@ export function InvoicePanel({ job, onClose }: { job: any; onClose?: () => void 
   const [markingPaid, setMarkingPaid] = React.useState(false)
   const [markPaidSuccess, setMarkPaidSuccess] = React.useState('')
   const [markPaidError, setMarkPaidError] = React.useState('')
+  const [showPreview, setShowPreview] = React.useState(false)
+  const [previewHtml, setPreviewHtml] = React.useState('')
+  const [previewLoading, setPreviewLoading] = React.useState(false)
 
   // Deposit credit — pre-fill from DB but fully overridable
   const [applyDeposit, setApplyDeposit] = React.useState<boolean>(job.deposit_paid === true)
@@ -60,6 +63,45 @@ export function InvoicePanel({ job, onClose }: { job: any; onClose?: () => void 
     setLineItems((prev) =>
       prev.map((item, idx) => (idx === i ? { ...item, [field]: value } : item))
     )
+  }
+
+  async function handlePreview() {
+    const parsed = lineItems
+      .map((i) => ({
+        description: i.description.trim(),
+        amount: parseFloat(i.amount),
+      }))
+      .filter((i) => i.description && !isNaN(i.amount) && i.amount > 0)
+
+    if (parsed.length === 0) {
+      setError('Add at least one line item to preview.')
+      return
+    }
+
+    setPreviewLoading(true)
+    setPreviewHtml('')
+    setShowPreview(true)
+    try {
+      const res = await fetch('/api/admin/preview-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'invoice',
+          jobId: job.id,
+          lineItems: parsed,
+          dueDate,
+          businessName: businessName || undefined,
+          preparedForAddress: preparedForAddress || undefined,
+          notes: notes || undefined,
+          depositCredit,
+        }),
+      })
+      const data = await res.json()
+      setPreviewHtml(data.html ?? '')
+    } catch {
+      setPreviewHtml('<p style="padding:32px;font-family:sans-serif;color:#ef4444;">Failed to generate preview. Check your connection and try again.</p>')
+    }
+    setPreviewLoading(false)
   }
 
   async function handleSend() {
@@ -350,6 +392,14 @@ export function InvoicePanel({ job, onClose }: { job: any; onClose?: () => void 
       )}
 
       <button
+        onClick={handlePreview}
+        disabled={subtotal === 0}
+        className="w-full cursor-pointer rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition-colors duration-200 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
+      >
+        Preview email before sending
+      </button>
+
+      <button
         onClick={handleSend}
         disabled={loading || subtotal === 0 || !dueDate}
         className="w-full cursor-pointer rounded-lg bg-(--color-brand) px-4 py-3 text-sm font-semibold text-white transition-colors duration-200 hover:bg-(--color-brand-hover) disabled:opacity-50 disabled:cursor-not-allowed"
@@ -362,6 +412,62 @@ export function InvoicePanel({ job, onClose }: { job: any; onClose?: () => void 
       </button>
 
       <p className="text-xs text-slate-400 text-center">Stripe payment link · Branded invoice email</p>
+
+      {/* Invoice email preview modal */}
+      {showPreview && (
+        <div
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-0 sm:p-4"
+          onClick={() => setShowPreview(false)}
+        >
+          <div
+            className="relative flex flex-col bg-white w-full sm:max-w-2xl sm:rounded-xl overflow-hidden shadow-2xl"
+            style={{ maxHeight: '92vh' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4 shrink-0">
+              <div>
+                <p className="text-sm font-semibold text-slate-900">Invoice email preview</p>
+                <p className="text-xs text-slate-400 mt-0.5">Exactly what {job.client_name.split(' ')[0]} will see in their inbox</p>
+              </div>
+              <button
+                onClick={() => setShowPreview(false)}
+                className="cursor-pointer rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50 transition-colors duration-200"
+              >
+                Close
+              </button>
+            </div>
+            <div className="flex-1 overflow-auto">
+              {previewLoading ? (
+                <div className="flex items-center justify-center h-64">
+                  <p className="text-sm text-slate-400">Generating preview…</p>
+                </div>
+              ) : (
+                <iframe
+                  srcDoc={previewHtml}
+                  className="w-full border-0"
+                  style={{ height: '560px' }}
+                  title="Invoice email preview"
+                  sandbox="allow-same-origin"
+                />
+              )}
+            </div>
+            <div className="flex items-center justify-between border-t border-slate-100 px-5 py-4 shrink-0 bg-slate-50">
+              <p className="text-xs text-slate-400 max-w-[180px]">Looks wrong? Close and edit your line items or date.</p>
+              <button
+                onClick={() => {
+                  setShowPreview(false)
+                  handleSend()
+                }}
+                disabled={loading}
+                className="cursor-pointer rounded-lg bg-(--color-brand) px-4 py-2.5 text-sm font-semibold text-white hover:bg-(--color-brand-hover) transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {loading ? 'Sending…' : 'Looks good — send it'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   )
 }

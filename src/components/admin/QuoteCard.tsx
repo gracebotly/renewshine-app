@@ -202,7 +202,7 @@ function QuoteComposer({
       <button
         onClick={onPreview}
         disabled={quoteTotal <= 0}
-        className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-600 transition-colors duration-200 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
+        className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition-colors duration-200 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
       >
         Preview email before sending
       </button>
@@ -262,9 +262,9 @@ export function QuoteCard({ job }: { job: any }) {
   const [quoteDepositAmount, setQuoteDepositAmount] = React.useState('100')
   const [quoteDueDate, setQuoteDueDate] = React.useState('')
   const [quoteNotes, setQuoteNotes] = React.useState('')
-  const [showPreview, setShowPreview] = React.useState(false)
-  const [previewHtml, setPreviewHtml] = React.useState('')
-  const [previewLoading, setPreviewLoading] = React.useState(false)
+  const [showQuotePreview, setShowQuotePreview] = React.useState(false)
+  const [quotePreviewHtml, setQuotePreviewHtml] = React.useState('')
+  const [quotePreviewLoading, setQuotePreviewLoading] = React.useState(false)
 
   const quoteTotal = quoteItems.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0)
   const depositAmount = Number.isFinite(parseFloat(quoteDepositAmount)) ? parseFloat(quoteDepositAmount) : 0
@@ -420,14 +420,14 @@ export function QuoteCard({ job }: { job: any }) {
   }
 
 
-  const handlePreview = async () => {
+  const handleQuotePreview = async () => {
     const dateToSend = savedDate ?? quoteDueDate
     if (quoteTotal <= 0) return
-    setPreviewLoading(true)
-    setShowPreview(true)
-    setPreviewHtml('')
+    setQuotePreviewLoading(true)
+    setShowQuotePreview(true)
+    setQuotePreviewHtml('')
     try {
-      const res = await fetch('/api/admin/preview-quote-email', {
+      const res = await fetch('/api/admin/preview-email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -440,11 +440,11 @@ export function QuoteCard({ job }: { job: any }) {
         }),
       })
       const data = await res.json()
-      setPreviewHtml(data.html ?? '')
+      setQuotePreviewHtml(data.html ?? '')
     } catch {
-      setPreviewHtml('<p style="padding:32px;font-family:sans-serif;color:#ef4444;">Failed to generate preview.</p>')
+      setQuotePreviewHtml('<p style="padding:32px;font-family:sans-serif;color:#ef4444;">Failed to generate preview. Check your connection and try again.</p>')
     }
-    setPreviewLoading(false)
+    setQuotePreviewLoading(false)
   }
   // ── Status bar config ─────────────────────────────────────────────────────
 
@@ -659,7 +659,7 @@ export function QuoteCard({ job }: { job: any }) {
                 depositAmt={depositAmount}
                 onSend={handleStripe}
                 onSendExternal={handleMarkSentExternally}
-                onPreview={handlePreview}
+                onPreview={handleQuotePreview}
                 onCancel={() => setActiveComposer(null)}
                 loading={loadingStripe}
                 clientEmail={job.client_email}
@@ -793,24 +793,34 @@ export function QuoteCard({ job }: { job: any }) {
       </div>
 
       {/* ComposeSheet portal */}
+      {showCompose && (
+        <ComposeSheet
+          job={job}
+          mediaCount={job.job_media?.length ?? 0}
+          onClose={() => setShowCompose(false)}
+          onSuccess={handleComposeSuccess}
+        />
+      )}
 
-      {showPreview && (
+      {/* Quote email preview modal */}
+      {showQuotePreview && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-          onClick={() => setShowPreview(false)}
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-0 sm:p-4"
+          onClick={() => setShowQuotePreview(false)}
         >
           <div
-            className="relative flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-xl bg-white shadow-2xl"
+            className="relative flex flex-col bg-white w-full sm:max-w-2xl sm:rounded-xl overflow-hidden shadow-2xl"
+            style={{ maxHeight: '92vh' }}
             onClick={(e) => e.stopPropagation()}
           >
             <div className="shrink-0 border-b border-slate-100 px-5 py-3.5">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-semibold text-slate-900">Email preview</p>
-                  <p className="mt-0.5 text-xs text-slate-400">Exactly what {job.client_name.split(' ')[0]} will see</p>
+                  <p className="text-sm font-semibold text-slate-900">Quote email preview</p>
+                  <p className="mt-0.5 text-xs text-slate-400">Exactly what {job.client_name.split(' ')[0]} will see in their inbox</p>
                 </div>
                 <button
-                  onClick={() => setShowPreview(false)}
+                  onClick={() => setShowQuotePreview(false)}
                   className="cursor-pointer rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 transition-colors duration-200 hover:bg-slate-50"
                 >
                   Close
@@ -819,15 +829,16 @@ export function QuoteCard({ job }: { job: any }) {
             </div>
 
             <div className="flex-1 overflow-auto">
-              {previewLoading ? (
+              {quotePreviewLoading ? (
                 <div className="flex h-64 items-center justify-center">
                   <p className="text-sm text-slate-400">Generating preview…</p>
                 </div>
               ) : (
                 <iframe
-                  srcDoc={previewHtml}
-                  className="h-full min-h-[600px] w-full border-0"
-                  title="Email preview"
+                  srcDoc={quotePreviewHtml}
+                  className="w-full border-0"
+                  style={{ height: '560px' }}
+                  title="Quote email preview"
                   sandbox="allow-same-origin"
                 />
               )}
@@ -835,14 +846,14 @@ export function QuoteCard({ job }: { job: any }) {
 
             <div className="shrink-0 border-t border-slate-100 bg-slate-50 px-5 py-3.5">
               <div className="flex items-center justify-between">
-                <p className="text-xs text-slate-400">This is the exact email the customer will receive.</p>
+                <p className="text-xs text-slate-400">Looks wrong? Close and edit your line items or date.</p>
                 <button
                   onClick={() => {
-                    setShowPreview(false)
+                    setShowQuotePreview(false)
                     handleStripe()
                   }}
                   disabled={loadingStripe}
-                  className="cursor-pointer rounded-lg bg-[#1A3F6F] px-4 py-2 text-xs font-semibold text-white transition-colors duration-200 hover:opacity-90 disabled:opacity-50"
+                  className="cursor-pointer rounded-lg bg-[#1A3F6F] px-4 py-2.5 text-sm font-semibold text-white transition-colors duration-200 hover:opacity-90 disabled:opacity-50"
                 >
                   {loadingStripe ? 'Sending…' : 'Looks good — send it'}
                 </button>
@@ -850,15 +861,6 @@ export function QuoteCard({ job }: { job: any }) {
             </div>
           </div>
         </div>
-      )}
-
-      {showCompose && (
-        <ComposeSheet
-          job={job}
-          mediaCount={job.job_media?.length ?? 0}
-          onClose={() => setShowCompose(false)}
-          onSuccess={handleComposeSuccess}
-        />
       )}
 
     </div>
