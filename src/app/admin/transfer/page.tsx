@@ -15,7 +15,7 @@ function formatBytes(bytes: number): string {
 }
 
 export default function TransferPage() {
-  const { role, roomCode, status, files, errorMsg, createRoom, joinRoom, sendFiles, reset } = useFileTransfer()
+  const { role, roomCode, status, files, errorMsg, createRoom, joinRoom, sendFiles, reset, setFiles, setStatus } = useFileTransfer()
 
   const [codeInput, setCodeInput] = React.useState('')
   const [pendingFiles, setPendingFiles] = React.useState<File[]>([])
@@ -139,7 +139,7 @@ export default function TransferPage() {
                   <Upload size={28} />
                   <div className="text-center">
                     <p className="text-sm font-medium text-slate-700">{pendingFiles.length > 0 ? `${pendingFiles.length} file${pendingFiles.length > 1 ? 's' : ''} selected` : 'Tap to select photos or videos'}</p>
-                    {pendingFiles.length > 0 && <p className="mt-1 text-xs text-slate-400">{formatBytes(pendingFiles.reduce((sum, f) => sum + f.size, 0))} total</p>}
+                    <p className="mt-1 text-xs text-slate-400">{pendingFiles.length > 0 ? formatBytes(pendingFiles.reduce((sum, f) => sum + f.size, 0)) + ' total · tap to change selection' : 'Select as many as you need'}</p>
                   </div>
                 </button>
 
@@ -185,7 +185,20 @@ export default function TransferPage() {
                     <div key={file.id} className="flex items-center gap-3 px-4 py-3"><CheckCircle size={14} className="shrink-0 text-emerald-500" /><p className="flex-1 truncate text-sm text-slate-800">{file.name}</p><p className="shrink-0 font-mono text-xs text-slate-400">{formatBytes(file.size)}</p></div>
                   ))}
                 </div>
-                <button onClick={reset} className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 transition-colors duration-200 hover:bg-slate-50"><RefreshCw size={14} />Transfer more files</button>
+                {role === 'sender' && (
+                  <button
+                    onClick={() => {
+                      setPendingFiles([])
+                      setFiles([])
+                      setStatus('connected')
+                    }}
+                    className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-[#1A3F6F] px-4 py-3 text-sm font-semibold text-white transition-colors duration-200 hover:opacity-90"
+                  >
+                    <Upload size={14} />
+                    Send more files — connection still active
+                  </button>
+                )}
+                <button onClick={reset} className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 transition-colors duration-200 hover:bg-slate-50"><RefreshCw size={14} />Start over</button>
               </motion.div>
             )}
 
