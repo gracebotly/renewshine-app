@@ -12,7 +12,7 @@ export async function POST(request: Request) {
     return Response.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const { jobId, approvedPrice, confirmedDate, regenerate, lineItems } = await request.json()
+  const { jobId, approvedPrice, confirmedDate, regenerate } = await request.json()
 
   // Validate
   if (!jobId || !approvedPrice || !confirmedDate) {
@@ -71,20 +71,15 @@ export async function POST(request: Request) {
 
   // Update job in Supabase
   const remaining = Number(approvedPrice) - 100
-  const updatePayload: Record<string, unknown> = {
-    status: 'approved',
-    approved_price: Number(approvedPrice),
-    confirmed_date: confirmedDate,
-    remaining_amount: remaining,
-    stripe_payment_link: paymentLink.url,
-  }
-  if (Array.isArray(lineItems) && lineItems.length > 0) {
-    updatePayload.quote_line_items = lineItems
-  }
-
   const { error: updateError } = await supabase
     .from('jobs')
-    .update(updatePayload)
+    .update({
+      status: 'approved',
+      approved_price: Number(approvedPrice),
+      confirmed_date: confirmedDate,
+      remaining_amount: remaining,
+      stripe_payment_link: paymentLink.url,
+    })
     .eq('id', jobId)
 
   if (updateError) {
