@@ -22,6 +22,7 @@ function QuoteComposer({
   onCancel,
   loading,
   clientEmail,
+  onPreview,
   savedDate,
 }: {
   items: Array<{ description: string; amount: string }>
@@ -39,6 +40,7 @@ function QuoteComposer({
   onCancel: () => void
   loading: boolean
   clientEmail: string
+  onPreview: () => void
   savedDate: string | null
 }) {
   const remaining = Math.max(quoteTotal - depositAmt, 0)
@@ -198,6 +200,13 @@ function QuoteComposer({
           : 'Add line items to send'}
       </button>
       <button
+        onClick={onPreview}
+        disabled={quoteTotal <= 0}
+        className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-600 transition-colors duration-200 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
+      >
+        Preview email before sending
+      </button>
+      <button
         onClick={onSendExternal}
         disabled={quoteTotal <= 0 || loading}
         className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition-colors duration-200 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -253,6 +262,9 @@ export function QuoteCard({ job }: { job: any }) {
   const [quoteDepositAmount, setQuoteDepositAmount] = React.useState('100')
   const [quoteDueDate, setQuoteDueDate] = React.useState('')
   const [quoteNotes, setQuoteNotes] = React.useState('')
+  const [showPreview, setShowPreview] = React.useState(false)
+  const [previewHtml, setPreviewHtml] = React.useState('')
+  const [previewLoading, setPreviewLoading] = React.useState(false)
 
   const quoteTotal = quoteItems.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0)
   const depositAmount = Number.isFinite(parseFloat(quoteDepositAmount)) ? parseFloat(quoteDepositAmount) : 0
@@ -318,6 +330,7 @@ export function QuoteCard({ job }: { job: any }) {
         jobId: job.id,
         approvedPrice: quoteTotal,
         confirmedDate: dateToSend,
+        lineItems: quoteItems.filter((item) => item.description.trim() && parseFloat(item.amount) > 0),
       }),
     })
     if (res.ok) {
@@ -406,6 +419,33 @@ export function QuoteCard({ job }: { job: any }) {
     setSuccessMsg('Day-before reminder sent ✓')
   }
 
+
+  const handlePreview = async () => {
+    const dateToSend = savedDate ?? quoteDueDate
+    if (quoteTotal <= 0) return
+    setPreviewLoading(true)
+    setShowPreview(true)
+    setPreviewHtml('')
+    try {
+      const res = await fetch('/api/admin/preview-quote-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          jobId: job.id,
+          approvedPrice: quoteTotal,
+          confirmedDate: dateToSend ?? new Date().toISOString().split('T')[0],
+          lineItems: quoteItems.filter(
+            (item) => item.description.trim() && parseFloat(item.amount) > 0
+          ),
+        }),
+      })
+      const data = await res.json()
+      setPreviewHtml(data.html ?? '')
+    } catch {
+      setPreviewHtml('<p style="padding:32px;font-family:sans-serif;color:#ef4444;">Failed to generate preview.</p>')
+    }
+    setPreviewLoading(false)
+  }
   // ── Status bar config ─────────────────────────────────────────────────────
 
   const statusConfig: Record<string, { dot: string; label: string }> = {
@@ -619,6 +659,7 @@ export function QuoteCard({ job }: { job: any }) {
                 depositAmt={depositAmount}
                 onSend={handleStripe}
                 onSendExternal={handleMarkSentExternally}
+                onPreview={handlePreview}
                 onCancel={() => setActiveComposer(null)}
                 loading={loadingStripe}
                 clientEmail={job.client_email}
@@ -752,6 +793,65 @@ export function QuoteCard({ job }: { job: any }) {
       </div>
 
       {/* ComposeSheet portal */}
+
+      {showPreview && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          onClick={() => setShowPreview(false)}
+        >
+          <div
+            className="relative flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-xl bg-white shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="shrink-0 border-b border-slate-100 px-5 py-3.5">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-semibold text-slate-900">Email preview</p>
+                  <p className="mt-0.5 text-xs text-slate-400">Exactly what {job.client_name.split(' ')[0]} will see</p>
+                </div>
+                <button
+                  onClick={() => setShowPreview(false)}
+                  className="cursor-pointer rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 transition-colors duration-200 hover:bg-slate-50"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-auto">
+              {previewLoading ? (
+                <div className="flex h-64 items-center justify-center">
+                  <p className="text-sm text-slate-400">Generating preview…</p>
+                </div>
+              ) : (
+                <iframe
+                  srcDoc={previewHtml}
+                  className="h-full min-h-[600px] w-full border-0"
+                  title="Email preview"
+                  sandbox="allow-same-origin"
+                />
+              )}
+            </div>
+
+            <div className="shrink-0 border-t border-slate-100 bg-slate-50 px-5 py-3.5">
+              <div className="flex items-center justify-between">
+                <p className="text-xs text-slate-400">This is the exact email the customer will receive.</p>
+                <button
+                  onClick={() => {
+                    setShowPreview(false)
+                    handleStripe()
+                  }}
+                  disabled={loadingStripe}
+                  className="cursor-pointer rounded-lg bg-[#1A3F6F] px-4 py-2 text-xs font-semibold text-white transition-colors duration-200 hover:opacity-90 disabled:opacity-50"
+                >
+                  {loadingStripe ? 'Sending…' : 'Looks good — send it'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showCompose && (
         <ComposeSheet
           job={job}
