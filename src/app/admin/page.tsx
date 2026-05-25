@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { createServerClient } from '@/lib/supabase/server'
 import { JobsTable, StaleAlert } from '@/components/admin/JobsTable'
 import { LogoutButton } from '@/components/admin/LogoutButton'
-import { ChevronLeft, ChevronRight, MessageCircle } from 'lucide-react'
+import { ChevronLeft, ChevronRight, MessageCircle, ArrowUpDown } from 'lucide-react'
 import { RevenueSummary } from '@/components/admin/RevenueSummary'
 
 const PAGE_SIZE = 25
@@ -115,6 +115,13 @@ export default async function AdminPage({
             >
               <MessageCircle size={14} />
               <span className="hidden xs:inline">Inbox</span>
+            </Link>
+            <Link
+              href="/admin/transfer"
+              className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition-colors duration-200 hover:border-brand/30 hover:text-brand cursor-pointer"
+            >
+              <ArrowUpDown size={14} />
+              <span className="hidden xs:inline">Transfer</span>
             </Link>
             <LogoutButton />
           </div>
