@@ -63,6 +63,8 @@ export async function PATCH(
       estimated_price_high: 0,
       notes: jobData.notes || null,
       sms_opt_in: jobData.sms_opt_in ?? true,
+      home_type: jobData.home_type || null,
+      preferred_contact: jobData.preferred_contact || null,
     })
     .eq('id', id)
     .select()

@@ -1,9 +1,9 @@
 import { createClient } from '@supabase/supabase-js'
 import { rateLimit, getClientIp } from '@/lib/ratelimit'
 
-// App Router body size config — replaces deprecated `export const config`
-// Sets the maximum request body size to 25MB for large photo/video uploads
+// App Router body size config — bodySizeLimit is set in next.config.ts (25mb)
 export const dynamic = 'force-dynamic'
+export const maxDuration = 60
 
 // IMPORTANT: The 'job-media' bucket must be set to PRIVATE in Supabase Dashboard.
 // Dashboard → Storage → job-media → Edit bucket → toggle "Public bucket" OFF.

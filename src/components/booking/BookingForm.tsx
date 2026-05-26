@@ -3,7 +3,7 @@
 import * as React from 'react'
 import * as Checkbox from '@radix-ui/react-checkbox'
 import { useRouter } from 'next/navigation'
-import { AlertTriangle, Building2, Camera, Check, CheckCircle, ChevronLeft, ChevronRight, HardHat, Home, Loader2, Minus, Plus } from 'lucide-react'
+import { AlertTriangle, Building2, Check, CheckCircle, ChevronLeft, ChevronRight, HardHat, Home, Loader2, Minus, Plus } from 'lucide-react'
 import { AvailabilityPicker, type SchedulingMode } from '@/components/booking/AvailabilityPicker'
 import { MediaUpload } from '@/components/booking/MediaUpload'
 import { Button } from '@/components/ui/button'
@@ -1008,12 +1008,6 @@ export function BookingForm() {
 
                 <div className="space-y-1.5">
                   <p className="text-sm font-medium text-slate-900">Show us your space</p>
-                  <div className="border-2 border-dashed border-slate-200 rounded-2xl p-6 text-center">
-                    <Camera className="w-6 h-6 text-brand mx-auto" />
-                  </div>
-                  <p className="text-xs text-slate-500">
-                    The more we can see, the more accurate your quote. A 60-second walkthrough video works best.
-                  </p>
                   <MediaUpload onUpload={setResMediaEncoded} uploadedEncoded={resMediaEncoded} />
                 </div>
 
