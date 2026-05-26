@@ -1,10 +1,10 @@
 import type { Job } from '@/types/database'
 import { ADD_ONS } from '@/lib/pricing'
-import { baseTemplate, badge, heading, para, ctaButton } from './base'
+import { baseTemplate, badge, heading, para, ctaButton, divider } from './base'
 
 export function customerQuoteTemplate(job: Job, stripeUrl: string): { subject: string; html: string } {
   const firstName = job.client_name.split(' ')[0]
-  const subject = `${firstName}, your cleaning plan is ready`
+  const subject = `${firstName}, your RenewShine quote is ready`
 
   const serviceLabel =
     job.service_type === 'standard'            ? 'Standard Clean'
@@ -33,101 +33,155 @@ export function customerQuoteTemplate(job: Job, stripeUrl: string): { subject: s
       })
     : ''
 
+  // Time display — combine time pref with date
+  const appointmentLine = timePref !== 'Flexible'
+    ? `${confirmedDateStr} · ${timePref}`
+    : confirmedDateStr
+
   const approvedPrice = job.approved_price ?? 0
   const depositAmount = 100
   const remainingAmount = Math.max(approvedPrice - depositAmount, 0)
 
-  const totalDisplay = approvedPrice > 0
-    ? `$${approvedPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-    : 'Confirmed after review'
+  const totalDisplay = `$${approvedPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+  const depositDisplay = `$${depositAmount.toFixed(2)}`
+  const remainingDisplay = `$${remainingAmount.toFixed(2)}`
 
   const bedroomLine =
-    job.service_type !== 'move_out' && job.bedrooms
-      ? `${job.bedrooms} bed · ${job.bathrooms} bath`
+    job.bedrooms
+      ? `${job.bedrooms} Bedroom${job.bedrooms !== 1 ? 's' : ''} · ${job.bathrooms} Bathroom${(job.bathrooms ?? 0) !== 1 ? 's' : ''}`
       : ''
 
   const selectedAddOns = ADD_ONS.filter((a) =>
     Array.isArray(job.add_ons) && job.add_ons.includes(a.id)
   )
 
-  const addOnItems = selectedAddOns
+  const addOnRows = selectedAddOns
     .map((a) => `
       <tr>
-        <td style="padding:3px 0 3px 14px;font-size:13px;color:#334155;line-height:1.5;">
-          <span style="display:inline-block;width:4px;height:4px;border-radius:50%;background:#4A7C59;margin-right:8px;vertical-align:middle;margin-bottom:2px;"></span>${a.label}
+        <td style="padding:3px 0 3px 0;font-size:13px;color:#334155;line-height:1.5;">
+          <span style="display:inline-block;width:5px;height:5px;border-radius:50%;background:#4A7C59;margin-right:8px;vertical-align:middle;margin-bottom:2px;"></span>${a.label}
         </td>
       </tr>`)
     .join('')
 
-  const content = `
-    ${badge('Your appointment is almost reserved', 'green')}
-    ${heading(`${firstName}, your cleaning plan is ready.`)}
-    ${para('We reviewed your request and prepared your confirmed cleaning plan. Your service window, pricing, and deposit details are below. Secure your appointment when you\'re ready.')}
-
-    <table width="100%" cellpadding="0" cellspacing="0" role="presentation"
-      style="border-left:4px solid #4A7C59;background:#f4f7f5;border-radius:0 8px 8px 0;margin:0 0 24px;overflow:hidden;">
-      <tr>
-        <td style="padding:16px 20px;">
-          <p style="margin:0 0 4px;font-size:16px;font-weight:700;color:#0f172a;">${confirmedDateStr}</p>
-          <p style="margin:0 0 6px;font-size:13px;color:#64748b;">${timePref}&nbsp;&nbsp;·&nbsp;&nbsp;${job.address ?? ''}</p>
-          <p style="margin:0;font-size:11px;font-weight:600;color:#4A7C59;text-transform:uppercase;letter-spacing:0.05em;">Reserved pending deposit</p>
-        </td>
-      </tr>
-    </table>
-
-    <p style="margin:0 0 8px;font-size:12px;font-weight:700;color:#0f172a;text-transform:uppercase;letter-spacing:0.06em;">Your cleaning plan</p>
+  // ── Section: Appointment ─────────────────────────────────────────────────
+  const appointmentSection = `
+    <p style="margin:0 0 8px;font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.08em;">Your appointment</p>
     <table width="100%" cellpadding="0" cellspacing="0" role="presentation"
       style="border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;margin:0 0 24px;">
       <tbody>
         <tr>
-          <td style="padding:12px 14px 8px;">
+          <td style="padding:16px 18px 12px;">
+            <p style="margin:0 0 4px;font-size:16px;font-weight:700;color:#0f172a;line-height:1.3;">${appointmentLine}</p>
+            <p style="margin:0 0 12px;font-size:13px;color:#64748b;">${job.address ?? ''}</p>
+            <span style="display:inline-block;background:#fef9ec;color:#92600a;font-size:11px;font-weight:600;padding:4px 10px;border-radius:99px;letter-spacing:0.02em;">Held for 48 hours after this email</span>
+          </td>
+        </tr>
+      </tbody>
+    </table>`
+
+  // ── Section: Service details ──────────────────────────────────────────────
+  const serviceSection = `
+    <p style="margin:0 0 8px;font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.08em;">Your service details</p>
+    <table width="100%" cellpadding="0" cellspacing="0" role="presentation"
+      style="border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;margin:0 0 24px;">
+      <tbody>
+        <tr>
+          <td style="padding:14px 18px;">
             <p style="margin:0 0 2px;font-size:14px;font-weight:700;color:#0f172a;">${serviceLabel}</p>
-            ${bedroomLine ? `<p style="margin:0 0 8px;font-size:12px;color:#64748b;">${bedroomLine}</p>` : '<p style="margin:0 0 8px;"></p>'}
+            ${bedroomLine ? `<p style="margin:0 0 ${selectedAddOns.length > 0 ? '10px' : '0'};font-size:12px;color:#64748b;">${bedroomLine}</p>` : ''}
+            ${selectedAddOns.length > 0 ? `<table width="100%" cellpadding="0" cellspacing="0" role="presentation">${addOnRows}</table>` : ''}
+          </td>
+        </tr>
+      </tbody>
+    </table>`
+
+  // ── Section: Payment summary card ────────────────────────────────────────
+  // Three-row card: Total (largest), Deposit today (highlighted), Balance after service (muted)
+  const paymentSection = `
+    <p style="margin:0 0 8px;font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.08em;">Payment summary</p>
+    <table width="100%" cellpadding="0" cellspacing="0" role="presentation"
+      style="border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;margin:0 0 8px;">
+      <tbody>
+        <tr style="border-bottom:1px solid #e2e8f0;">
+          <td style="padding:14px 18px;">
+            <p style="margin:0 0 2px;font-size:12px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:0.05em;">Total service</p>
+            <p style="margin:0;font-size:26px;font-weight:700;color:#0f172a;font-family:'Courier New',monospace;letter-spacing:-0.5px;">${totalDisplay}</p>
+          </td>
+        </tr>
+        <tr style="background:#f0f9f4;border-bottom:1px solid #e2e8f0;">
+          <td style="padding:12px 18px;">
             <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
-              ${addOnItems || ''}
+              <tr>
+                <td style="font-size:13px;font-weight:600;color:#1A2E1F;">Due today <span style="font-weight:400;color:#4A7C59;">(deposit)</span></td>
+                <td style="text-align:right;font-size:15px;font-weight:700;color:#1A2E1F;font-family:'Courier New',monospace;">${depositDisplay}</td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:12px 18px;">
+            <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
+              <tr>
+                <td style="font-size:13px;color:#64748b;">Remaining balance <span style="color:#94a3b8;">(after service)</span></td>
+                <td style="text-align:right;font-size:13px;font-weight:600;color:#64748b;font-family:'Courier New',monospace;">${remainingDisplay}</td>
+              </tr>
             </table>
           </td>
         </tr>
       </tbody>
     </table>
+    <p style="margin:0 0 24px;font-size:12px;color:#94a3b8;line-height:1.6;">No hidden fees. If anything differs from your submitted photos or request details, we'll confirm with you before proceeding.</p>`
 
-    <p style="margin:0 0 4px;font-size:12px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.06em;">Your confirmed total</p>
-    <p style="margin:0 0 4px;font-size:32px;font-weight:700;color:#0f172a;font-family:'Courier New',monospace;letter-spacing:-0.5px;">${totalDisplay}</p>
-    <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="margin:0 0 6px;">
+  // ── Section: What happens next ───────────────────────────────────────────
+  const nextStepsSection = `
+    ${divider}
+    <p style="margin:0 0 12px;font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.08em;">What happens next</p>
+    <table width="100%" cellpadding="0" cellspacing="0" role="presentation"
+      style="background:#f8faf9;border:1px solid #d1e7d9;border-radius:8px;margin:0 0 20px;">
       <tbody>
         <tr>
-          <td style="padding:2px 0;font-size:13px;color:#334155;">$${depositAmount.toFixed(2)} due today</td>
+          <td style="padding:13px 16px;vertical-align:middle;width:40px;border-bottom:1px solid #e8f0eb;">
+            <div style="width:24px;height:24px;border-radius:50%;background:#4A7C59;color:#fff;font-size:11px;font-weight:700;text-align:center;line-height:24px;">1</div>
+          </td>
+          <td style="padding:13px 16px 13px 0;font-size:13px;color:#0f172a;line-height:1.5;vertical-align:middle;border-bottom:1px solid #e8f0eb;">Complete your deposit below to confirm your booking</td>
         </tr>
         <tr>
-          <td style="padding:2px 0;font-size:13px;color:#334155;">$${remainingAmount.toFixed(2)} due after service</td>
+          <td style="padding:13px 16px;vertical-align:middle;width:40px;border-bottom:1px solid #e8f0eb;">
+            <div style="width:24px;height:24px;border-radius:50%;background:#4A7C59;color:#fff;font-size:11px;font-weight:700;text-align:center;line-height:24px;">2</div>
+          </td>
+          <td style="padding:13px 16px 13px 0;font-size:13px;color:#0f172a;line-height:1.5;vertical-align:middle;border-bottom:1px solid #e8f0eb;">You'll receive a booking confirmation email with your full appointment details</td>
+        </tr>
+        <tr>
+          <td style="padding:13px 16px;vertical-align:middle;width:40px;">
+            <div style="width:24px;height:24px;border-radius:50%;background:#4A7C59;color:#fff;font-size:11px;font-weight:700;text-align:center;line-height:24px;">3</div>
+          </td>
+          <td style="padding:13px 16px 13px 0;font-size:13px;color:#0f172a;line-height:1.5;vertical-align:middle;">We arrive during your scheduled window and handle everything from there</td>
         </tr>
       </tbody>
     </table>
-    <p style="margin:0 0 24px;font-size:12px;color:#94a3b8;">Finalized after reviewing your request.</p>
+    <p style="margin:0;font-size:13px;color:#64748b;text-align:center;line-height:1.6;">Questions before booking? Reply directly to this email — we're happy to help.</p>`
 
-    <table width="100%" cellpadding="0" cellspacing="0" role="presentation"
-      style="border-left:4px solid #4A7C59;background:#f4f7f5;border-radius:0 8px 8px 0;margin:0 0 16px;overflow:hidden;">
-      <tr>
-        <td style="padding:14px 18px;">
-          <p style="margin:0 0 4px;font-size:13px;font-weight:700;color:#0f172a;">Transparent pricing guarantee</p>
-          <p style="margin:0;font-size:13px;color:#334155;line-height:1.65;">
-            If something differs from the photos or request details, we'll confirm with you before any additional work. <strong style="color:#0f172a;">No unexpected charges.</strong>
-          </p>
-        </td>
-      </tr>
-    </table>
+  // ── Full email body ───────────────────────────────────────────────────────
+  const content = `
+    ${badge('Quote ready', 'green')}
+    ${heading(`${firstName}, your appointment is ready to reserve.`)}
+    ${para('Your requested appointment window is currently being held. Complete your deposit below to confirm your booking.')}
 
-    <p style="margin:0 0 4px;font-size:13px;color:#64748b;text-align:center;">Your appointment window is reserved temporarily.</p>
-    <p style="margin:0 0 4px;font-size:13px;color:#64748b;text-align:center;">Complete your deposit within 48 hours to lock in your date.</p>
+    ${appointmentSection}
+    ${serviceSection}
+    ${paymentSection}
 
-    ${ctaButton('Reserve My Date — $100 Deposit', stripeUrl)}
+    ${ctaButton('Confirm Booking', stripeUrl)}
+
+    ${nextStepsSection}
   `
 
   return {
     subject,
     html: baseTemplate(
       content,
-      `${firstName}, your cleaning plan is ready. Reserve your date with a $100 deposit.`
+      `${firstName}, your RenewShine quote is ready. Your appointment is held for 48 hours — confirm with a $100 deposit.`
     ),
   }
 }

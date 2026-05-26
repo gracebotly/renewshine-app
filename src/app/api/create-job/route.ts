@@ -63,6 +63,7 @@ export async function POST(request: Request) {
       notes: jobData.notes || null,
       preferred_contact: jobData.preferred_contact || null,
       sms_opt_in: jobData.sms_opt_in ?? true,
+      home_type: jobData.home_type || null,
       property_type: jobData.property_type || null,
       property_other_description: jobData.property_other_description || null,
     })

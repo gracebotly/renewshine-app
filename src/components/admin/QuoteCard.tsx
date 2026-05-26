@@ -431,6 +431,7 @@ export function QuoteCard({ job }: { job: any }) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          type: 'quote',
           jobId: job.id,
           approvedPrice: quoteTotal,
           confirmedDate: dateToSend ?? new Date().toISOString().split('T')[0],
