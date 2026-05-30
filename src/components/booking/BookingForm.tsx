@@ -684,7 +684,6 @@ export function BookingForm() {
                     error={Boolean(errors.resEmail)}
                   />
                   {errors.resEmail ? <p className="text-sm text-red-600">{errors.resEmail}</p> : null}
-                  <p className="text-xs text-slate-400">Your quote saves automatically — finish anytime.</p>
                 </label>
 
                 <label className="block space-y-1.5">
@@ -697,7 +696,6 @@ export function BookingForm() {
                     error={Boolean(errors.resPhone)}
                   />
                   {errors.resPhone ? <p className="text-sm text-red-600">{errors.resPhone}</p> : null}
-                  <p className="text-xs text-slate-400">We'll text you when your quote is ready.</p>
                 </label>
 
                 <div className="space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-4">
