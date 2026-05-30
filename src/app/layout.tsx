@@ -4,6 +4,7 @@ import { headers } from 'next/headers'
 import './globals.css'
 import Navbar from '@/components/layout/Navbar'
 import Footer from '@/components/layout/Footer'
+import FacebookPixel from '@/components/layout/FacebookPixel'
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -137,6 +138,7 @@ export default async function RootLayout({
             <Footer />
           </>
         )}
+        <FacebookPixel />
       </body>
     </html>
   )

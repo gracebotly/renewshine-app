@@ -1,0 +1,58 @@
+'use client'
+
+// src/components/layout/FacebookPixel.tsx
+// Injects the Meta Pixel base script into every page via the root layout.
+// Uses next/script with strategy="afterInteractive" — correct for App Router.
+// Pixel ID pulled from NEXT_PUBLIC_FACEBOOK_PIXEL_ID env var.
+
+import { useEffect } from 'react'
+import Script from 'next/script'
+import { PIXEL_ID, trackEvent } from '@/lib/pixel'
+
+type FacebookPixelEventProps = {
+  event: Parameters<typeof trackEvent>[0]
+}
+
+/** Fire a Meta Pixel event when a client-rendered page mounts. */
+export function FacebookPixelEvent({ event }: FacebookPixelEventProps) {
+  useEffect(() => {
+    trackEvent(event)
+  }, [event])
+
+  return null
+}
+
+export default function FacebookPixel() {
+  if (!PIXEL_ID) return null
+
+  return (
+    <>
+      <Script
+        id="facebook-pixel"
+        strategy="afterInteractive"
+      >
+        {`
+          !function(f,b,e,v,n,t,s)
+          {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+          n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+          if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+          n.queue=[];t=b.createElement(e);t.async=!0;
+          t.src=v;s=b.getElementsByTagName(e)[0];
+          s.parentNode.insertBefore(t,s)}(window,document,'script',
+          'https://connect.facebook.net/en_US/fbevents.js');
+          fbq('init', '${PIXEL_ID}');
+          fbq('track', 'PageView');
+        `}
+      </Script>
+      <noscript>
+        <img
+          height="1"
+          width="1"
+          style={{ display: 'none' }}
+          src={`https://www.facebook.com/tr?id=${PIXEL_ID}&ev=PageView&noscript=1`}
+          alt=""
+        />
+      </noscript>
+    </>
+  )
+}
