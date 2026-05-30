@@ -6,6 +6,7 @@ import { JobsTable, StaleAlert } from '@/components/admin/JobsTable'
 import { LogoutButton } from '@/components/admin/LogoutButton'
 import { ChevronLeft, ChevronRight, MessageCircle, ArrowUpDown } from 'lucide-react'
 import { RevenueSummary } from '@/components/admin/RevenueSummary'
+import { PartialLeads } from '@/components/admin/PartialLeads'
 
 const PAGE_SIZE = 25
 
@@ -24,6 +25,17 @@ export default async function AdminPage({
     .order('created_at', { ascending: false })
 
   const allJobs = allJobsForCounts ?? []
+
+  const thirtyDaysAgo = new Date()
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+
+  const { data: partialLeads } = await supabase
+    .from('jobs')
+    .select('id, client_name, client_email, client_phone, created_at')
+    .eq('status', 'partial')
+    .gte('created_at', thirtyDaysAgo.toISOString())
+    .order('created_at', { ascending: false })
+    .limit(20)
 
   const fourHoursAgoDate = new Date()
   fourHoursAgoDate.setHours(fourHoursAgoDate.getHours() - 4)
@@ -138,6 +150,8 @@ export default async function AdminPage({
           recurringPct={recurringPct}
           outstandingJobs={outstanding_jobs}
         />
+
+        <PartialLeads leads={partialLeads ?? []} />
 
         <StaleAlert count={staleCount} />
         <JobsTable jobs={jobs} />
