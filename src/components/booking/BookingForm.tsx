@@ -272,9 +272,9 @@ export function BookingForm() {
   }
 
   // ── Partial save — fires when Step 1 is complete and user clicks Next ──────
-  const savePartialLead = async (): Promise<boolean> => {
+  const savePartialLead = async (): Promise<string | null> => {
     // If already saved, don't save again
-    if (partialJobId) return true
+    if (partialJobId) return partialJobId
     setSavingPartial(true)
     try {
       const response = await fetch('/api/create-job', {
@@ -291,13 +291,36 @@ export function BookingForm() {
       const data = await response.json()
       if (!response.ok) throw new Error('Partial save failed')
       setPartialJobId(data.jobId)
-      return true
+      return data.jobId as string
     } catch {
       // Partial save failure is non-blocking — let the user continue
       console.error('Partial save failed — continuing anyway')
-      return true
+      return null
     } finally {
       setSavingPartial(false)
+    }
+  }
+
+  // ── Step tracking — fire-and-forget, never blocks user ──────────────────────
+  const DROPPED_AT_LABELS: Record<number, string> = {
+    1: 'Home Details',
+    2: 'Service',
+    3: 'Availability',
+    4: 'Photos',
+  }
+
+  const updatePartialStep = async (jobId: string, completedStep: number): Promise<void> => {
+    try {
+      await fetch(`/api/update-job-step/${jobId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          last_completed_step: completedStep,
+          dropped_at_label: DROPPED_AT_LABELS[completedStep] ?? null,
+        }),
+      })
+    } catch {
+      // Non-blocking — step tracking failure never interrupts the booking flow
     }
   }
 
@@ -358,11 +381,23 @@ export function BookingForm() {
   // ── Residential Next handler — fires partial save on Step 1 ───────────────
   const handleResNext = async () => {
     if (!validateResidentialStep()) return
+
+    let idForStepTracking = partialJobId
+
     if (resStep === 1) {
-      await savePartialLead()
+      // savePartialLead returns the job ID synchronously so we can use it
+      // before React state propagates the setPartialJobId update
+      const savedId = await savePartialLead()
+      idForStepTracking = savedId
       setBookingTypeLocked(true)
     }
+
     setResStep((s) => Math.min(5, s + 1))
+
+    // Track which step the user completed (fire-and-forget)
+    if (idForStepTracking) {
+      void updatePartialStep(idForStepTracking, resStep)
+    }
   }
 
   // ── Submit residential ─────────────────────────────────────────────────────

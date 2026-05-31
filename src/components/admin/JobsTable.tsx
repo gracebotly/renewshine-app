@@ -3,8 +3,12 @@
 import * as React from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { AlertTriangle, Search, X, ChevronRight } from 'lucide-react'
+import { AlertTriangle, Search, X, ChevronRight, Mail, Phone } from 'lucide-react'
 import type { Database } from '@/types/database'
+
+function copyToClipboard(text: string) {
+  navigator.clipboard.writeText(text).catch(console.error)
+}
 
 type JobRecord = Database['public']['Tables']['jobs']['Row']
 
@@ -29,8 +33,9 @@ const STAGE_CONFIG: Record<Stage, { label: string; dot: string; text: string; bg
   declined: { label: 'Declined', dot: 'bg-red-300', text: 'text-red-400', bg: 'bg-red-50 border-red-100' },
 }
 
-type TabFilter = 'all' | Stage
+type TabFilter = 'incomplete' | 'all' | Stage
 const TABS: { id: TabFilter; label: string }[] = [
+  { id: 'incomplete', label: 'Incomplete' },
   { id: 'all', label: 'All' },
   { id: 'new', label: 'New' },
   { id: 'contacted', label: 'Contacted' },
@@ -127,6 +132,9 @@ export function JobsTable({ jobs }: { jobs: JobRecord[] }) {
   const filteredJobs = React.useMemo(() => {
     return jobs
       .filter((j) => {
+        // Incomplete tab: show only partial jobs
+        if (activeTab === 'incomplete') return j.status === 'partial'
+        // All other tabs: hide partial jobs
         if (j.status === 'partial') return false
         if (j.status === 'cancelled' && activeTab !== 'all') return false
         if (activeTab === 'all') return true
@@ -188,7 +196,18 @@ export function JobsTable({ jobs }: { jobs: JobRecord[] }) {
               <button key={tab.id} type="button" onClick={() => setActiveTab(tab.id)} className={`cursor-pointer shrink-0 pb-3 pr-4 text-sm whitespace-nowrap sm:pr-0 ${
                 isActive ? 'border-b-2 border-(--color-brand) font-semibold text-(--color-brand)' : 'text-slate-500 transition-colors duration-200 hover:text-slate-900'
               }`}>
-                {tab.label}
+                {tab.id === 'incomplete' ? (
+                  <span className="flex items-center gap-1.5">
+                    Incomplete
+                    {jobs.filter((j) => j.status === 'partial').length > 0 && (
+                      <span className="inline-flex items-center rounded-full bg-amber-100 px-1.5 py-0.5 text-xs font-semibold text-amber-700">
+                        {jobs.filter((j) => j.status === 'partial').length}
+                      </span>
+                    )}
+                  </span>
+                ) : (
+                  tab.label
+                )}
               </button>
             )
           })}
@@ -196,7 +215,52 @@ export function JobsTable({ jobs }: { jobs: JobRecord[] }) {
       </div>
 
       <div className="block sm:hidden space-y-2">
-        {filteredJobs.length === 0 ? <div className="rounded-xl border border-slate-200 bg-white px-4 py-10 text-center"><p className="text-sm text-slate-400">No jobs found.</p></div> : filteredJobs.map((job) => {
+        {filteredJobs.length === 0 ? (
+          <div className="rounded-xl border border-slate-200 bg-white px-4 py-10 text-center">
+            <p className="text-sm text-slate-400">
+              {activeTab === 'incomplete' ? 'No incomplete bookings right now.' : 'No jobs found.'}
+            </p>
+          </div>
+        ) : filteredJobs.map((job) => {
+          // ── Incomplete mobile card ─────────────────────────────────────────────────
+          if (job.status === 'partial') {
+            const droppedLabel = job.dropped_at_label
+            return (
+              <div key={job.id} className="rounded-xl border border-slate-200 bg-white px-4 py-3.5">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="font-semibold text-slate-900 text-sm truncate">
+                      {job.client_name === 'Unknown' ? <span className="italic text-slate-400">Name not provided</span> : job.client_name}
+                    </p>
+                    <p className="mt-0.5 text-xs text-slate-500">{job.client_email}</p>
+                    <div className="mt-2 flex items-center gap-1.5">
+                      <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-amber-400" />
+                      <span className="text-xs font-medium text-amber-700">
+                        {droppedLabel ? `Left at · ${droppedLabel}` : 'Started booking'}
+                      </span>
+                      <span className="text-xs text-slate-400">· {timeAgo(job.created_at)}</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="mt-3 flex items-center gap-2">
+                  {job.client_email && (
+                    <button type="button" onClick={() => copyToClipboard(job.client_email)} className="inline-flex cursor-pointer items-center gap-1 rounded border border-slate-200 px-2.5 py-1.5 text-xs text-slate-600 transition-colors duration-200 hover:border-slate-300 hover:text-slate-900">
+                      <Mail size={11} />
+                      Copy Email
+                    </button>
+                  )}
+                  {job.client_phone && (
+                    <button type="button" onClick={() => copyToClipboard(job.client_phone!)} className="inline-flex cursor-pointer items-center gap-1 rounded border border-slate-200 px-2.5 py-1.5 text-xs text-slate-600 transition-colors duration-200 hover:border-slate-300 hover:text-slate-900">
+                      <Phone size={11} />
+                      Copy Phone
+                    </button>
+                  )}
+                </div>
+              </div>
+            )
+          }
+
+          // ── Regular job mobile card (unchanged) ────────────────────────────────────
           const stage = mapStatusToStage(job.status)
           const stageConf = STAGE_CONFIG[stage]
           const badge = <UrgencyBadge createdAt={job.created_at} stage={stage} />
@@ -217,12 +281,44 @@ export function JobsTable({ jobs }: { jobs: JobRecord[] }) {
       <div className="hidden sm:block overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
         <table className="w-full text-sm">
           <thead><tr className="border-b border-slate-200 bg-slate-50">{['Submitted', 'Client', 'Service', 'Availability', 'Stage', 'Action'].map((header) => <th key={header} className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">{header}</th>)}</tr></thead>
-          <tbody>{filteredJobs.length === 0 ? <tr><td colSpan={6}><p className="px-4 py-10 text-center text-sm text-slate-400">No jobs found.</p></td></tr> : filteredJobs.map((job) => {
-            const stage = mapStatusToStage(job.status)
-            const stageConf = STAGE_CONFIG[stage]
-            const created = new Date(job.created_at)
-            return <tr key={job.id} className="border-b border-slate-100 transition-colors duration-200 hover:bg-slate-50"><td className="px-4 py-3"><div><UrgencyBadge createdAt={job.created_at} stage={stage} /><p className="mt-1 text-xs text-slate-400">{created.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} · {timeAgo(job.created_at)}</p></div></td><td className="px-4 py-3"><p className="font-medium text-slate-900">{job.client_name}</p><p className="text-xs text-slate-500">{job.client_email}</p></td><td className="px-4 py-3 text-slate-700">{formatService(job.service_type)}</td><td className="px-4 py-3 text-slate-600">{formatAvailability(job.availability_start, job.availability_end, job.availability_time_pref)}</td><td className="px-4 py-3"><div className="flex items-center gap-2"><span className={`h-2 w-2 shrink-0 rounded-full ${stageConf.dot}`} /><span className={`text-xs font-medium ${stageConf.text}`}>{stageConf.label}</span></div></td><td className="px-4 py-3"><Link href={`/admin/jobs/${job.id}`} className="cursor-pointer text-sm font-medium text-(--color-brand) hover:underline">View →</Link></td></tr>
-          })}</tbody>
+          <tbody>
+            {filteredJobs.length === 0 ? (
+              <tr>
+                <td colSpan={6}>
+                  <p className="px-4 py-10 text-center text-sm text-slate-400">
+                    {activeTab === 'incomplete' ? 'No incomplete bookings right now.' : 'No jobs found.'}
+                  </p>
+                </td>
+              </tr>
+            ) : filteredJobs.map((job) => {
+              // ── Incomplete (partial) row ───────────────────────────────────────────────
+              if (job.status === 'partial') {
+                const droppedLabel = job.dropped_at_label
+                const created = new Date(job.created_at)
+                return (
+                  <tr key={job.id} className="border-b border-slate-100">
+                    <td className="px-4 py-3"><p className="text-xs text-slate-400">{created.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} · {timeAgo(job.created_at)}</p></td>
+                    <td className="px-4 py-3"><p className="font-medium text-slate-900">{job.client_name === 'Unknown' ? <span className="italic text-slate-400">Name not provided</span> : job.client_name}</p><p className="text-xs text-slate-500">{job.client_email}</p></td>
+                    <td className="px-4 py-3 text-slate-500">{job.service_type ? formatService(job.service_type) : <span className="text-slate-300">—</span>}</td>
+                    <td className="px-4 py-3 text-slate-500">{job.availability_start ? formatAvailability(job.availability_start, job.availability_end, job.availability_time_pref) : <span className="text-slate-300">—</span>}</td>
+                    <td className="px-4 py-3"><span className="inline-flex items-center gap-1.5 text-xs font-medium text-amber-700"><span className="h-1.5 w-1.5 shrink-0 rounded-full bg-amber-400" />{droppedLabel ? `Left at · ${droppedLabel}` : 'Started booking'}</span></td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        {job.client_email && <button type="button" onClick={() => copyToClipboard(job.client_email)} title="Copy email" className="inline-flex cursor-pointer items-center gap-1 rounded border border-slate-200 px-2 py-1 text-xs text-slate-600 transition-colors duration-200 hover:border-slate-300 hover:text-slate-900"><Mail size={11} />Email</button>}
+                        {job.client_phone && <button type="button" onClick={() => copyToClipboard(job.client_phone!)} title="Copy phone" className="inline-flex cursor-pointer items-center gap-1 rounded border border-slate-200 px-2 py-1 text-xs text-slate-600 transition-colors duration-200 hover:border-slate-300 hover:text-slate-900"><Phone size={11} />Phone</button>}
+                      </div>
+                    </td>
+                  </tr>
+                )
+              }
+
+              // ── Regular job row (unchanged) ────────────────────────────────────────────
+              const stage = mapStatusToStage(job.status)
+              const stageConf = STAGE_CONFIG[stage]
+              const created = new Date(job.created_at)
+              return <tr key={job.id} className="border-b border-slate-100 transition-colors duration-200 hover:bg-slate-50"><td className="px-4 py-3"><div><UrgencyBadge createdAt={job.created_at} stage={stage} /><p className="mt-1 text-xs text-slate-400">{created.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} · {timeAgo(job.created_at)}</p></div></td><td className="px-4 py-3"><p className="font-medium text-slate-900">{job.client_name}</p><p className="text-xs text-slate-500">{job.client_email}</p></td><td className="px-4 py-3 text-slate-700">{formatService(job.service_type)}</td><td className="px-4 py-3 text-slate-600">{formatAvailability(job.availability_start, job.availability_end, job.availability_time_pref)}</td><td className="px-4 py-3"><div className="flex items-center gap-2"><span className={`h-2 w-2 shrink-0 rounded-full ${stageConf.dot}`} /><span className={`text-xs font-medium ${stageConf.text}`}>{stageConf.label}</span></div></td><td className="px-4 py-3"><Link href={`/admin/jobs/${job.id}`} className="cursor-pointer text-sm font-medium text-(--color-brand) hover:underline">View →</Link></td></tr>
+            })}
+          </tbody>
         </table>
       </div>
     </div>
