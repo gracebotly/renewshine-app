@@ -341,10 +341,14 @@ function ContactCard({
   conv,
   job,
   onClose,
+  calling,
+  initiateCall,
 }: {
   conv: Conversation
   job: JobSnapshot | null
   onClose: () => void
+  calling: boolean
+  initiateCall: (customerPhone: string) => void
 }) {
   return (
     <motion.div initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }} transition={{ type: 'spring', damping: 28, stiffness: 280 }} className="absolute inset-0 z-20 flex flex-col bg-white sm:relative sm:w-72 sm:border-l sm:border-slate-200">
@@ -362,7 +366,14 @@ function ContactCard({
             {conv.contact_name && <p className="text-xs text-slate-400 mt-0.5">{formatPhone(conv.contact_phone)}</p>}
           </div>
           <div className="flex gap-2 mt-1">
-            <a href={`tel:${conv.contact_phone}`} className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 hover:border-slate-300 hover:text-slate-900 transition-colors duration-150"><Phone size={12} />Call</a>
+            <button
+              onClick={() => initiateCall(conv.contact_phone)}
+              disabled={calling}
+              className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 hover:border-slate-300 hover:text-slate-900 transition-colors duration-150 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <Phone size={12} />
+              {calling ? 'Calling…' : 'Call'}
+            </button>
             <button onClick={() => navigator.clipboard.writeText(conv.contact_phone)} className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-500 hover:border-slate-300 hover:text-slate-700 transition-colors duration-150 cursor-pointer">Copy number</button>
           </div>
         </div>
@@ -406,6 +417,7 @@ export default function InboxPage() {
   const [mediaError, setMediaError] = useState<string | null>(null)
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null)
   const [showContactCard, setShowContactCard] = useState(false)
+  const [calling, setCalling] = useState(false)
 
   const bottomRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
@@ -459,7 +471,14 @@ export default function InboxPage() {
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'sms_messages' }, (payload) => {
         const msg = payload.new as Message
         if (activeConv && msg.conversation_id === activeConv.id) {
-          setMessages(p => [...p, msg])
+          setMessages(p => {
+            // If this is an outbound insert, remove the matching optimistic bubble first.
+            // Without this, the message appears twice: once optimistic, once from realtime.
+            const withoutOptimistic = msg.direction === 'outbound'
+              ? p.filter(m => !(m._optimistic && m.direction === 'outbound' && m.body === msg.body))
+              : p
+            return [...withoutOptimistic, msg]
+          })
         }
         loadConversations()
       })
@@ -640,37 +659,61 @@ export default function InboxPage() {
     const capturedMedia = [...pendingMedia]
     setPendingMedia([])
 
-    if (capturedMedia.length > 0) {
-      const fd = new FormData()
-      fd.append('conversationId', activeConv.id)
-      fd.append('to', activeConv.contact_phone)
-      fd.append('message', message)
-      for (const att of capturedMedia) {
-        fd.append('media', att.file)
+    try {
+      if (capturedMedia.length > 0) {
+        const fd = new FormData()
+        fd.append('conversationId', activeConv.id)
+        fd.append('to', activeConv.contact_phone)
+        fd.append('message', message)
+        for (const att of capturedMedia) {
+          fd.append('media', att.file)
+        }
+        await fetch('/api/admin/sms-reply', { method: 'POST', body: fd })
+      } else {
+        await fetch('/api/admin/sms-reply', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            conversationId: activeConv.id,
+            to: activeConv.contact_phone,
+            message,
+          }),
+        })
       }
-      fetch('/api/admin/sms-reply', { method: 'POST', body: fd }).catch(err =>
-        console.error('MMS send failed:', err)
-      )
-    } else {
-      fetch('/api/admin/sms-reply', {
+      // Message confirmed sent — clear the optimistic flag so the spinner stops
+      setMessages(p => p.map(m =>
+        m.id === optimistic.id ? { ...m, _optimistic: false } : m
+      ))
+    } catch (err) {
+      console.error('Send failed:', err)
+      // Remove failed optimistic bubble so user knows to retry
+      setMessages(p => p.filter(m => m.id !== optimistic.id))
+    } finally {
+      for (const att of capturedMedia) {
+        if (att.previewUrl) URL.revokeObjectURL(att.previewUrl)
+      }
+      setSending(false)
+      setJustSent(true)
+      setTimeout(() => setJustSent(false), 2500)
+      textareaRef.current?.focus()
+    }
+  }
+
+  const initiateCall = async (customerPhone: string) => {
+    if (calling) return
+    setCalling(true)
+    try {
+      await fetch('/api/admin/initiate-call', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          conversationId: activeConv.id,
-          to: activeConv.contact_phone,
-          message,
-        }),
-      }).catch(err => console.error('SMS send failed:', err))
+        body: JSON.stringify({ customerPhone }),
+      })
+    } catch (err) {
+      console.error('Call initiation failed:', err)
+    } finally {
+      // Short delay so the owner doesn't double-tap
+      setTimeout(() => setCalling(false), 3000)
     }
-
-    for (const att of capturedMedia) {
-      if (att.previewUrl) URL.revokeObjectURL(att.previewUrl)
-    }
-
-    setSending(false)
-    setJustSent(true)
-    setTimeout(() => setJustSent(false), 2500)
-    textareaRef.current?.focus()
   }
 
   const enablePush = async () => {
@@ -819,13 +862,15 @@ export default function InboxPage() {
 
               {showThread && activeConv && (
                 <>
-                  <a
-                    href={`tel:${activeConv.contact_phone}`}
-                    className="sm:hidden flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-slate-600 active:bg-[#e8f3ec] active:text-[#4A7C59] transition-colors duration-150 cursor-pointer"
-                    title={`Call ${formatPhone(activeConv.contact_phone)}`}
+                  <button
+                    type="button"
+                    onClick={() => initiateCall(activeConv.contact_phone)}
+                    disabled={calling}
+                    className="sm:hidden flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-slate-600 active:bg-[#e8f3ec] active:text-[#4A7C59] transition-colors duration-150 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                    title={calling ? 'Calling…' : `Call ${formatPhone(activeConv.contact_phone)}`}
                   >
                     <Phone size={16} />
-                  </a>
+                  </button>
                   <button
                     onClick={() => setShowContactCard(p => !p)}
                     className={cn('sm:hidden flex h-10 w-10 items-center justify-center rounded-full transition-colors duration-150 cursor-pointer', showContactCard ? 'bg-[#4A7C59] text-white' : 'bg-slate-100 text-slate-500')}
@@ -978,13 +1023,15 @@ export default function InboxPage() {
                       Notes
                     </button>
 
-                    <a
-                      href={`tel:${activeConv.contact_phone}`}
-                      className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-600 hover:border-slate-300 hover:text-slate-900 transition-colors duration-150"
+                    <button
+                      type="button"
+                      onClick={() => initiateCall(activeConv.contact_phone)}
+                      disabled={calling}
+                      className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-600 hover:border-slate-300 hover:text-slate-900 transition-colors duration-150 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <Phone size={12} />
-                      Call
-                    </a>
+                      {calling ? 'Calling…' : 'Call'}
+                    </button>
 
                     <div className="relative">
                       <select
@@ -1406,7 +1453,7 @@ export default function InboxPage() {
 
             <AnimatePresence>
               {showContactCard && activeConv && (
-                <ContactCard conv={activeConv} job={jobSnapshot} onClose={() => setShowContactCard(false)} />
+                <ContactCard conv={activeConv} job={jobSnapshot} onClose={() => setShowContactCard(false)} calling={calling} initiateCall={initiateCall} />
               )}
             </AnimatePresence>
 
