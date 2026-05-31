@@ -1,13 +1,14 @@
 'use client'
 
 import * as React from 'react'
-import { Suspense } from 'react'
+import { Suspense, useEffect } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { motion } from 'motion/react'
 import { CheckCircle, Clock, Mail, Phone, ClipboardCheck } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import Image from 'next/image'
+import { trackEvent } from '@/lib/pixel'
 
 function SubmittedContent() {
   const params = useSearchParams()
@@ -198,6 +199,10 @@ function SubmittedContent() {
 }
 
 export default function BookingSubmittedPage() {
+  useEffect(() => {
+    trackEvent('Lead')
+  }, [])
+
   return (
     <Suspense>
       <SubmittedContent />

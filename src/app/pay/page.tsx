@@ -4,6 +4,7 @@ import { CheckCircle } from 'lucide-react'
 import { createServerClient } from '@/lib/supabase/server'
 import { Button } from '@/components/ui/button'
 import Image from 'next/image'
+import { FacebookPixelEvent } from '@/components/layout/FacebookPixel'
 
 export const metadata: Metadata = {
   title: 'Booking Confirmed — RenewShine',
@@ -67,6 +68,7 @@ export default async function PayPage({
 
   return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center px-4 py-20">
+      <FacebookPixelEvent event="InitiateCheckout" />
       <div className="mx-auto w-full max-w-md">
         <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm text-center">
 
