@@ -80,6 +80,17 @@ function timeAgo(createdAt: string): string {
   return `${Math.floor(diffHours)}h ago`
 }
 
+function SmsOptInBadge({ optedIn }: { optedIn: boolean }) {
+  if (!optedIn) return null
+
+  return (
+    <span title="SMS opted in" className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-700">
+      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+      SMS
+    </span>
+  )
+}
+
 function UrgencyBadge({ createdAt, stage }: { createdAt: string; stage: Stage }) {
   const diffMs = Date.now() - new Date(createdAt).getTime()
   const diffHours = diffMs / (1000 * 60 * 60)
@@ -121,7 +132,6 @@ export function JobsTable({ jobs }: { jobs: JobRecord[] }) {
 
   const [activeTab, setActiveTab] = React.useState<TabFilter>(initialTab)
   const [query, setQuery] = React.useState('')
-  const [smsFilter, setSmsFilter] = React.useState(false)
   const router = useRouter()
 
   React.useEffect(() => {
@@ -145,11 +155,7 @@ export function JobsTable({ jobs }: { jobs: JobRecord[] }) {
         const q = query.toLowerCase()
         return j.client_name?.toLowerCase().includes(q) || j.client_email?.toLowerCase().includes(q)
       })
-      .filter((j) => {
-        if (!smsFilter) return true
-        return (j as any).sms_opt_in === true
-      })
-  }, [activeTab, jobs, query, smsFilter])
+  }, [activeTab, jobs, query])
 
   return (
     <div>
@@ -158,34 +164,6 @@ export function JobsTable({ jobs }: { jobs: JobRecord[] }) {
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
           <input type="text" placeholder="Search by name or email…" value={query} onChange={(e) => setQuery(e.target.value)} className="w-full rounded-lg border border-slate-200 bg-white py-2.5 pl-9 pr-3 text-sm text-slate-900 placeholder:text-slate-400 transition-colors duration-200 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-(--color-brand) sm:max-w-sm sm:py-2" />
         </div>
-      </div>
-
-
-
-      {/* SMS Opted In filter chip */}
-      <div className="mb-3 flex items-center gap-2">
-        <button
-          type="button"
-          onClick={() => setSmsFilter((prev) => !prev)}
-          className={`inline-flex cursor-pointer items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors duration-200 ${
-            smsFilter
-              ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-              : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300 hover:text-slate-700'
-          }`}
-        >
-          <span className={`h-1.5 w-1.5 rounded-full ${smsFilter ? 'bg-emerald-500' : 'bg-slate-300'}`} />
-          SMS Opted In
-          {smsFilter && (
-            <span className="ml-0.5 font-semibold text-emerald-600">
-              · {filteredJobs.length}
-            </span>
-          )}
-        </button>
-        {smsFilter && (
-          <span className="text-xs text-slate-400">
-            Showing customers who consented to text messages
-          </span>
-        )}
       </div>
 
       <div className="mb-4 -mx-4 sm:mx-0">
@@ -234,6 +212,7 @@ export function JobsTable({ jobs }: { jobs: JobRecord[] }) {
                     </p>
                     <p className="mt-0.5 text-xs text-slate-500">{job.client_email}</p>
                     {job.client_phone && <p className="mt-0.5 text-xs text-slate-500 font-mono tabular-nums">{job.client_phone}</p>}
+                    {job.sms_opt_in && <div className="mt-2"><SmsOptInBadge optedIn /></div>}
                     <div className="mt-2 flex items-center gap-1.5">
                       <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-amber-400" />
                       <span className="text-xs font-medium text-amber-700">
@@ -261,14 +240,14 @@ export function JobsTable({ jobs }: { jobs: JobRecord[] }) {
             )
           }
 
-          // ── Regular job mobile card (unchanged) ────────────────────────────────────
+          // ── Regular job mobile card ────────────────────────────────────────────────
           const stage = mapStatusToStage(job.status)
           const stageConf = STAGE_CONFIG[stage]
           const badge = <UrgencyBadge createdAt={job.created_at} stage={stage} />
           return (
             <Link key={job.id} href={`/admin/jobs/${job.id}`} className="flex items-start justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3.5 transition-colors duration-150 active:bg-slate-50">
               <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2 flex-wrap"><p className="font-semibold text-slate-900 text-sm truncate">{job.client_name}</p>{badge}</div>
+                <div className="flex items-center gap-2 flex-wrap"><p className="font-semibold text-slate-900 text-sm truncate">{job.client_name}</p>{badge}<SmsOptInBadge optedIn={job.sms_opt_in} /></div>
                 <p className="mt-0.5 text-sm text-slate-600">{formatService(job.service_type)}</p>
                 <p className="mt-0.5 text-xs text-slate-400">{formatAvailability(job.availability_start, job.availability_end, job.availability_time_pref)}</p>
                 <div className="mt-2 flex items-center gap-2"><span className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs font-medium ${stageConf.bg} ${stageConf.text}`}><span className={`h-1.5 w-1.5 rounded-full ${stageConf.dot}`} />{stageConf.label}</span><span className="text-xs text-slate-400">{timeAgo(job.created_at)}</span></div>
@@ -299,7 +278,7 @@ export function JobsTable({ jobs }: { jobs: JobRecord[] }) {
                 return (
                   <tr key={job.id} className="border-b border-slate-100">
                     <td className="px-4 py-3"><p className="text-xs text-slate-400">{created.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} · {timeAgo(job.created_at)}</p></td>
-                    <td className="px-4 py-3"><p className="font-medium text-slate-900">{job.client_name === 'Unknown' ? <span className="italic text-slate-400">Name not provided</span> : job.client_name}</p><p className="text-xs text-slate-500">{job.client_email}</p>{job.client_phone && <p className="text-xs text-slate-500 font-mono tabular-nums mt-0.5">{job.client_phone}</p>}</td>
+                    <td className="px-4 py-3"><p className="font-medium text-slate-900">{job.client_name === 'Unknown' ? <span className="italic text-slate-400">Name not provided</span> : job.client_name}</p><p className="text-xs text-slate-500">{job.client_email}</p>{job.client_phone && <p className="text-xs text-slate-500 font-mono tabular-nums mt-0.5">{job.client_phone}</p>}{job.sms_opt_in && <div className="mt-1.5"><SmsOptInBadge optedIn /></div>}</td>
                     <td className="px-4 py-3 text-slate-500">{job.service_type ? formatService(job.service_type) : <span className="text-slate-300">—</span>}</td>
                     <td className="px-4 py-3 text-slate-500">{job.availability_start ? formatAvailability(job.availability_start, job.availability_end, job.availability_time_pref) : <span className="text-slate-300">—</span>}</td>
                     <td className="px-4 py-3"><span className="inline-flex items-center gap-1.5 text-xs font-medium text-amber-700"><span className="h-1.5 w-1.5 shrink-0 rounded-full bg-amber-400" />{droppedLabel ? `Left at · ${droppedLabel}` : 'Started booking'}</span></td>
@@ -313,11 +292,11 @@ export function JobsTable({ jobs }: { jobs: JobRecord[] }) {
                 )
               }
 
-              // ── Regular job row (unchanged) ────────────────────────────────────────────
+              // ── Regular job row ────────────────────────────────────────────────────────
               const stage = mapStatusToStage(job.status)
               const stageConf = STAGE_CONFIG[stage]
               const created = new Date(job.created_at)
-              return <tr key={job.id} className="border-b border-slate-100 transition-colors duration-200 hover:bg-slate-50"><td className="px-4 py-3"><div><UrgencyBadge createdAt={job.created_at} stage={stage} /><p className="mt-1 text-xs text-slate-400">{created.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} · {timeAgo(job.created_at)}</p></div></td><td className="px-4 py-3"><p className="font-medium text-slate-900">{job.client_name}</p><p className="text-xs text-slate-500">{job.client_email}</p></td><td className="px-4 py-3 text-slate-700">{formatService(job.service_type)}</td><td className="px-4 py-3 text-slate-600">{formatAvailability(job.availability_start, job.availability_end, job.availability_time_pref)}</td><td className="px-4 py-3"><div className="flex items-center gap-2"><span className={`h-2 w-2 shrink-0 rounded-full ${stageConf.dot}`} /><span className={`text-xs font-medium ${stageConf.text}`}>{stageConf.label}</span></div></td><td className="px-4 py-3"><Link href={`/admin/jobs/${job.id}`} className="cursor-pointer text-sm font-medium text-(--color-brand) hover:underline">View →</Link></td></tr>
+              return <tr key={job.id} className="border-b border-slate-100 transition-colors duration-200 hover:bg-slate-50"><td className="px-4 py-3"><div><UrgencyBadge createdAt={job.created_at} stage={stage} /><p className="mt-1 text-xs text-slate-400">{created.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} · {timeAgo(job.created_at)}</p></div></td><td className="px-4 py-3"><div className="flex items-center gap-2"><p className="font-medium text-slate-900">{job.client_name}</p><SmsOptInBadge optedIn={job.sms_opt_in} /></div><p className="text-xs text-slate-500">{job.client_email}</p></td><td className="px-4 py-3 text-slate-700">{formatService(job.service_type)}</td><td className="px-4 py-3 text-slate-600">{formatAvailability(job.availability_start, job.availability_end, job.availability_time_pref)}</td><td className="px-4 py-3"><div className="flex items-center gap-2"><span className={`h-2 w-2 shrink-0 rounded-full ${stageConf.dot}`} /><span className={`text-xs font-medium ${stageConf.text}`}>{stageConf.label}</span></div></td><td className="px-4 py-3"><Link href={`/admin/jobs/${job.id}`} className="cursor-pointer text-sm font-medium text-(--color-brand) hover:underline">View →</Link></td></tr>
             })}
           </tbody>
         </table>
