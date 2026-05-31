@@ -233,6 +233,7 @@ export function JobsTable({ jobs }: { jobs: JobRecord[] }) {
                       {job.client_name === 'Unknown' ? <span className="italic text-slate-400">Name not provided</span> : job.client_name}
                     </p>
                     <p className="mt-0.5 text-xs text-slate-500">{job.client_email}</p>
+                    {job.client_phone && <p className="mt-0.5 text-xs text-slate-500 font-mono tabular-nums">{job.client_phone}</p>}
                     <div className="mt-2 flex items-center gap-1.5">
                       <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-amber-400" />
                       <span className="text-xs font-medium text-amber-700">
@@ -298,7 +299,7 @@ export function JobsTable({ jobs }: { jobs: JobRecord[] }) {
                 return (
                   <tr key={job.id} className="border-b border-slate-100">
                     <td className="px-4 py-3"><p className="text-xs text-slate-400">{created.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} · {timeAgo(job.created_at)}</p></td>
-                    <td className="px-4 py-3"><p className="font-medium text-slate-900">{job.client_name === 'Unknown' ? <span className="italic text-slate-400">Name not provided</span> : job.client_name}</p><p className="text-xs text-slate-500">{job.client_email}</p></td>
+                    <td className="px-4 py-3"><p className="font-medium text-slate-900">{job.client_name === 'Unknown' ? <span className="italic text-slate-400">Name not provided</span> : job.client_name}</p><p className="text-xs text-slate-500">{job.client_email}</p>{job.client_phone && <p className="text-xs text-slate-500 font-mono tabular-nums mt-0.5">{job.client_phone}</p>}</td>
                     <td className="px-4 py-3 text-slate-500">{job.service_type ? formatService(job.service_type) : <span className="text-slate-300">—</span>}</td>
                     <td className="px-4 py-3 text-slate-500">{job.availability_start ? formatAvailability(job.availability_start, job.availability_end, job.availability_time_pref) : <span className="text-slate-300">—</span>}</td>
                     <td className="px-4 py-3"><span className="inline-flex items-center gap-1.5 text-xs font-medium text-amber-700"><span className="h-1.5 w-1.5 shrink-0 rounded-full bg-amber-400" />{droppedLabel ? `Left at · ${droppedLabel}` : 'Started booking'}</span></td>
