@@ -90,6 +90,9 @@ export interface Database {
           contact_note: string | null
           home_type: 'apartment' | 'condo' | 'townhouse' | 'single_family' | null
           preferred_contact: 'email' | 'phone' | 'text' | null
+          last_completed_step: number | null
+          dropped_at_label: string | null
+          quote_line_items: Json | null
         }
         Insert: {
           type?: JobType | null
@@ -131,6 +134,9 @@ export interface Database {
           contact_note?: string | null
           home_type?: 'apartment' | 'condo' | 'townhouse' | 'single_family' | null
           preferred_contact?: 'email' | 'phone' | 'text' | null
+          last_completed_step?: number | null
+          dropped_at_label?: string | null
+          quote_line_items?: Json | null
         }
         Update: Partial<Database['public']['Tables']['jobs']['Row']>
         Relationships: []
