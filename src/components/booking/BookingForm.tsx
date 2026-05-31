@@ -272,20 +272,27 @@ export function BookingForm() {
   }
 
   // ── Partial save — fires when Step 1 is complete and user clicks Next ──────
-  const savePartialLead = async (): Promise<string | null> => {
+  const savePartialLead = async (
+    saveType: 'residential' | 'commercial' | 'post_construction' = 'residential'
+  ): Promise<string | null> => {
     // If already saved, don't save again
     if (partialJobId) return partialJobId
     setSavingPartial(true)
     try {
+      const jobType = saveType === 'residential' ? 'residential' : 'commercial'
       const response = await fetch('/api/create-job', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          type: 'residential',
+          type: jobType,
           status: 'partial',
           client_name: sharedName || 'Unknown',
           client_email: sharedEmail,
           client_phone: rawPhone(sharedPhone) || null,
+          // Include business_name for commercial/post-construction partial records
+          ...(jobType === 'commercial' && businessName ? { business_name: businessName } : {}),
+          // service_type distinguishes post-construction from generic commercial
+          ...(saveType === 'post_construction' ? { service_type: 'post_construction' } : {}),
         }),
       })
       const data = await response.json()
@@ -302,21 +309,27 @@ export function BookingForm() {
   }
 
   // ── Step tracking — fire-and-forget, never blocks user ──────────────────────
-  const DROPPED_AT_LABELS: Record<number, string> = {
+
+  // Residential: maps last_completed_step → label of the step the user was on
+  const RES_DROPPED_AT_LABELS: Record<number, string> = {
     1: 'Home Details',
     2: 'Service',
     3: 'Availability',
     4: 'Photos',
   }
 
-  const updatePartialStep = async (jobId: string, completedStep: number): Promise<void> => {
+  const updatePartialStep = async (
+    jobId: string,
+    completedStep: number,
+    droppedAtLabel: string | null
+  ): Promise<void> => {
     try {
       await fetch(`/api/update-job-step/${jobId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           last_completed_step: completedStep,
-          dropped_at_label: DROPPED_AT_LABELS[completedStep] ?? null,
+          dropped_at_label: droppedAtLabel,
         }),
       })
     } catch {
@@ -396,7 +409,33 @@ export function BookingForm() {
 
     // Track which step the user completed (fire-and-forget)
     if (idForStepTracking) {
-      void updatePartialStep(idForStepTracking, resStep)
+      void updatePartialStep(idForStepTracking, resStep, RES_DROPPED_AT_LABELS[resStep] ?? null)
+    }
+  }
+
+  // ── Commercial/Post-Construction Next handler ──────────────────────────────
+  const handleComNext = async () => {
+    if (!validateCommercialStep()) return
+
+    let idForStepTracking = partialJobId
+
+    if (comStep === 1) {
+      // First Next click — create the partial record with the correct type
+      const savedId = await savePartialLead(flowType as 'commercial' | 'post_construction')
+      idForStepTracking = savedId
+      setBookingTypeLocked(true)
+    }
+
+    setComStep((s) => Math.min(3, s + 1))
+
+    // Track which step the user completed (fire-and-forget)
+    // Step 3 is the submit step — no tracking needed there
+    if (idForStepTracking && comStep < 3) {
+      const COM_DROPPED_AT_LABELS: Record<number, string> = {
+        1: flowType === 'post_construction' ? 'Project Details' : 'Space Details',
+        2: 'Scheduling',
+      }
+      void updatePartialStep(idForStepTracking, comStep, COM_DROPPED_AT_LABELS[comStep] ?? null)
     }
   }
 
@@ -1397,10 +1436,13 @@ export function BookingForm() {
           {flowType !== 'residential' && comStep < 3 ? (
             <Button
               type="button"
-              onClick={() => { if (validateCommercialStep()) setComStep((s) => Math.min(3, s + 1)) }}
-              disabled={submitting}
+              onClick={handleComNext}
+              disabled={submitting || savingPartial}
             >
-              Next
+              {savingPartial && comStep === 1
+                ? <><Loader2 size={14} className="animate-spin" /> Saving…</>
+                : <>Continue <ChevronRight className="w-4 h-4" /></>
+              }
             </Button>
           ) : null}
         </div>
