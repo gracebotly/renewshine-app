@@ -2,7 +2,7 @@ import type { Job } from '@/types/database'
 import { ADD_ONS } from '@/lib/pricing'
 import { baseTemplate, badge, heading, para, ctaButton, divider } from './base'
 
-export function customerQuoteTemplate(job: Job, stripeUrl: string): { subject: string; html: string } {
+export function customerQuoteTemplate(job: Job, stripeUrl: string, depositAmountOverride?: number): { subject: string; html: string } {
   const firstName = job.client_name.split(' ')[0]
   const subject = `${firstName}, your RenewShine quote is ready`
 
@@ -47,7 +47,8 @@ export function customerQuoteTemplate(job: Job, stripeUrl: string): { subject: s
     : availabilityWindowStr
 
   const approvedPrice = job.approved_price ?? 0
-  const depositAmount = 100
+  // Use the passed deposit amount, then fall back to job.deposit_amount, then 100
+  const depositAmount = depositAmountOverride ?? job.deposit_amount ?? 100
   const remainingAmount = Math.max(approvedPrice - depositAmount, 0)
 
   const totalDisplay = `$${approvedPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
@@ -151,7 +152,7 @@ export function customerQuoteTemplate(job: Job, stripeUrl: string): { subject: s
           <td style="padding:13px 16px;vertical-align:middle;width:40px;border-bottom:1px solid #e8f0eb;">
             <div style="width:24px;height:24px;border-radius:50%;background:#4A7C59;color:#fff;font-size:11px;font-weight:700;text-align:center;line-height:24px;">1</div>
           </td>
-          <td style="padding:13px 16px 13px 0;font-size:13px;color:#0f172a;line-height:1.5;vertical-align:middle;border-bottom:1px solid #e8f0eb;">Pay the $100 deposit above to hold your spot</td>
+          <td style="padding:13px 16px 13px 0;font-size:13px;color:#0f172a;line-height:1.5;vertical-align:middle;border-bottom:1px solid #e8f0eb;">Pay the $${depositAmount.toFixed(0)} deposit above to hold your spot</td>
         </tr>
         <tr>
           <td style="padding:13px 16px;vertical-align:middle;width:40px;border-bottom:1px solid #e8f0eb;">
@@ -167,7 +168,7 @@ export function customerQuoteTemplate(job: Job, stripeUrl: string): { subject: s
         </tr>
       </tbody>
     </table>
-    <p style="margin:0;font-size:13px;color:#64748b;text-align:center;line-height:1.6;">Questions? Reply to this email — we're happy to help.</p>`
+    <p style="margin:0;font-size:13px;color:#64748b;text-align:center;line-height:1.6;">Questions? Reach us at <a href="mailto:hello@renewshine.co" style="color:#4A7C59;text-decoration:none;">hello@renewshine.co</a></p>`
 
   // ── Full email body ───────────────────────────────────────────────────────
   const content = `

@@ -15,7 +15,7 @@ import { customerQuoteReadyTemplate } from './templates/customer-quote-ready'
 
 const resend = new Resend(process.env.RESEND_API_KEY!)
 const FROM = 'RenewShine <noreply@renewshine.co>'
-const REPLY_TO = 'renewshinedmv@gmail.com'
+const REPLY_TO = 'hello@renewshine.co'
 const OWNER_EMAIL = 'renewshinedmv@gmail.com'
 
 /** Template 1 — fires when customer submits booking form. To: owner. */
@@ -31,8 +31,8 @@ export async function sendCustomerSubmittedConfirmation(job: Job): Promise<void>
 }
 
 /** Template 3 — fires when owner clicks "Approve & Send Deposit Link". To: customer. */
-export async function sendCustomerQuote(job: Job, stripeUrl: string): Promise<void> {
-  const { subject, html } = customerQuoteTemplate(job, stripeUrl)
+export async function sendCustomerQuote(job: Job, stripeUrl: string, depositAmount?: number): Promise<void> {
+  const { subject, html } = customerQuoteTemplate(job, stripeUrl, depositAmount)
   await resend.emails.send({ from: FROM, to: job.client_email, subject, html })
 }
 

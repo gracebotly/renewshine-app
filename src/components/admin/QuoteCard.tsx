@@ -385,6 +385,7 @@ export function QuoteCard({ job }: { job: any }) {
       body: JSON.stringify({
         jobId: job.id,
         approvedPrice: quoteTotal,
+        depositAmount: depositAmount,
         confirmedDate: dateToSend,
         lineItems: quoteItems.filter((item) => item.description.trim() && parseFloat(item.amount) > 0),
       }),
@@ -419,6 +420,7 @@ export function QuoteCard({ job }: { job: any }) {
       body: JSON.stringify({
         jobId:         job.id,
         approvedPrice: quoteTotal,
+        depositAmount: depositAmount,
         confirmedDate: dateToSend,
         channel:       'sms',
         lineItems:     quoteItems.filter(
@@ -466,6 +468,7 @@ export function QuoteCard({ job }: { job: any }) {
       body: JSON.stringify({
         jobId: job.id,
         approvedPrice: job.approved_price,
+        depositAmount: job.deposit_amount,
         confirmedDate: job.confirmed_date,
         regenerate: true,
       }),
@@ -622,6 +625,7 @@ export function QuoteCard({ job }: { job: any }) {
           type: 'quote',
           jobId: job.id,
           approvedPrice: quoteTotal,
+          depositAmount: depositAmount,
           confirmedDate: dateToSend ?? new Date().toISOString().split('T')[0],
           lineItems: quoteItems.filter(
             (item) => item.description.trim() && parseFloat(item.amount) > 0
@@ -641,7 +645,7 @@ export function QuoteCard({ job }: { job: any }) {
     const firstName = job.client_name?.split(' ')[0] ?? 'there'
     const serviceLabel = getServiceLabel(job.service_type)
     const total = quoteTotal
-    const deposit = 100
+    const deposit = depositAmount > 0 ? depositAmount : 100
     const remaining = Math.max(total - deposit, 0)
     const preview =
       `Hi ${firstName}, your RenewShine ${serviceLabel} quote is $${total.toLocaleString()}.
