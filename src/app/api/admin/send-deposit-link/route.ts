@@ -3,6 +3,7 @@ import { stripe } from '@/lib/stripe/client'
 import { sendCustomerQuote, sendQuoteReminder, sendExpiredLinkRecovery } from '@/lib/email'
 import { notifyQuoteSent } from '@/lib/slack'
 import { requireAdmin } from '@/lib/require-admin'
+import { sendSms } from '@/lib/sms'
 
 export async function POST(request: Request) {
   try {
@@ -12,11 +13,17 @@ export async function POST(request: Request) {
     return Response.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const { jobId, approvedPrice, confirmedDate, regenerate } = await request.json()
+  const { jobId, approvedPrice, confirmedDate, regenerate, channel = 'email' } = await request.json()
 
   // Validate
-  if (!jobId || !approvedPrice || !confirmedDate) {
-    return Response.json({ error: 'jobId, approvedPrice, and confirmedDate are required' }, { status: 400 })
+  if (!jobId || !approvedPrice) {
+    return Response.json({ error: 'jobId and approvedPrice are required' }, { status: 400 })
+  }
+  if (!['email', 'sms'].includes(channel)) {
+    return Response.json({ error: 'channel must be email or sms' }, { status: 400 })
+  }
+  if (channel === 'email' && !confirmedDate) {
+    return Response.json({ error: 'confirmedDate is required for email quotes' }, { status: 400 })
   }
   if (Number(approvedPrice) <= 100) {
     return Response.json({ error: 'approvedPrice must be greater than $100' }, { status: 400 })
@@ -33,6 +40,9 @@ export async function POST(request: Request) {
 
   if (fetchError || !job) {
     return Response.json({ error: 'Job not found' }, { status: 404 })
+  }
+  if (channel === 'sms' && !job.client_phone) {
+    return Response.json({ error: 'No phone number on file for this job' }, { status: 400 })
   }
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? ''
@@ -93,19 +103,52 @@ export async function POST(request: Request) {
     .eq('id', jobId)
     .single()
 
-  // Send the appropriate email based on whether this is a new quote or a regenerated link
+  // Send via the requested channel
   try {
     if (updatedJob) {
-      if (regenerate) {
-        // Expired link recovery — different subject + copy to re-engage the customer
-        await sendExpiredLinkRecovery(updatedJob, paymentLink.url)
+      if (channel === 'sms') {
+        // SMS deposit link — premium, personal, direct
+        if (job.client_phone) {
+          const firstName    = job.client_name.split(' ')[0]
+          const serviceLabels: Record<string, string> = {
+            standard:          'Standard Clean',
+            deep:              'Deep Clean',
+            move_out:          'Move-In / Move-Out',
+            post_construction: 'Post-Construction',
+          }
+          const serviceLabel = serviceLabels[job.service_type ?? ''] ?? 'cleaning service'
+          const total     = Number(approvedPrice)
+          const deposit   = 100
+          const remaining = Math.max(total - deposit, 0)
+
+          const smsBody =
+            `Hi ${firstName}, your RenewShine ${serviceLabel} quote is $${total.toLocaleString()}.
+
+` +
+            `To lock in your date, complete your $${deposit} deposit here:
+${paymentLink.url}
+
+` +
+            `Remaining balance of $${remaining.toLocaleString()} is due after the clean.
+
+` +
+            `— Grace`
+
+          await sendSms(job.client_phone, smsBody)
+        } else {
+          console.warn('send-deposit-link: SMS channel requested but no client_phone on job', jobId)
+        }
       } else {
-        // First-time quote send
-        await sendCustomerQuote(updatedJob, paymentLink.url)
+        // Email channel (default)
+        if (regenerate) {
+          await sendExpiredLinkRecovery(updatedJob, paymentLink.url)
+        } else {
+          await sendCustomerQuote(updatedJob, paymentLink.url)
+        }
       }
     }
-  } catch (emailError) {
-    console.error('send-deposit-link email failed (non-blocking):', emailError)
+  } catch (sendError) {
+    console.error('send-deposit-link send failed (non-blocking):', sendError)
   }
 
   // Fire quote-approved webhook — n8n uses this to start the 24hr/48hr deposit follow-up sequence

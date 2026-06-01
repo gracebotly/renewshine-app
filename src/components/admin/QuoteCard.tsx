@@ -4,6 +4,7 @@ import * as React from 'react'
 import { Mail, MessageSquare, Send } from 'lucide-react'
 import { InvoicePanel } from '@/components/admin/InvoicePanel'
 import { ComposeSheet } from '@/components/admin/ComposeSheet'
+import { ADD_ONS } from '@/lib/pricing'
 
 function getServiceLabel(serviceType: string | null): string {
   if (serviceType === 'standard')           return 'Standard Clean'
@@ -27,10 +28,13 @@ function QuoteComposer({
   quoteTotal,
   depositAmt,
   onSend,
+  onSendSms,
   onSendExternal,
   onCancel,
   loading,
+  loadingSms,
   clientEmail,
+  clientPhone,
   onPreview,
   savedDate,
 }: {
@@ -45,10 +49,13 @@ function QuoteComposer({
   quoteTotal: number
   depositAmt: number
   onSend: () => void
+  onSendSms: () => void
   onSendExternal: () => void
   onCancel: () => void
   loading: boolean
+  loadingSms: boolean
   clientEmail: string
+  clientPhone: string | null
   onPreview: () => void
   savedDate: string | null
 }) {
@@ -192,7 +199,7 @@ function QuoteComposer({
         />
       </label>
 
-      {/* Send buttons */}
+      {/* Primary: Send email */}
       <button
         onClick={onSend}
         disabled={quoteTotal <= 0 || loading || !hasDate}
@@ -204,27 +211,47 @@ function QuoteComposer({
           ? 'Set a due date to send'
           : quoteTotal > 0
           ? depositAmt > 0
-            ? `Send quote + $${depositAmt.toFixed(0)} deposit link — $${quoteTotal.toFixed(2)} total`
-            : `Send quote — $${quoteTotal.toFixed(2)} total (no deposit)`
+            ? `Send via email — $${depositAmt.toFixed(0)} deposit · $${quoteTotal.toFixed(2)} total`
+            : `Send via email — $${quoteTotal.toFixed(2)} total`
           : 'Add line items to send'}
       </button>
+
+      {/* Secondary: Send via text */}
+      <button
+        onClick={onSendSms}
+        disabled={quoteTotal <= 0 || loadingSms || !clientPhone}
+        title={!clientPhone ? 'No phone number on file' : undefined}
+        className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition-colors duration-200 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        {loadingSms
+          ? 'Sending…'
+          : !clientPhone
+          ? 'No phone number on file'
+          : quoteTotal > 0
+          ? `Send via text — deposit link to ${clientPhone}`
+          : 'Add line items to send'}
+      </button>
+
+      {/* Preview */}
       <button
         onClick={onPreview}
         disabled={quoteTotal <= 0}
-        className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition-colors duration-200 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
+        className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-xs font-medium text-slate-500 transition-colors duration-200 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
       >
         Preview email before sending
       </button>
+
+      {/* Mark sent manually — no Stripe link, no message sent */}
       <button
         onClick={onSendExternal}
         disabled={quoteTotal <= 0 || loading}
-        className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition-colors duration-200 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+        className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg px-4 py-2 text-xs text-slate-400 transition-colors duration-200 hover:text-slate-600 disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        Mark as sent externally (text / call)
+        Sent manually — mark as approved
       </button>
 
       <p className="text-center text-xs text-slate-400">
-        Stripe payment link · quote email to {clientEmail}
+        {clientPhone ? `Email: ${clientEmail} · Text: ${clientPhone}` : `Email: ${clientEmail}`}
       </p>
     </div>
   )
@@ -235,6 +262,7 @@ function QuoteComposer({
 export function QuoteCard({ job }: { job: any }) {
   const [overrideStatus, setOverrideStatus] = React.useState(job.status)
   const [loadingStripe, setLoadingStripe] = React.useState(false)
+  const [loadingSmsSend, setLoadingSmsSend] = React.useState(false)
   const [loadingResend, setLoadingResend] = React.useState(false)
   const [loadingReminder, setLoadingReminder] = React.useState(false)
   const [loadingComplete, setLoadingComplete] = React.useState(false)
@@ -358,6 +386,43 @@ export function QuoteCard({ job }: { job: any }) {
     setLoadingStripe(false)
   }
 
+  const handleStripeSms = async () => {
+    const dateToSend = savedDate ?? quoteDueDate ?? null
+    if (quoteTotal <= 0) {
+      setErrorMsg('Add at least one line item with an amount.')
+      return
+    }
+    if (!job.client_phone) {
+      setErrorMsg('No phone number on file for this customer.')
+      return
+    }
+    setLoadingSmsSend(true)
+    setErrorMsg('')
+    setSuccessMsg('')
+    const res = await fetch('/api/admin/send-deposit-link', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        jobId:         job.id,
+        approvedPrice: quoteTotal,
+        confirmedDate: dateToSend,
+        channel:       'sms',
+        lineItems:     quoteItems.filter(
+          (item) => item.description.trim() && parseFloat(item.amount) > 0
+        ),
+      }),
+    })
+    if (res.ok) {
+      setSuccessMsg(`Deposit link texted to ${job.client_phone} ✓`)
+      setActiveComposer(null)
+      setOverrideStatus('approved')
+    } else {
+      const err = await res.json().catch(() => ({}))
+      setErrorMsg((err as any).error ?? 'Failed to send. Please try again.')
+    }
+    setLoadingSmsSend(false)
+  }
+
   const handleMarkSentExternally = async () => {
     setOverrideStatus('approved')
     setActiveComposer(null)
@@ -431,6 +496,48 @@ export function QuoteCard({ job }: { job: any }) {
     setReminderSent(true)
     setLoadingReminder(false)
     setSuccessMsg('Day-before reminder sent ✓')
+  }
+
+  const openQuoteComposer = () => {
+    // Only pre-populate if the composer hasn't been edited yet
+    const isBlank =
+      quoteItems.length === 1 &&
+      !quoteItems[0].description &&
+      !quoteItems[0].amount
+
+    if (isBlank) {
+      const serviceLabel =
+        job.service_type === 'standard'            ? 'Standard Clean'
+        : job.service_type === 'deep'              ? 'Deep Clean'
+        : job.service_type === 'move_out'          ? 'Move-In / Move-Out'
+        : job.service_type === 'post_construction' ? 'Post-Construction'
+        : 'Cleaning Service'
+
+      const bedroomLine =
+        job.bedrooms
+          ? `${job.bedrooms}BR / ${job.bathrooms ?? 0}BA`
+          : ''
+
+      const mainDesc = [serviceLabel, bedroomLine].filter(Boolean).join(' — ')
+      const mainPrice = savedPrice ?? job.approved_price ?? ''
+
+      const items: Array<{ description: string; amount: string }> = [
+        { description: mainDesc, amount: String(mainPrice || '') },
+      ]
+
+      // Add-ons as separate line items — price left blank for Grace to confirm
+      if (Array.isArray(job.add_ons) && job.add_ons.length > 0) {
+        ADD_ONS
+          .filter((a) => (job.add_ons as string[]).includes(a.id))
+          .forEach((a) => {
+            items.push({ description: a.label, amount: '' })
+          })
+      }
+
+      setQuoteItems(items)
+    }
+
+    setActiveComposer('quote')
   }
 
   function fmtPhone(p: string) {
@@ -880,16 +987,19 @@ Reply YES and I'll send your deposit link.
                 quoteTotal={quoteTotal}
                 depositAmt={depositAmount}
                 onSend={handleStripe}
+                onSendSms={handleStripeSms}
                 onSendExternal={handleMarkSentExternally}
                 onPreview={handleQuotePreview}
                 onCancel={() => setActiveComposer(null)}
                 loading={loadingStripe}
+                loadingSms={loadingSmsSend}
                 clientEmail={job.client_email}
+                clientPhone={job.client_phone ?? null}
                 savedDate={savedDate}
               />
             ) : (
               <button
-                onClick={() => setActiveComposer('quote')}
+                onClick={openQuoteComposer}
                 className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg bg-[#1A3F6F] px-4 py-2.5 text-sm font-semibold text-white transition-colors duration-200 hover:opacity-90"
               >
                 Send quote + deposit link
