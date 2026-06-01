@@ -3,15 +3,19 @@
 import * as React from 'react'
 import { X, Send, Mail, MessageSquare, ChevronRight } from 'lucide-react'
 
-const SMS_NEED_PHOTOS = (firstName: string, serviceLabel: string) =>
-  `Hi ${firstName} — got your ${serviceLabel} request. To confirm your price, I need a few photos or a short video. Reply here or FaceTime works too. — Grace, RenewShine`
+function getRoomCallout(serviceType: string | null): string {
+  if (serviceType === 'standard' || serviceType === 'deep') {
+    return 'the kitchen, bathrooms, bedrooms, and living areas'
+  }
+  if (serviceType === 'move_out') {
+    return 'the property — the kitchen, bathrooms, and any areas needing extra attention'
+  }
+  return 'the space'
+}
 
-function getServiceLabel(serviceType: string | null): string {
-  if (serviceType === 'standard') return 'Standard Clean'
-  if (serviceType === 'deep') return 'Deep Clean'
-  if (serviceType === 'move_out') return 'Move-In / Move-Out'
-  if (serviceType === 'post_construction') return 'Post-Construction Cleaning'
-  return 'cleaning request'
+const SMS_NEED_PHOTOS = (firstName: string, serviceType: string | null): string => {
+  const rooms = getRoomCallout(serviceType)
+  return `Hi ${firstName}, thanks for reaching out to RenewShine. To put together an accurate quote, please send a few photos or a short walkthrough video of ${rooms}. FaceTime works too if that's easier. Once I review it, I'll have your quote ready. — Grace`
 }
 
 export function ComposeSheet({
@@ -26,15 +30,9 @@ export function ComposeSheet({
   onSuccess: (contactNote: string) => void
 }) {
   const firstName = job.client_name?.split(' ')[0] ?? 'there'
-  const svcLabel = getServiceLabel(job.service_type)
-  const bedroomLine =
-    job.bedrooms && job.bathrooms
-      ? `${job.bedrooms} bed / ${job.bathrooms} bath`
-      : 'your space'
-
   const [tab, setTab] = React.useState<'email' | 'sms'>('email')
   const [emailTemplate, setEmailTemplate] = React.useState<'need_photos' | 'custom'>('need_photos')
-  const [smsBody, setSmsBody] = React.useState(SMS_NEED_PHOTOS(firstName, svcLabel))
+  const [smsBody, setSmsBody] = React.useState(SMS_NEED_PHOTOS(firstName, job.service_type ?? null))
   const [customEmailBody, setCustomEmailBody] = React.useState('')
   const [loading, setLoading] = React.useState(false)
   const [error, setError] = React.useState('')
@@ -162,16 +160,16 @@ export function ComposeSheet({
                 </p>
                 <p className="text-xs leading-relaxed text-slate-600">
                   <span className="font-medium">Subject:</span>{' '}
-                  {firstName}, we need a few details to complete your quote
+                  {firstName}, your RenewShine quote is one step away
                 </p>
                 <p className="mt-2 text-xs leading-relaxed text-slate-600">
-                  Hi {firstName} — we received your {svcLabel} request for {bedroomLine}.
-                  To confirm your price, we need a few photos of the spaces you'd like cleaned.
-                  We review and confirm your price before you pay anything, then send your
-                  confirmed quote and lock in your date.
+                  Hi {firstName}, thanks for reaching out to RenewShine. To put together an accurate quote, I need to take a look at the space first. Could you send a few photos or a short walkthrough video of {getRoomCallout(job.service_type ?? null)}? FaceTime works great too if that's easier.
                 </p>
-                <p className="mt-2 text-xs text-slate-500">
-                  Text photos to (771) 253-9204 and we'll have your quote ready.
+                <p className="mt-2 text-xs leading-relaxed text-slate-600">
+                  Once I've reviewed it, I'll send over your confirmed quote — you won't pay anything until you've seen and approved the price.
+                </p>
+                <p className="mt-2 text-xs text-slate-500 font-medium">
+                  Reply to this email or text us at (771) 253-9204.
                 </p>
               </div>
             </button>
