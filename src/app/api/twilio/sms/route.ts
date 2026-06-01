@@ -9,6 +9,15 @@ export const dynamic = 'force-dynamic'
 
 const EMPTY_TWIML = '<?xml version="1.0" encoding="UTF-8"?><Response></Response>'
 
+// Normalize any US phone format to E.164: +1XXXXXXXXXX
+// Handles: +12025551234, (202) 555-1234, 2025551234, 12025551234
+function toE164(phone: string): string {
+  const digits = phone.replace(/\D/g, '')
+  if (digits.length === 10) return `+1${digits}`
+  if (digits.length === 11 && digits.startsWith('1')) return `+${digits}`
+  return phone // return as-is if unrecognized format
+}
+
 // Compliance keywords Twilio handles at carrier level — no action needed
 const COMPLIANCE_KEYWORDS = new Set([
   'STOP','STOPALL','UNSUBSCRIBE','CANCEL','END','QUIT','HELP','INFO'
@@ -149,10 +158,13 @@ async function storeInInbox({
   mediaUrl: string | null
   params: Record<string, string>
 }) {
+  const normalizedFrom = toE164(from)
+
+  // Jobs may store phone as (202) 555-1234 or +12025551234 — try both
   const { data: matchingJob } = await supabase
     .from('jobs')
     .select('client_name')
-    .eq('client_phone', from)
+    .or(`client_phone.eq.${from},client_phone.eq.${normalizedFrom}`)
     .order('created_at', { ascending: false })
     .limit(1)
     .maybeSingle()
@@ -171,7 +183,7 @@ async function storeInInbox({
     .from('sms_conversations')
     .upsert(
       {
-        contact_phone:        from,
+        contact_phone:        normalizedFrom,
         contact_name:         contactName,
         lead_source:          leadSource,
         last_message_at:      new Date().toISOString(),
