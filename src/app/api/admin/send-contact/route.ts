@@ -3,6 +3,13 @@ import { sendContactPhotos, sendContactQuoteReady } from '@/lib/email'
 import { sendSms } from '@/lib/sms'
 import { requireAdmin } from '@/lib/require-admin'
 
+function toE164(phone: string): string {
+  const digits = phone.replace(/\D/g, '')
+  if (digits.length === 10) return `+1${digits}`
+  if (digits.length === 11 && digits.startsWith('1')) return `+${digits}`
+  return phone
+}
+
 export async function POST(request: Request) { /* trimmed for brevity in command */
   try { await requireAdmin() } catch (err) { if (err instanceof Response) return err; return Response.json({ error: 'Unauthorized' }, { status: 401 }) }
   const { jobId, method, template, customBody } = await request.json()
@@ -32,7 +39,7 @@ export async function POST(request: Request) { /* trimmed for brevity in command
       return Response.json({ error: 'template or customBody required for email' }, { status: 400 })
     }
   }
-  if (method === 'sms') { if (!job.client_phone) return Response.json({ error: 'No phone number on file for this job' }, { status: 400 }); const body = customBody?.trim(); if (!body) return Response.json({ error: 'customBody required for SMS' }, { status: 400 }); await sendSms(job.client_phone, body); contactNote = `SMS sent: "${body.slice(0, 80)}"`; const { data: existingConv } = await supabase.from('sms_conversations').select('id').eq('contact_phone', job.client_phone).maybeSingle(); if (existingConv) { await supabase.from('sms_messages').insert({ conversation_id: existingConv.id, direction: 'outbound', body }); await supabase.from('sms_conversations').update({ last_message_at: new Date().toISOString(), last_message_preview: `You: ${body.slice(0, 90)}`, status: 'waiting_on_customer', unread_count: 0 }).eq('id', existingConv.id) } else { const { data: newConv } = await supabase.from('sms_conversations').insert({ contact_phone: job.client_phone, contact_name: job.client_name, last_message_at: new Date().toISOString(), last_message_preview: `You: ${body.slice(0, 90)}`, status: 'waiting_on_customer', lead_source: 'website', notes: null, tags: [] }).select('id').single(); if (newConv) await supabase.from('sms_messages').insert({ conversation_id: newConv.id, direction: 'outbound', body }) } }
+  if (method === 'sms') { if (!job.client_phone) return Response.json({ error: 'No phone number on file for this job' }, { status: 400 }); const body = customBody?.trim(); if (!body) return Response.json({ error: 'customBody required for SMS' }, { status: 400 }); await sendSms(job.client_phone, body); contactNote = `SMS sent: "${body.slice(0, 80)}"`; const normalizedPhone = toE164(job.client_phone ?? ''); const { data: existingConv } = await supabase.from('sms_conversations').select('id').or(`contact_phone.eq.${job.client_phone},contact_phone.eq.${normalizedPhone}`).maybeSingle(); if (existingConv) { await supabase.from('sms_messages').insert({ conversation_id: existingConv.id, direction: 'outbound', body }); await supabase.from('sms_conversations').update({ last_message_at: new Date().toISOString(), last_message_preview: `You: ${body.slice(0, 90)}`, status: 'waiting_on_customer', unread_count: 0 }).eq('id', existingConv.id) } else { const { data: newConv } = await supabase.from('sms_conversations').insert({ contact_phone: normalizedPhone, contact_name: job.client_name, last_message_at: new Date().toISOString(), last_message_preview: `You: ${body.slice(0, 90)}`, status: 'waiting_on_customer', lead_source: 'website', notes: null, tags: [] }).select('id').single(); if (newConv) await supabase.from('sms_messages').insert({ conversation_id: newConv.id, direction: 'outbound', body }) } }
   if (method === 'external') { contactNote = customBody?.trim() ? customBody.trim() : 'Contacted outside the app' }
   await supabase.from('jobs').update({ status: 'contacted', contacted_at: new Date().toISOString(), contact_method: method, contact_note: contactNote }).eq('id', jobId)
   return Response.json({ success: true, contactNote })

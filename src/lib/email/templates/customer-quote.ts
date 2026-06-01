@@ -151,23 +151,23 @@ export function customerQuoteTemplate(job: Job, stripeUrl: string): { subject: s
           <td style="padding:13px 16px;vertical-align:middle;width:40px;border-bottom:1px solid #e8f0eb;">
             <div style="width:24px;height:24px;border-radius:50%;background:#4A7C59;color:#fff;font-size:11px;font-weight:700;text-align:center;line-height:24px;">1</div>
           </td>
-          <td style="padding:13px 16px 13px 0;font-size:13px;color:#0f172a;line-height:1.5;vertical-align:middle;border-bottom:1px solid #e8f0eb;">Complete your deposit below to confirm your booking</td>
+          <td style="padding:13px 16px 13px 0;font-size:13px;color:#0f172a;line-height:1.5;vertical-align:middle;border-bottom:1px solid #e8f0eb;">Pay the $100 deposit above to hold your spot</td>
         </tr>
         <tr>
           <td style="padding:13px 16px;vertical-align:middle;width:40px;border-bottom:1px solid #e8f0eb;">
             <div style="width:24px;height:24px;border-radius:50%;background:#4A7C59;color:#fff;font-size:11px;font-weight:700;text-align:center;line-height:24px;">2</div>
           </td>
-          <td style="padding:13px 16px 13px 0;font-size:13px;color:#0f172a;line-height:1.5;vertical-align:middle;border-bottom:1px solid #e8f0eb;">You'll receive a booking confirmation email with your full appointment details</td>
+          <td style="padding:13px 16px 13px 0;font-size:13px;color:#0f172a;line-height:1.5;vertical-align:middle;border-bottom:1px solid #e8f0eb;">We'll confirm your exact date and send a booking confirmation</td>
         </tr>
         <tr>
           <td style="padding:13px 16px;vertical-align:middle;width:40px;">
             <div style="width:24px;height:24px;border-radius:50%;background:#4A7C59;color:#fff;font-size:11px;font-weight:700;text-align:center;line-height:24px;">3</div>
           </td>
-          <td style="padding:13px 16px 13px 0;font-size:13px;color:#0f172a;line-height:1.5;vertical-align:middle;">We arrive during your scheduled window and handle everything from there</td>
+          <td style="padding:13px 16px 13px 0;font-size:13px;color:#0f172a;line-height:1.5;vertical-align:middle;">We arrive and handle everything — no surprises</td>
         </tr>
       </tbody>
     </table>
-    <p style="margin:0;font-size:13px;color:#64748b;text-align:center;line-height:1.6;">Questions before booking? Reply directly to this email — we're happy to help.</p>`
+    <p style="margin:0;font-size:13px;color:#64748b;text-align:center;line-height:1.6;">Questions? Reply to this email — we're happy to help.</p>`
 
   // ── Full email body ───────────────────────────────────────────────────────
   const content = `
