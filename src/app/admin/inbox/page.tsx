@@ -428,11 +428,9 @@ export default function InboxPage() {
   // ── Data loading ──────────────────────────────────────────────────────────
 
   const sortConversations = useCallback((convs: Conversation[]): Conversation[] => {
-    return [...convs].sort((a, b) => {
-      if (a.status === 'needs_reply' && b.status !== 'needs_reply') return -1
-      if (b.status === 'needs_reply' && a.status !== 'needs_reply') return 1
-      return new Date(b.last_message_at).getTime() - new Date(a.last_message_at).getTime()
-    })
+    return [...convs].sort((a, b) =>
+      new Date(b.last_message_at).getTime() - new Date(a.last_message_at).getTime()
+    )
   }, [])
 
   const loadConversations = useCallback(async () => {

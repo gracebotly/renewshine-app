@@ -11,6 +11,7 @@ import { customerDeclinedTemplate } from './templates/customer-declined'
 import { customerAbandonedTemplate } from './templates/customer-abandoned'
 import { customerInvoiceTemplate, type InvoiceEmailData } from './templates/customer-invoice'
 import { customerContactPhotosTemplate } from './templates/customer-contact-photos'
+import { customerQuoteReadyTemplate } from './templates/customer-quote-ready'
 
 const resend = new Resend(process.env.RESEND_API_KEY!)
 const FROM = 'RenewShine <noreply@renewshine.co>'
@@ -109,5 +110,10 @@ export async function sendCustomerInvoice(data: InvoiceEmailData): Promise<void>
 
 export async function sendContactPhotos(job: Job): Promise<void> {
   const { subject, html } = customerContactPhotosTemplate(job)
+  await resend.emails.send({ from: FROM, to: job.client_email, replyTo: REPLY_TO, subject, html })
+}
+
+export async function sendContactQuoteReady(job: Job): Promise<void> {
+  const { subject, html } = customerQuoteReadyTemplate(job)
   await resend.emails.send({ from: FROM, to: job.client_email, replyTo: REPLY_TO, subject, html })
 }
