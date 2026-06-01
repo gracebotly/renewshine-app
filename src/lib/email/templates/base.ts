@@ -53,9 +53,8 @@ export function baseTemplate(content: string, previewText: string): string {
                     />
                   </td>
                   <td style="vertical-align:middle;">
-                    <p style="margin:0;font-size:13px;font-weight:600;color:${TEXT_DARK};line-height:1.4;">Grace Gbadamosi</p>
-                    <p style="margin:1px 0 0;font-size:12px;color:${TEXT_MUTED};line-height:1.4;">Founder, RenewShine</p>
-                    <p style="margin:3px 0 0;font-size:11px;color:#94a3b8;line-height:1.4;">Premium Residential &amp; Commercial Cleaning &nbsp;·&nbsp; DMV Area</p>
+                    <p style="margin:0;font-size:14px;font-weight:600;color:${TEXT_DARK};line-height:1.4;">RenewShine</p>
+                    <p style="margin:2px 0 0;font-size:11px;color:#94a3b8;line-height:1.4;">Premium Residential &amp; Commercial Cleaning &nbsp;·&nbsp; DMV Area</p>
                     <p style="margin:4px 0 0;font-size:11px;line-height:1.4;">
                       <a href="https://renewshine.co" style="color:${BRAND};text-decoration:none;">renewshine.co</a>
                       &nbsp;&nbsp;|&nbsp;&nbsp;

@@ -36,6 +36,7 @@ function QuoteComposer({
   clientEmail,
   clientPhone,
   onPreview,
+  onSmsPreview,
   savedDate,
 }: {
   items: Array<{ description: string; amount: string }>
@@ -57,6 +58,7 @@ function QuoteComposer({
   clientEmail: string
   clientPhone: string | null
   onPreview: () => void
+  onSmsPreview: () => void
   savedDate: string | null
 }) {
   const remaining = Math.max(quoteTotal - depositAmt, 0)
@@ -232,14 +234,24 @@ function QuoteComposer({
           : 'Add line items to send'}
       </button>
 
-      {/* Preview */}
-      <button
-        onClick={onPreview}
-        disabled={quoteTotal <= 0}
-        className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-xs font-medium text-slate-500 transition-colors duration-200 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
-      >
-        Preview email before sending
-      </button>
+      {/* Preview row — email + text side by side */}
+      <div className="grid grid-cols-2 gap-2">
+        <button
+          onClick={onPreview}
+          disabled={quoteTotal <= 0}
+          className="flex cursor-pointer items-center justify-center rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-500 transition-colors duration-200 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          Preview email
+        </button>
+        <button
+          onClick={onSmsPreview}
+          disabled={quoteTotal <= 0 || !clientPhone}
+          title={!clientPhone ? 'No phone number on file' : undefined}
+          className="flex cursor-pointer items-center justify-center rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-500 transition-colors duration-200 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          Preview text
+        </button>
+      </div>
 
       {/* Mark sent manually — no Stripe link, no message sent */}
       <button
@@ -307,6 +319,8 @@ export function QuoteCard({ job }: { job: any }) {
   const [showQuotePreview, setShowQuotePreview] = React.useState(false)
   const [quotePreviewHtml, setQuotePreviewHtml] = React.useState('')
   const [quotePreviewLoading, setQuotePreviewLoading] = React.useState(false)
+  const [showSmsPreview, setShowSmsPreview] = React.useState(false)
+  const [smsPreviewText, setSmsPreviewText] = React.useState('')
 
   const quoteTotal = quoteItems.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0)
   const depositAmount = Number.isFinite(parseFloat(quoteDepositAmount)) ? parseFloat(quoteDepositAmount) : 0
@@ -621,6 +635,30 @@ export function QuoteCard({ job }: { job: any }) {
     }
     setQuotePreviewLoading(false)
   }
+
+  const handleSmsPreview = () => {
+    if (quoteTotal <= 0 || !job.client_phone) return
+    const firstName = job.client_name?.split(' ')[0] ?? 'there'
+    const serviceLabel = getServiceLabel(job.service_type)
+    const total = quoteTotal
+    const deposit = 100
+    const remaining = Math.max(total - deposit, 0)
+    const preview =
+      `Hi ${firstName}, your RenewShine ${serviceLabel} quote is $${total.toLocaleString()}.
+
+` +
+      `To lock in your date, complete your $${deposit} deposit here:
+[deposit link]
+
+` +
+      `Remaining balance of $${remaining.toLocaleString()} is due after the clean.
+
+` +
+      `— Grace`
+    setSmsPreviewText(preview)
+    setShowSmsPreview(true)
+  }
+
   // ── Status bar config ─────────────────────────────────────────────────────
 
   const statusConfig: Record<string, { dot: string; label: string }> = {
@@ -990,6 +1028,7 @@ Reply YES and I'll send your deposit link.
                 onSendSms={handleStripeSms}
                 onSendExternal={handleMarkSentExternally}
                 onPreview={handleQuotePreview}
+                onSmsPreview={handleSmsPreview}
                 onCancel={() => setActiveComposer(null)}
                 loading={loadingStripe}
                 loadingSms={loadingSmsSend}
@@ -1188,6 +1227,65 @@ Reply YES and I'll send your deposit link.
                   className="cursor-pointer rounded-lg bg-[#1A3F6F] px-4 py-2.5 text-sm font-semibold text-white transition-colors duration-200 hover:opacity-90 disabled:opacity-50"
                 >
                   {loadingStripe ? 'Sending…' : 'Looks good — send it'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* SMS preview modal */}
+      {showSmsPreview && (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-0 sm:items-center sm:p-4"
+          onClick={() => setShowSmsPreview(false)}
+        >
+          <div
+            className="relative flex w-full flex-col overflow-hidden bg-white shadow-2xl sm:max-w-sm sm:rounded-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="shrink-0 border-b border-slate-100 px-5 py-3.5">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-semibold text-slate-900">Text preview</p>
+                  <p className="mt-0.5 text-xs text-slate-400">
+                    Exactly what {job.client_name.split(' ')[0]} will receive
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowSmsPreview(false)}
+                  className="cursor-pointer rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 transition-colors duration-200 hover:bg-slate-50"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+
+            <div className="flex-1 bg-slate-50 px-5 py-6">
+              <div className="flex justify-end">
+                <div className="max-w-[85%] rounded-2xl rounded-br-sm bg-[#4A7C59] px-4 py-3">
+                  <p className="whitespace-pre-wrap text-sm leading-relaxed text-white">
+                    {smsPreviewText}
+                  </p>
+                </div>
+              </div>
+              <p className="mt-3 text-center text-[10px] text-slate-400">
+                To: {job.client_phone}
+              </p>
+            </div>
+
+            <div className="shrink-0 border-t border-slate-100 bg-white px-5 py-3.5">
+              <div className="flex items-center justify-between">
+                <p className="text-xs text-slate-400">Looks wrong? Close and adjust line items.</p>
+                <button
+                  onClick={() => {
+                    setShowSmsPreview(false)
+                    handleStripeSms()
+                  }}
+                  disabled={loadingSmsSend}
+                  className="cursor-pointer rounded-lg bg-[#4A7C59] px-4 py-2.5 text-sm font-semibold text-white transition-colors duration-200 hover:bg-[#3d6b4a] disabled:opacity-50"
+                >
+                  {loadingSmsSend ? 'Sending…' : 'Looks good — send it'}
                 </button>
               </div>
             </div>
