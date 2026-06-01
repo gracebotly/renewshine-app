@@ -321,7 +321,8 @@ export function BookingForm() {
   const updatePartialStep = async (
     jobId: string,
     completedStep: number,
-    droppedAtLabel: string | null
+    droppedAtLabel: string | null,
+    snapshot?: Record<string, unknown>
   ): Promise<void> => {
     try {
       await fetch(`/api/update-job-step/${jobId}`, {
@@ -330,6 +331,9 @@ export function BookingForm() {
         body: JSON.stringify({
           last_completed_step: completedStep,
           dropped_at_label: droppedAtLabel,
+          // Spread all accumulated form fields — the route allowlist strips
+          // anything that shouldn't be written
+          ...(snapshot ?? {}),
         }),
       })
     } catch {
@@ -398,8 +402,6 @@ export function BookingForm() {
     let idForStepTracking = partialJobId
 
     if (resStep === 1) {
-      // savePartialLead returns the job ID synchronously so we can use it
-      // before React state propagates the setPartialJobId update
       const savedId = await savePartialLead()
       idForStepTracking = savedId
       setBookingTypeLocked(true)
@@ -407,9 +409,53 @@ export function BookingForm() {
 
     setResStep((s) => Math.min(5, s + 1))
 
-    // Track which step the user completed (fire-and-forget)
+    // Build a snapshot of ALL fields filled in so far — each call is cumulative
+    // so even if an earlier call failed, the DB catches up on the next step.
     if (idForStepTracking) {
-      void updatePartialStep(idForStepTracking, resStep, RES_DROPPED_AT_LABELS[resStep] ?? null)
+      // Build incrementally based on which step just completed
+      const snapshot: Record<string, unknown> = {
+        // Step 1 fields always included (contact info)
+        client_name: sharedName || 'Unknown',
+        client_email: sharedEmail,
+        client_phone: rawPhone(sharedPhone) || null,
+      }
+
+      if (resStep >= 2) {
+        // Step 2 — home details
+        Object.assign(snapshot, {
+          home_type: resHomeType || null,
+          bedrooms,
+          bathrooms,
+          pets: resPets || null,
+          condition: resCondition || null,
+        })
+      }
+
+      if (resStep >= 3) {
+        // Step 3 — service
+        Object.assign(snapshot, {
+          service_type: serviceType,
+          add_ons: selectedAddOns,
+          service_frequency: resFrequency,
+        })
+      }
+
+      if (resStep >= 4) {
+        // Step 4 — availability + address
+        Object.assign(snapshot, {
+          address: resAddress || null,
+          availability_start: resStartDate || null,
+          availability_end: resEndDate || resStartDate || null,
+          availability_time_pref: resTimePref || null,
+        })
+      }
+
+      void updatePartialStep(
+        idForStepTracking,
+        resStep,
+        RES_DROPPED_AT_LABELS[resStep] ?? null,
+        snapshot
+      )
     }
   }
 
@@ -420,7 +466,6 @@ export function BookingForm() {
     let idForStepTracking = partialJobId
 
     if (comStep === 1) {
-      // First Next click — create the partial record with the correct type
       const savedId = await savePartialLead(flowType as 'commercial' | 'post_construction')
       idForStepTracking = savedId
       setBookingTypeLocked(true)
@@ -428,14 +473,35 @@ export function BookingForm() {
 
     setComStep((s) => Math.min(3, s + 1))
 
-    // Track which step the user completed (fire-and-forget)
-    // Step 3 is the submit step — no tracking needed there
     if (idForStepTracking && comStep < 3) {
       const COM_DROPPED_AT_LABELS: Record<number, string> = {
         1: flowType === 'post_construction' ? 'Project Details' : 'Space Details',
         2: 'Scheduling',
       }
-      void updatePartialStep(idForStepTracking, comStep, COM_DROPPED_AT_LABELS[comStep] ?? null)
+
+      // Build cumulative snapshot of all commercial fields filled in so far
+      const snapshot: Record<string, unknown> = {
+        client_name: sharedName || 'Unknown',
+        client_email: sharedEmail,
+        client_phone: rawPhone(sharedPhone) || null,
+        business_name: businessName || null,
+      }
+
+      if (comStep >= 2) {
+        // Step 2 — space details + address
+        Object.assign(snapshot, {
+          address: comAddress || null,
+          property_type: propertyType || null,
+          square_footage: squareFootage ? Number(squareFootage) : null,
+        })
+      }
+
+      void updatePartialStep(
+        idForStepTracking,
+        comStep,
+        COM_DROPPED_AT_LABELS[comStep] ?? null,
+        snapshot
+      )
     }
   }
 
