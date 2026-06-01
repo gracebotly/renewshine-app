@@ -1,6 +1,7 @@
 'use client'
 
 import * as React from 'react'
+import { Mail, MessageSquare, Phone, Send } from 'lucide-react'
 import { InvoicePanel } from '@/components/admin/InvoicePanel'
 import { ComposeSheet } from '@/components/admin/ComposeSheet'
 
@@ -233,6 +234,10 @@ export function QuoteCard({ job }: { job: any }) {
   const [completedConfirm, setCompletedConfirm] = React.useState(false)
   const [reminderSent, setReminderSent] = React.useState(false)
   const [showCompose, setShowCompose] = React.useState(false)
+  const [callLoading, setCallLoading] = React.useState(false)
+  const [showInlineSms, setShowInlineSms] = React.useState(false)
+  const [inlineSmsBody, setInlineSmsBody] = React.useState('')
+  const [smsSending, setSmsSending] = React.useState(false)
   const [successMsg, setSuccessMsg] = React.useState('')
   const [errorMsg, setErrorMsg] = React.useState('')
 
@@ -417,6 +422,49 @@ export function QuoteCard({ job }: { job: any }) {
     setReminderSent(true)
     setLoadingReminder(false)
     setSuccessMsg('Day-before reminder sent ✓')
+  }
+
+  function fmtPhone(p: string) {
+    const d = p.replace(/\D/g, '').slice(-10)
+    return d.length === 10 ? `(${d.slice(0,3)}) ${d.slice(3,6)}-${d.slice(6)}` : p
+  }
+
+  const handleCall = async () => {
+    if (!job.client_phone || callLoading) return
+    setCallLoading(true)
+    setErrorMsg('')
+    try {
+      await fetch('/api/admin/initiate-call', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ customerPhone: job.client_phone }),
+      })
+      setSuccessMsg('Calling… your phone will ring in a moment.')
+    } catch {
+      setErrorMsg('Call failed. Check your connection and try again.')
+    }
+    setTimeout(() => setCallLoading(false), 4000)
+  }
+
+  const handleSendInlineSms = async () => {
+    const body = inlineSmsBody.trim()
+    if (!body || smsSending) return
+    setSmsSending(true)
+    setErrorMsg('')
+    const res = await fetch('/api/admin/send-contact', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ jobId: job.id, method: 'sms', customBody: body }),
+    })
+    if (res.ok) {
+      const data = await res.json()
+      setShowInlineSms(false)
+      setInlineSmsBody('')
+      handleComposeSuccess(data.contactNote ?? 'SMS sent')
+    } else {
+      setErrorMsg('Failed to send. Please try again.')
+    }
+    setSmsSending(false)
   }
 
 
@@ -634,14 +682,100 @@ export function QuoteCard({ job }: { job: any }) {
         <div className="space-y-2">
           <p className="text-xs font-semibold uppercase tracking-widest text-slate-400">Actions</p>
 
-          {/* Contact customer — visible when no composer is open */}
+          {/* Contact customer — Call / Text / Email */}
           {activeComposer === null && (
-            <button
-              onClick={() => setShowCompose(true)}
-              className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition-colors duration-200 hover:bg-slate-50"
-            >
-              Contact customer
-            </button>
+            <div className="space-y-2">
+              {/* Three-button row */}
+              <div className="grid grid-cols-3 gap-2">
+                {/* Call */}
+                <button
+                  onClick={handleCall}
+                  disabled={!job.client_phone || callLoading}
+                  title={!job.client_phone ? 'No phone number on file' : `Call ${fmtPhone(job.client_phone ?? '')}`}
+                  className="flex items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2 py-2.5 text-xs font-medium text-slate-700 transition-colors duration-200 hover:bg-slate-50 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  <Phone size={13} />
+                  {callLoading ? 'Calling…' : 'Call'}
+                </button>
+
+                {/* Text */}
+                <button
+                  onClick={() => {
+                    setShowInlineSms(p => !p)
+                    setShowCompose(false)
+                    if (!showInlineSms && job.client_phone) {
+                      // Pre-fill based on job status
+                      const firstName = job.client_name?.split(' ')[0] ?? 'there'
+                      const presets: Record<string, string> = {
+                        new: `Hi ${firstName} — this is Grace from RenewShine. I received your booking request. Do you have a moment to discuss?`,
+                        under_review: `Hi ${firstName} — Grace from RenewShine. I'm reviewing your request and have a quick question. Reply when you get a chance!`,
+                        approved: `Hi ${firstName} — just a reminder that your deposit link is still open. Let me know if you have any questions! — Grace, RenewShine`,
+                        scheduled: `Hi ${firstName} — your clean with RenewShine is confirmed. I'll be in touch the day before with arrival details. — Grace`,
+                      }
+                      setInlineSmsBody(presets[job.status] ?? `Hi ${firstName} — Grace from RenewShine. `)
+                    }
+                  }}
+                  disabled={!job.client_phone}
+                  title={!job.client_phone ? 'No phone number on file' : `Text ${fmtPhone(job.client_phone ?? '')}`}
+                  className={`flex items-center justify-center gap-1.5 rounded-lg border px-2 py-2.5 text-xs font-medium transition-colors duration-200 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${
+                    showInlineSms
+                      ? 'border-[#4A7C59]/30 bg-[#e8f3ec] text-[#4A7C59]'
+                      : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+                  }`}
+                >
+                  <MessageSquare size={13} />
+                  Text
+                </button>
+
+                {/* Email */}
+                <button
+                  onClick={() => {
+                    setShowCompose(true)
+                    setShowInlineSms(false)
+                  }}
+                  className="flex items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2 py-2.5 text-xs font-medium text-slate-700 transition-colors duration-200 hover:bg-slate-50 cursor-pointer"
+                >
+                  <Mail size={13} />
+                  Email
+                </button>
+              </div>
+
+              {/* Inline SMS compose — expands below when Text is active */}
+              {showInlineSms && job.client_phone && (
+                <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 space-y-2">
+                  <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400">
+                    To: {fmtPhone(job.client_phone)}
+                  </p>
+                  <textarea
+                    value={inlineSmsBody}
+                    onChange={e => setInlineSmsBody(e.target.value)}
+                    rows={3}
+                    placeholder="Type your message…"
+                    autoFocus
+                    className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-[#4A7C59]/40 focus:outline-none focus:ring-0 resize-none transition-colors duration-200"
+                  />
+                  <div className="flex items-center justify-between">
+                    <p className="text-[10px] text-slate-400">{inlineSmsBody.length} / 160</p>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => { setShowInlineSms(false); setInlineSmsBody('') }}
+                        className="rounded-lg px-2.5 py-1.5 text-xs text-slate-400 hover:text-slate-600 transition-colors duration-150 cursor-pointer"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={handleSendInlineSms}
+                        disabled={!inlineSmsBody.trim() || smsSending}
+                        className="flex items-center gap-1.5 rounded-lg bg-[#4A7C59] px-3 py-1.5 text-xs font-semibold text-white transition-colors duration-200 hover:bg-[#3d6b4a] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                      >
+                        <Send size={11} />
+                        {smsSending ? 'Sending…' : 'Send'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
           )}
 
           {/* Send quote + deposit link */}
