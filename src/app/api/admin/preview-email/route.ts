@@ -15,6 +15,7 @@ export async function POST(request: Request) {
     type: 'quote' | 'invoice'
     jobId: string
     approvedPrice?: number
+    depositAmount?: number
     confirmedDate?: string
     lineItems?: Array<{ description: string; amount: number }>
     dueDate?: string
@@ -46,7 +47,8 @@ export async function POST(request: Request) {
       confirmed_date: body.confirmedDate ?? job.confirmed_date,
     }
 
-    const { html: rendered } = customerQuoteTemplate(previewJob as any, '#preview-deposit-link')
+    const depositOverride = Number(body.depositAmount) > 0 ? Number(body.depositAmount) : undefined
+    const { html: rendered } = customerQuoteTemplate(previewJob as any, '#preview-deposit-link', depositOverride)
     html = rendered
   }
 

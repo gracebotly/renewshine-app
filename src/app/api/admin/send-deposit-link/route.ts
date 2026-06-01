@@ -13,12 +13,15 @@ export async function POST(request: Request) {
     return Response.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const { jobId, approvedPrice, confirmedDate, regenerate, channel = 'email' } = await request.json()
+  const { jobId, approvedPrice, depositAmount, confirmedDate, regenerate, channel = 'email' } = await request.json()
 
   // Validate
   if (!jobId || !approvedPrice) {
     return Response.json({ error: 'jobId and approvedPrice are required' }, { status: 400 })
   }
+  // Deposit amount — use what was passed, fall back to 100 only if not provided
+  const resolvedDeposit = Number(depositAmount) > 0 ? Number(depositAmount) : 100
+
   if (!['email', 'sms'].includes(channel)) {
     return Response.json({ error: 'channel must be email or sms' }, { status: 400 })
   }
@@ -57,7 +60,7 @@ export async function POST(request: Request) {
             name: 'RenewShine Cleaning Deposit',
             description: `Deposit for ${job.client_name} — confirms your booking`,
           },
-          unit_amount: 10000, // $100.00 in cents
+          unit_amount: Math.round(resolvedDeposit * 100), // in cents
         },
         quantity: 1,
       },
@@ -80,12 +83,13 @@ export async function POST(request: Request) {
   })
 
   // Update job in Supabase
-  const remaining = Number(approvedPrice) - 100
+  const remaining = Math.max(Number(approvedPrice) - resolvedDeposit, 0)
   const { error: updateError } = await supabase
     .from('jobs')
     .update({
       status: 'approved',
       approved_price: Number(approvedPrice),
+      deposit_amount: resolvedDeposit,
       confirmed_date: confirmedDate,
       remaining_amount: remaining,
       stripe_payment_link: paymentLink.url,
@@ -118,7 +122,7 @@ export async function POST(request: Request) {
           }
           const serviceLabel = serviceLabels[job.service_type ?? ''] ?? 'cleaning service'
           const total     = Number(approvedPrice)
-          const deposit   = 100
+          const deposit   = resolvedDeposit
           const remaining = Math.max(total - deposit, 0)
 
           const smsBody =
@@ -143,7 +147,7 @@ ${paymentLink.url}
         if (regenerate) {
           await sendExpiredLinkRecovery(updatedJob, paymentLink.url)
         } else {
-          await sendCustomerQuote(updatedJob, paymentLink.url)
+          await sendCustomerQuote(updatedJob, paymentLink.url, resolvedDeposit)
         }
       }
     }
