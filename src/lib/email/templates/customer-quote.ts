@@ -27,16 +27,9 @@ export function customerQuoteTemplate(job: Job, stripeUrl: string): { subject: s
     ? (timePrefMap[job.availability_time_pref] ?? 'Flexible')
     : 'Flexible'
 
-  const hasConfirmedDate = Boolean(job.confirmed_date)
-
-  // Confirmed date — only used when owner has locked in a specific date
-  const confirmedDateStr = hasConfirmedDate
-    ? new Date(job.confirmed_date!).toLocaleDateString('en-US', {
-        weekday: 'long', month: 'long', day: 'numeric', year: 'numeric',
-      })
-    : ''
-
-  // Availability window — used when no confirmed date yet
+  // Quote email always shows the availability window the customer submitted.
+  // confirmed_date is ONLY used in customer-booked.ts (Template 4, post-deposit).
+  // Do not add hasConfirmedDate logic back here.
   const availabilityWindowStr = (() => {
     const start = job.availability_start
       ? new Date(job.availability_start).toLocaleDateString('en-US', { month: 'long', day: 'numeric' })
@@ -49,10 +42,9 @@ export function customerQuoteTemplate(job: Job, stripeUrl: string): { subject: s
     return 'Dates to be confirmed'
   })()
 
-  // What shows in the appointment box
-  const appointmentLine = hasConfirmedDate
-    ? (timePref !== 'Flexible' ? `${confirmedDateStr} · ${timePref}` : confirmedDateStr)
-    : (timePref !== 'Flexible' ? `${availabilityWindowStr} · ${timePref}` : availabilityWindowStr)
+  const appointmentLine = timePref !== 'Flexible'
+    ? `${availabilityWindowStr} · ${timePref}`
+    : availabilityWindowStr
 
   const approvedPrice = job.approved_price ?? 0
   const depositAmount = 100
@@ -82,7 +74,7 @@ export function customerQuoteTemplate(job: Job, stripeUrl: string): { subject: s
 
   // ── Section: Appointment ─────────────────────────────────────────────────
   const appointmentSection = `
-    <p style="margin:0 0 8px;font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.08em;">${hasConfirmedDate ? 'Your appointment' : 'Your requested window'}</p>
+    <p style="margin:0 0 8px;font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.08em;">Your requested window</p>
     <table width="100%" cellpadding="0" cellspacing="0" role="presentation"
       style="border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;margin:0 0 24px;">
       <tbody>
@@ -90,11 +82,7 @@ export function customerQuoteTemplate(job: Job, stripeUrl: string): { subject: s
           <td style="padding:16px 18px 12px;">
             <p style="margin:0 0 4px;font-size:16px;font-weight:700;color:#0f172a;line-height:1.3;">${appointmentLine}</p>
             <p style="margin:0 0 12px;font-size:13px;color:#64748b;">${job.address ?? ''}</p>
-            <span style="display:inline-block;background:#fef9ec;color:#92600a;font-size:11px;font-weight:600;padding:4px 10px;border-radius:99px;letter-spacing:0.02em;">${
-              hasConfirmedDate
-                ? 'Held for 48 hours after this email'
-                : 'Exact date confirmed after deposit'
-            }</span>
+            <span style="display:inline-block;background:#fef9ec;color:#92600a;font-size:11px;font-weight:600;padding:4px 10px;border-radius:99px;letter-spacing:0.02em;">Exact date confirmed after deposit</span>
           </td>
         </tr>
       </tbody>
@@ -117,7 +105,6 @@ export function customerQuoteTemplate(job: Job, stripeUrl: string): { subject: s
     </table>`
 
   // ── Section: Payment summary card ────────────────────────────────────────
-  // Three-row card: Total (largest), Deposit today (highlighted), Balance after service (muted)
   const paymentSection = `
     <p style="margin:0 0 8px;font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.08em;">Payment summary</p>
     <table width="100%" cellpadding="0" cellspacing="0" role="presentation"
@@ -186,10 +173,7 @@ export function customerQuoteTemplate(job: Job, stripeUrl: string): { subject: s
   const content = `
     ${badge('Quote ready', 'green')}
     ${heading(`${firstName}, your RenewShine quote is ready.`)}
-    ${para(hasConfirmedDate
-      ? 'Your appointment window is being held. Complete your deposit below to confirm your booking.'
-      : 'Review your quote below and complete your deposit to lock in your date.'
-    )}
+    ${para('Review your quote below and complete your deposit to lock in your date.')}
 
     ${appointmentSection}
     ${serviceSection}
@@ -204,9 +188,7 @@ export function customerQuoteTemplate(job: Job, stripeUrl: string): { subject: s
     subject,
     html: baseTemplate(
       content,
-      hasConfirmedDate
-        ? `${firstName}, your RenewShine quote is ready. Your appointment is held for 48 hours — confirm with a $100 deposit.`
-        : `${firstName}, your RenewShine quote is ready. Complete your deposit to lock in your date.`
+      `${firstName}, your RenewShine quote is ready. Complete your deposit to lock in your date.`
     ),
   }
 }
