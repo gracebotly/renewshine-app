@@ -41,6 +41,9 @@ export async function POST(request: Request) {
   if (fetchError || !job) {
     return Response.json({ error: 'Job not found' }, { status: 404 })
   }
+  if (channel === 'sms' && !job.client_phone) {
+    return Response.json({ error: 'No phone number on file for this job' }, { status: 400 })
+  }
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? ''
 

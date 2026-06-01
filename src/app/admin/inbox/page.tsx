@@ -58,6 +58,7 @@ interface JobSnapshot {
   stripe_payment_link: string | null
   service_frequency: string | null
   confirmed_date: string | null
+  notes: string | null
   created_at: string
 }
 
@@ -410,6 +411,15 @@ export default function InboxPage() {
   const [notesSaving, setNotesSaving] = useState(false)
   const [notesSaved, setNotesSaved] = useState(false)
   const [showCrmPanel, setShowCrmPanel] = useState(false)
+  const [showQuickQuote, setShowQuickQuote] = useState(false)
+  const [qqPrice, setQqPrice] = useState('')
+  const [qqChannel, setQqChannel] = useState<'sms' | 'email'>('sms')
+  const [qqLoading, setQqLoading] = useState(false)
+  const [qqSuccess, setQqSuccess] = useState('')
+  const [qqError, setQqError] = useState('')
+  const [jobNotesVal, setJobNotesVal] = useState('')
+  const [jobNotesSaving, setJobNotesSaving] = useState(false)
+  const [jobNotesSaved, setJobNotesSaved] = useState(false)
   const [jobSnapshot, setJobSnapshot] = useState<JobSnapshot | null>(null)
   const [jobLoading, setJobLoading] = useState(false)
   const [showJobDrawer, setShowJobDrawer] = useState(false)
@@ -516,6 +526,11 @@ export default function InboxPage() {
     setReply('')
     setNotes(conv.notes ?? '')
     setJobSnapshot(null)
+    setJobNotesVal('')
+    setQqPrice('')
+    setQqSuccess('')
+    setQqError('')
+    setShowQuickQuote(false)
     setShowJobDrawer(false)
     await loadMessages(conv.id)
 
@@ -527,13 +542,14 @@ export default function InboxPage() {
           id, service_type, bedrooms, bathrooms, address, status,
           deposit_paid, estimated_price_low, estimated_price_high,
           approved_price, remaining_amount, stripe_payment_link,
-          service_frequency, confirmed_date, created_at
+          service_frequency, confirmed_date, notes, created_at
         `)
         .eq('client_phone', conv.contact_phone)
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle()
       setJobSnapshot(job as JobSnapshot | null)
+      setJobNotesVal((job as JobSnapshot | null)?.notes ?? '')
       setJobLoading(false)
     }
 
@@ -569,6 +585,61 @@ export default function InboxPage() {
     setNotesSaving(false)
     setNotesSaved(true)
     setTimeout(() => setNotesSaved(false), 2000)
+  }
+
+  const saveJobNotes = async () => {
+    if (!jobSnapshot) return
+    setJobNotesSaving(true)
+    const res = await fetch('/api/admin/update-job-status', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ jobId: jobSnapshot.id, notes: jobNotesVal }),
+    })
+    setJobNotesSaving(false)
+    if (!res.ok) return
+    setJobNotesSaved(true)
+    setJobSnapshot(p => p ? { ...p, notes: jobNotesVal } : p)
+    setTimeout(() => setJobNotesSaved(false), 2000)
+  }
+
+  const handleSendQuickQuote = async (options?: { price?: number; channel?: 'sms' | 'email' }) => {
+    if (!activeConv || !jobSnapshot || qqLoading) return
+    const price = options?.price ?? parseFloat(qqPrice)
+    const channel = options?.channel ?? qqChannel
+    if (!price || price <= 100) return
+    setQqLoading(true)
+    setQqSuccess('')
+    setQqError('')
+    const res = await fetch('/api/admin/send-deposit-link', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        jobId:         jobSnapshot.id,
+        approvedPrice: price,
+        confirmedDate: jobSnapshot.confirmed_date ?? null,
+        channel,
+      }),
+    })
+    if (res.ok) {
+      const data = await res.json().catch(() => ({})) as { url?: string }
+      const label = channel === 'sms'
+        ? `Deposit link texted to ${formatPhone(activeConv.contact_phone)} ✓`
+        : 'Quote emailed to customer ✓'
+      setQqSuccess(label)
+      setTimeout(() => setQqSuccess(''), 3000)
+      setShowQuickQuote(false)
+      setJobSnapshot(p => p ? {
+        ...p,
+        status: 'approved',
+        approved_price: price,
+        remaining_amount: Math.max(price - 100, 0),
+        stripe_payment_link: data.url ?? p.stripe_payment_link,
+      } : p)
+    } else {
+      const data = await res.json().catch(() => ({})) as { error?: string }
+      setQqError(data.error ?? 'Failed to send deposit link. Please try again.')
+    }
+    setQqLoading(false)
   }
 
   const toggleTag = async (tag: string) => {
@@ -841,7 +912,17 @@ export default function InboxPage() {
             <div className="flex items-center gap-2 min-w-0">
               {showThread ? (
                 <button
-                  onClick={() => { setShowThread(false); setActiveConv(null); setPendingMedia([]) }}
+                  onClick={() => {
+                    setShowThread(false)
+                    setActiveConv(null)
+                    setPendingMedia([])
+                    setJobSnapshot(null)
+                    setJobNotesVal('')
+                    setQqPrice('')
+                    setQqSuccess('')
+                    setQqError('')
+                    setShowQuickQuote(false)
+                  }}
                   className="sm:hidden flex items-center gap-1 cursor-pointer rounded-lg px-2 py-1.5 text-sm font-medium text-[#4A7C59] active:bg-[#e8f3ec] transition-colors duration-150 min-h-[44px] shrink-0"
                 >
                   <ArrowLeft size={18} />
@@ -1059,6 +1140,142 @@ export default function InboxPage() {
                   </div>
 
                   <div className="flex items-center gap-2">
+                    {/* Send $ link — only when a job is linked */}
+                    {jobSnapshot && (
+                      <div className="relative">
+                        <button
+                          onClick={() => {
+                            const approvedPrice = jobSnapshot.approved_price ?? 0
+                            if (jobSnapshot.stripe_payment_link && jobSnapshot.status === 'approved' && approvedPrice > 100) {
+                              // Already has a link — fire SMS immediately, no popover needed
+                              setQqPrice(String(approvedPrice))
+                              setQqChannel('sms')
+                              handleSendQuickQuote({ price: approvedPrice, channel: 'sms' })
+                            } else {
+                              // Need to generate link — open quick-quote popover
+                              setQqPrice(String(
+                                jobSnapshot.approved_price ??
+                                jobSnapshot.estimated_price_high ??
+                                ''
+                              ))
+                              setQqError('')
+                              setShowQuickQuote(p => !p)
+                            }
+                          }}
+                          disabled={qqLoading}
+                          className={cn(
+                            'flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-medium transition-colors duration-200 cursor-pointer disabled:cursor-not-allowed',
+                            qqLoading
+                              ? 'border-[#4A7C59]/30 bg-[#e8f3ec] text-[#4A7C59] opacity-60'
+                              : showQuickQuote
+                              ? 'border-[#4A7C59]/30 bg-[#e8f3ec] text-[#4A7C59]'
+                              : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-900'
+                          )}
+                        >
+                          <i className="ti ti-send" style={{ fontSize: 12 }} aria-hidden="true" />
+                          {qqLoading ? 'Sending…' : 'Send $ link'}
+                        </button>
+
+                        {/* Quick-quote popover */}
+                        {showQuickQuote && (
+                          <>
+                            <div
+                              className="fixed inset-0 z-10"
+                              onClick={() => setShowQuickQuote(false)}
+                            />
+                            <div className="absolute right-0 top-full z-20 mt-2 w-64 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl">
+                              <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
+                                <p className="text-xs font-semibold text-slate-900">Quick quote</p>
+                                <button
+                                  onClick={() => setShowQuickQuote(false)}
+                                  className="flex h-5 w-5 items-center justify-center rounded-full bg-slate-100 text-[10px] font-bold text-slate-400 transition-colors hover:bg-slate-200 hover:text-slate-600 cursor-pointer"
+                                >
+                                  ✕
+                                </button>
+                              </div>
+
+                              <div className="space-y-3 p-4">
+                                {jobSnapshot.service_type && (
+                                  <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400">
+                                    {({
+                                      standard: 'Standard Clean',
+                                      deep: 'Deep Clean',
+                                      move_out: 'Move-In / Move-Out',
+                                      post_construction: 'Post-Construction',
+                                    } as Record<string, string>)[jobSnapshot.service_type] ?? 'Cleaning service'}
+                                    {jobSnapshot.bedrooms ? ` · ${jobSnapshot.bedrooms}BR/${jobSnapshot.bathrooms ?? 0}BA` : ''}
+                                  </p>
+                                )}
+
+                                <label className="block space-y-1">
+                                  <span className="text-[10px] font-semibold uppercase tracking-widest text-slate-400">Total price ($)</span>
+                                  <div className="relative">
+                                    <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-slate-400">$</span>
+                                    <input
+                                      type="number"
+                                      value={qqPrice}
+                                      onChange={e => setQqPrice(e.target.value)}
+                                      placeholder="0"
+                                      min="101"
+                                      step="1"
+                                      autoFocus
+                                      className="w-full rounded-lg border border-slate-200 bg-slate-50 py-2 pl-6 pr-3 text-sm font-mono text-slate-900 placeholder:text-slate-400 transition-colors focus:border-[#4A7C59]/40 focus:outline-none"
+                                    />
+                                  </div>
+                                  {qqPrice && parseFloat(qqPrice) > 100 && (
+                                    <p className="text-[10px] text-slate-400">
+                                      $100 deposit · ${Math.max(parseFloat(qqPrice) - 100, 0).toLocaleString()} after clean
+                                    </p>
+                                  )}
+                                </label>
+
+                                <div className="space-y-1">
+                                  <span className="text-[10px] font-semibold uppercase tracking-widest text-slate-400">Send via</span>
+                                  <div className="grid grid-cols-2 gap-1.5">
+                                    {(['sms', 'email'] as const).map(ch => (
+                                      <button
+                                        key={ch}
+                                        type="button"
+                                        onClick={() => { setQqChannel(ch); setQqError('') }}
+                                        className={cn(
+                                          'rounded-lg py-1.5 text-xs font-medium transition-colors duration-150 cursor-pointer',
+                                          qqChannel === ch
+                                            ? 'bg-[#4A7C59] text-white'
+                                            : 'border border-slate-200 bg-white text-slate-500 hover:border-slate-300 hover:text-slate-700'
+                                        )}
+                                      >
+                                        {ch === 'sms' ? 'Text' : 'Email'}
+                                      </button>
+                                    ))}
+                                  </div>
+                                </div>
+
+                                {qqError && <p className="text-xs leading-relaxed text-red-500">{qqError}</p>}
+
+                                <button
+                                  onClick={() => handleSendQuickQuote()}
+                                  disabled={!qqPrice || parseFloat(qqPrice) <= 100 || qqLoading}
+                                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#4A7C59] px-4 py-2.5 text-sm font-semibold text-white transition-colors duration-200 hover:bg-[#3d6b4a] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                                >
+                                  {qqLoading
+                                    ? 'Sending…'
+                                    : qqChannel === 'sms'
+                                    ? 'Text deposit link'
+                                    : 'Email quote'}
+                                </button>
+                              </div>
+                            </div>
+                          </>
+                        )}
+
+                        {qqSuccess && (
+                          <p className="absolute right-0 top-full z-20 mt-2 whitespace-nowrap rounded-lg border border-emerald-100 bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-700">
+                            {qqSuccess}
+                          </p>
+                        )}
+                      </div>
+                    )}
+
                     <button
                       onClick={() => setShowCrmPanel(p => !p)}
                       className={cn(
@@ -1342,19 +1559,46 @@ export default function InboxPage() {
                             })}
                           </div>
                         </div>
+                        {/* Booking notes — from wizard, synced to jobs table */}
+                        {jobSnapshot && (
+                          <div className="mb-4">
+                            <div className="mb-1.5 flex items-center justify-between">
+                              <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400">
+                                Booking notes
+                              </p>
+                              <p className="text-[10px] text-slate-400">
+                                {jobNotesSaving ? 'Saving…' : jobNotesSaved ? '✓ Saved' : 'From wizard · editable'}
+                              </p>
+                            </div>
+                            <textarea
+                              value={jobNotesVal}
+                              onChange={e => setJobNotesVal(e.target.value)}
+                              onBlur={saveJobNotes}
+                              rows={3}
+                              placeholder="No notes from customer yet…"
+                              className="w-full resize-none rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-xs leading-relaxed text-slate-700 placeholder:text-slate-400 transition-colors duration-200 focus:border-[#4A7C59]/40 focus:outline-none"
+                            />
+                          </div>
+                        )}
+
+                        {/* Internal notes — private CRM notes, synced to sms_conversations */}
                         <div>
-                          <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400 mb-2">Internal notes</p>
+                          <div className="mb-1.5 flex items-center justify-between">
+                            <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400">
+                              Internal notes
+                            </p>
+                            <p className="text-[10px] text-slate-400">
+                              {notesSaving ? 'Saving…' : notesSaved ? '✓ Saved' : 'Private · saves on blur'}
+                            </p>
+                          </div>
                           <textarea
                             value={notes}
                             onChange={e => setNotes(e.target.value)}
                             onBlur={saveNotes}
-                            placeholder="Dog in house. Prefers text. Interested in bi-weekly…"
                             rows={3}
-                            className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-xs text-slate-900 placeholder:text-slate-400 focus:border-[#4A7C59]/40 focus:bg-white focus:outline-none focus:ring-0 transition-colors duration-200 resize-none"
+                            placeholder="Parking, access, referral source, anything relevant…"
+                            className="w-full resize-none rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-xs leading-relaxed text-slate-700 placeholder:text-slate-400 transition-colors duration-200 focus:border-[#4A7C59]/40 focus:outline-none"
                           />
-                          <p className="mt-1 text-right text-[10px] text-slate-400">
-                            {notesSaving ? 'Saving…' : notesSaved ? '✓ Saved' : 'Saves on blur'}
-                          </p>
                         </div>
                       </div>
                     </motion.div>
