@@ -28,15 +28,14 @@ function QuoteComposer({
   quoteTotal,
   depositAmt,
   onSend,
-  onSendSms,
   onSendExternal,
   onCancel,
   loading,
-  loadingSms,
   clientEmail,
   clientPhone,
   onPreview,
   onSmsPreview,
+  onOpenSmsEdit,
   savedDate,
 }: {
   items: Array<{ description: string; amount: string }>
@@ -51,10 +50,10 @@ function QuoteComposer({
   depositAmt: number
   onSend: () => void
   onSendSms: () => void
+  onOpenSmsEdit: () => void
   onSendExternal: () => void
   onCancel: () => void
   loading: boolean
-  loadingSms: boolean
   clientEmail: string
   clientPhone: string | null
   onPreview: () => void
@@ -218,19 +217,17 @@ function QuoteComposer({
           : 'Add line items to send'}
       </button>
 
-      {/* Secondary: Send via text */}
+      {/* Secondary: Edit & send via text */}
       <button
-        onClick={onSendSms}
-        disabled={quoteTotal <= 0 || loadingSms || !clientPhone}
+        onClick={onOpenSmsEdit}
+        disabled={quoteTotal <= 0 || !clientPhone}
         title={!clientPhone ? 'No phone number on file' : undefined}
         className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition-colors duration-200 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        {loadingSms
-          ? 'Sending…'
-          : !clientPhone
+        {!clientPhone
           ? 'No phone number on file'
           : quoteTotal > 0
-          ? `Send via text — deposit link to ${clientPhone}`
+          ? 'Edit & send via text'
           : 'Add line items to send'}
       </button>
 
@@ -321,6 +318,8 @@ export function QuoteCard({ job }: { job: any }) {
   const [quotePreviewLoading, setQuotePreviewLoading] = React.useState(false)
   const [showSmsPreview, setShowSmsPreview] = React.useState(false)
   const [smsPreviewText, setSmsPreviewText] = React.useState('')
+  const [showSmsEdit, setShowSmsEdit] = React.useState(false)
+  const [smsEditBody, setSmsEditBody] = React.useState('')
 
   const quoteTotal = quoteItems.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0)
   const depositAmount = Number.isFinite(parseFloat(quoteDepositAmount)) ? parseFloat(quoteDepositAmount) : 0
@@ -431,6 +430,40 @@ export function QuoteCard({ job }: { job: any }) {
     if (res.ok) {
       setSuccessMsg(`Deposit link texted to ${job.client_phone} ✓`)
       setActiveComposer(null)
+      setOverrideStatus('approved')
+    } else {
+      const err = await res.json().catch(() => ({}))
+      setErrorMsg((err as any).error ?? 'Failed to send. Please try again.')
+    }
+    setLoadingSmsSend(false)
+  }
+
+  const handleStripeSmsWithBody = async (customBody: string) => {
+    const dateToSend = savedDate ?? quoteDueDate ?? null
+    if (quoteTotal <= 0 || !job.client_phone || !customBody.trim()) return
+    setLoadingSmsSend(true)
+    setErrorMsg('')
+    setSuccessMsg('')
+    const res = await fetch('/api/admin/send-deposit-link', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        jobId:          job.id,
+        approvedPrice:  quoteTotal,
+        depositAmount:  depositAmount,
+        confirmedDate:  dateToSend,
+        channel:        'sms',
+        customSmsBody:  customBody.trim(),
+        lineItems:      quoteItems.filter(
+          (item) => item.description.trim() && parseFloat(item.amount) > 0
+        ),
+      }),
+    })
+    if (res.ok) {
+      setSuccessMsg(`Deposit link texted to ${job.client_phone} ✓`)
+      setActiveComposer(null)
+      setShowSmsEdit(false)
+      setSmsEditBody('')
       setOverrideStatus('approved')
     } else {
       const err = await res.json().catch(() => ({}))
@@ -638,6 +671,29 @@ export function QuoteCard({ job }: { job: any }) {
       setQuotePreviewHtml('<p style="padding:32px;font-family:sans-serif;color:#ef4444;">Failed to generate preview. Check your connection and try again.</p>')
     }
     setQuotePreviewLoading(false)
+  }
+
+  const openSmsEdit = () => {
+    if (quoteTotal <= 0 || !job.client_phone) return
+    const firstName = job.client_name?.split(' ')[0] ?? 'there'
+    const svcLabel = getServiceLabel(job.service_type ?? null)
+    const total = quoteTotal
+    const deposit = depositAmount > 0 ? depositAmount : 100
+    const remaining = Math.max(total - deposit, 0)
+    const prefilled =
+      `Hi ${firstName}, your RenewShine ${svcLabel} quote is $${total.toLocaleString()}.
+
+` +
+      `To lock in your date, complete your $${deposit} deposit here:
+[deposit link included]
+
+` +
+      `Remaining balance of $${remaining.toLocaleString()} is due after the clean.
+
+` +
+      `— Grace`
+    setSmsEditBody(prefilled)
+    setShowSmsEdit(true)
   }
 
   const handleSmsPreview = () => {
@@ -1017,29 +1073,89 @@ Reply YES and I'll send your deposit link.
           {/* Send quote + deposit link */}
           {activeComposer !== 'invoice' && (
             activeComposer === 'quote' ? (
-              <QuoteComposer
-                items={quoteItems}
-                setItems={setQuoteItems}
-                depositAmount={quoteDepositAmount}
-                setDepositAmount={setQuoteDepositAmount}
-                dueDate={quoteDueDate}
-                setDueDate={setQuoteDueDate}
-                notes={quoteNotes}
-                setNotes={setQuoteNotes}
-                quoteTotal={quoteTotal}
-                depositAmt={depositAmount}
-                onSend={handleStripe}
-                onSendSms={handleStripeSms}
-                onSendExternal={handleMarkSentExternally}
-                onPreview={handleQuotePreview}
-                onSmsPreview={handleSmsPreview}
-                onCancel={() => setActiveComposer(null)}
-                loading={loadingStripe}
-                loadingSms={loadingSmsSend}
-                clientEmail={job.client_email}
-                clientPhone={job.client_phone ?? null}
-                savedDate={savedDate}
-              />
+              <>
+                <QuoteComposer
+                  items={quoteItems}
+                  setItems={setQuoteItems}
+                  depositAmount={quoteDepositAmount}
+                  setDepositAmount={setQuoteDepositAmount}
+                  dueDate={quoteDueDate}
+                  setDueDate={setQuoteDueDate}
+                  notes={quoteNotes}
+                  setNotes={setQuoteNotes}
+                  quoteTotal={quoteTotal}
+                  depositAmt={depositAmount}
+                  onSend={handleStripe}
+                  onSendSms={handleStripeSms}
+                  onOpenSmsEdit={openSmsEdit}
+                  onSendExternal={handleMarkSentExternally}
+                  onPreview={handleQuotePreview}
+                  onSmsPreview={handleSmsPreview}
+                  onCancel={() => setActiveComposer(null)}
+                  loading={loadingStripe}
+                  clientEmail={job.client_email}
+                  clientPhone={job.client_phone ?? null}
+                  savedDate={savedDate}
+                />
+
+                {/* Editable SMS compose — opens when "Edit & send via text" is clicked */}
+                {showSmsEdit && job.client_phone && (
+                  <div className="overflow-hidden rounded-xl border border-[#4A7C59]/25 bg-[#f8fbf9] mt-2">
+                    {/* Header */}
+                    <div className="flex items-center justify-between border-b border-[#4A7C59]/12 px-3.5 py-2.5">
+                      <p className="text-xs text-slate-500">
+                        Text to{' '}
+                        <span className="font-semibold text-slate-900">
+                          {job.client_phone}
+                        </span>
+                      </p>
+                      <button
+                        onClick={() => { setShowSmsEdit(false); setSmsEditBody('') }}
+                        className="flex h-5 w-5 items-center justify-center rounded-full bg-slate-200/80 text-slate-400 hover:bg-slate-300 hover:text-slate-600 transition-colors cursor-pointer text-[10px] font-bold"
+                      >
+                        ✕
+                      </button>
+                    </div>
+
+                    {/* Editable message */}
+                    <textarea
+                      value={smsEditBody}
+                      onChange={(e) => setSmsEditBody(e.target.value)}
+                      maxLength={1000}
+                      rows={7}
+                      autoFocus
+                      className="w-full bg-transparent px-3.5 py-3 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none resize-none leading-relaxed"
+                    />
+
+                    {/* Footer */}
+                    <div className="flex items-center justify-between border-t border-[#4A7C59]/12 px-3.5 py-2.5">
+                      <p className={`text-[10px] ${
+                        smsEditBody.length >= 1000
+                          ? 'text-red-500 font-medium'
+                          : smsEditBody.length >= 500
+                          ? 'text-amber-500'
+                          : 'text-slate-400'
+                      }`}>
+                        {smsEditBody.length >= 1000
+                          ? '1000 · max'
+                          : smsEditBody.length >= 500
+                          ? `${smsEditBody.length} · long`
+                          : smsEditBody.length >= 300
+                          ? `${smsEditBody.length} · 2 segments`
+                          : String(smsEditBody.length)}
+                      </p>
+                      <button
+                        onClick={() => handleStripeSmsWithBody(smsEditBody)}
+                        disabled={!smsEditBody.trim() || loadingSmsSend}
+                        className="flex items-center gap-1.5 rounded-lg bg-[#4A7C59] px-3.5 py-1.5 text-xs font-semibold text-white transition-colors duration-200 hover:bg-[#3d6b4a] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                      >
+                        <Send size={11} />
+                        {loadingSmsSend ? 'Sending…' : 'Send quote + deposit link'}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </>
             ) : (
               <button
                 onClick={openQuoteComposer}
