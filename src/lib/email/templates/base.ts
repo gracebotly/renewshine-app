@@ -40,14 +40,31 @@ export function baseTemplate(content: string, previewText: string): string {
             <td style="padding:32px;">${content}</td>
           </tr>
           <tr>
-            <td style="background:${BG_PAGE};padding:20px 32px;border-top:1px solid ${BORDER};">
-              <p style="margin:0;font-size:12px;color:${TEXT_MUTED};text-align:center;">
-                <a href="mailto:hello@renewshine.co" style="color:${TEXT_MUTED};text-decoration:none;">hello@renewshine.co</a>
-                &nbsp;·&nbsp;
-                <a href="tel:+17712539204" style="color:${TEXT_MUTED};text-decoration:none;">(771) 253-9204</a>
-                &nbsp;·&nbsp; DMV Area
-              </p>
-              <p style="margin:6px 0 0;font-size:11px;color:#94a3b8;text-align:center;">© ${new Date().getFullYear()} RenewShine. All rights reserved.</p>
+            <td style="background:${BG_PAGE};padding:24px 32px 20px;border-top:1px solid ${BORDER};">
+              <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="margin-bottom:16px;">
+                <tr>
+                  <td style="vertical-align:middle;padding-right:14px;width:48px;">
+                    <img
+                      src="https://renewshine.co/logo-mark.png"
+                      alt="RenewShine"
+                      width="40"
+                      height="40"
+                      style="display:block;border-radius:8px;border:0;"
+                    />
+                  </td>
+                  <td style="vertical-align:middle;">
+                    <p style="margin:0;font-size:13px;font-weight:600;color:${TEXT_DARK};line-height:1.4;">Grace Gbadamosi</p>
+                    <p style="margin:1px 0 0;font-size:12px;color:${TEXT_MUTED};line-height:1.4;">Founder, RenewShine</p>
+                    <p style="margin:3px 0 0;font-size:11px;color:#94a3b8;line-height:1.4;">Premium Residential &amp; Commercial Cleaning &nbsp;·&nbsp; DMV Area</p>
+                    <p style="margin:4px 0 0;font-size:11px;line-height:1.4;">
+                      <a href="https://renewshine.co" style="color:${BRAND};text-decoration:none;">renewshine.co</a>
+                      &nbsp;&nbsp;|&nbsp;&nbsp;
+                      <a href="tel:+17712539204" style="color:${TEXT_MUTED};text-decoration:none;">(771) 253-9204</a>
+                    </p>
+                  </td>
+                </tr>
+              </table>
+              <p style="margin:0;font-size:11px;color:#94a3b8;text-align:center;border-top:1px solid ${BORDER};padding-top:14px;">© ${new Date().getFullYear()} RenewShine. All rights reserved.</p>
             </td>
           </tr>
         </table>

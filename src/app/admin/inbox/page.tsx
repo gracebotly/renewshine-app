@@ -418,6 +418,8 @@ export default function InboxPage() {
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null)
   const [showContactCard, setShowContactCard] = useState(false)
   const [calling, setCalling] = useState(false)
+  const [showDialpad, setShowDialpad] = useState(false)
+  const [dialpadNumber, setDialpadNumber] = useState('')
 
   const bottomRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
@@ -506,6 +508,7 @@ export default function InboxPage() {
   // ── Actions ───────────────────────────────────────────────────────────────
 
   const openConversation = async (conv: Conversation) => {
+    setShowDialpad(false)
     setActiveConv(conv)
     setShowThread(true)
     setShowQuickPanel(false)
@@ -748,6 +751,40 @@ export default function InboxPage() {
     }
   }
 
+  const handleDialpadKey = (key: string) => {
+    if (key === 'DEL') {
+      setDialpadNumber(p => p.slice(0, -1))
+    } else {
+      setDialpadNumber(p => {
+        const digits = (p + key).replace(/\D/g, '')
+        if (digits.length > 10) return p
+        // Auto-format as (XXX) XXX-XXXX
+        if (digits.length <= 3) return digits
+        if (digits.length <= 6) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`
+        return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`
+      })
+    }
+  }
+
+  const handleDialpadCall = async () => {
+    const digits = dialpadNumber.replace(/\D/g, '')
+    if (digits.length !== 10 || calling) return
+    const e164 = `+1${digits}`
+    setCalling(true)
+    setShowDialpad(false)
+    setDialpadNumber('')
+    try {
+      await fetch('/api/admin/initiate-call', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ customerPhone: e164 }),
+      })
+    } catch (err) {
+      console.error('Dialpad call failed:', err)
+    }
+    setTimeout(() => setCalling(false), 4000)
+  }
+
   const totalUnread = conversations.reduce((s, c) => s + (c.unread_count ?? 0), 0)
   const canSend = (reply.trim().length > 0 || pendingMedia.length > 0) && !sending
 
@@ -793,8 +830,8 @@ export default function InboxPage() {
       </AnimatePresence>
 
       <div
-        className="flex flex-col bg-white"
-        style={{ height: '100svh', maxHeight: '100svh', position: 'fixed', inset: 0 }}
+        className="flex flex-col bg-white relative"
+        style={{ height: '100dvh', maxHeight: '100dvh', overflow: 'hidden' }}
       >
 
         {/* ── App header ────────────────────────────────────────────────────── */}
@@ -849,15 +886,28 @@ export default function InboxPage() {
 
             {/* Right side actions */}
             <div className="flex items-center gap-2 shrink-0">
-              {/* Admin icon — only on conversation list, not inside a thread */}
+              {/* Admin icon + Dialpad — only on conversation list, not inside a thread */}
               {!showThread && (
-                <a
-                  href="/admin"
-                  className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-[#e8f3ec] hover:text-[#4A7C59] transition-colors duration-150 cursor-pointer"
-                  title="Back to Admin"
-                >
-                  <LayoutGrid size={16} />
-                </a>
+                <>
+                  <button
+                    onClick={() => setShowDialpad(p => !p)}
+                    title="Open dialpad"
+                    className={`flex h-10 w-10 items-center justify-center rounded-full transition-colors duration-150 cursor-pointer ${
+                      showDialpad
+                        ? 'bg-[#4A7C59] text-white'
+                        : 'bg-slate-100 text-slate-500 hover:bg-[#e8f3ec] hover:text-[#4A7C59]'
+                    }`}
+                  >
+                    <Phone size={16} />
+                  </button>
+                  <a
+                    href="/admin"
+                    className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-[#e8f3ec] hover:text-[#4A7C59] transition-colors duration-150 cursor-pointer"
+                    title="Back to Admin"
+                  >
+                    <LayoutGrid size={16} />
+                  </a>
+                </>
               )}
 
               {showThread && activeConv && (
@@ -1458,6 +1508,61 @@ export default function InboxPage() {
             </AnimatePresence>
 
           </div>
+
+      {/* ── Dialpad panel ──────────────────────────────────────────────── */}
+      <AnimatePresence>
+        {showDialpad && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: -8 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: -8 }}
+            transition={{ duration: 0.15, ease: 'easeOut' }}
+            className="absolute z-30 bg-white rounded-2xl border border-slate-200 shadow-xl p-4 w-64"
+            style={{ top: 'calc(env(safe-area-inset-top) + 60px)', right: 68 }}
+          >
+            {/* Number display */}
+            <div className="flex items-center justify-between mb-3">
+              <p className="font-mono text-xl font-semibold text-slate-900 tracking-wider min-h-[28px]">
+                {dialpadNumber || <span className="text-slate-300 text-base font-normal">Enter number</span>}
+              </p>
+              {dialpadNumber.length > 0 && (
+                <button
+                  onClick={() => handleDialpadKey('DEL')}
+                  className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 transition-colors cursor-pointer"
+                >
+                  ⌫
+                </button>
+              )}
+            </div>
+
+            {/* Keys */}
+            <div className="grid grid-cols-3 gap-2 mb-3">
+              {['1','2','3','4','5','6','7','8','9','*','0','#'].map(key => (
+                <button
+                  key={key}
+                  onClick={() => handleDialpadKey(key)}
+                  className="flex h-12 w-full items-center justify-center rounded-xl bg-slate-50 text-slate-900 text-base font-semibold hover:bg-[#e8f3ec] hover:text-[#4A7C59] transition-colors duration-150 cursor-pointer active:scale-95"
+                >
+                  {key}
+                </button>
+              ))}
+            </div>
+
+            {/* Call button */}
+            <button
+              onClick={handleDialpadCall}
+              disabled={dialpadNumber.replace(/\D/g, '').length !== 10 || calling}
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#4A7C59] px-4 py-3 text-sm font-semibold text-white transition-colors duration-200 hover:bg-[#3d6b4a] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+            >
+              <Phone size={15} />
+              {calling ? 'Calling…' : 'Call'}
+            </button>
+            <p className="mt-2 text-center text-[10px] text-slate-400">
+              Your phone will ring first, then connects to customer
+            </p>
+          </motion.div>
+        )}
+      </AnimatePresence>
       </div>
     </>
   )
