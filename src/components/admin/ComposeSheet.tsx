@@ -8,14 +8,22 @@ function getRoomCallout(serviceType: string | null): string {
     return 'the kitchen, bathrooms, bedrooms, and living areas'
   }
   if (serviceType === 'move_out') {
-    return 'the property — the kitchen, bathrooms, and any areas needing extra attention'
+    return 'the property, including the kitchen, bathrooms, and any areas needing extra attention'
   }
   return 'the space'
 }
 
-const SMS_NEED_PHOTOS = (firstName: string, serviceType: string | null): string => {
+function SMS_NEED_PHOTOS(firstName: string, serviceType: string | null): string {
   const rooms = getRoomCallout(serviceType)
-  return `Hi ${firstName}, thanks for reaching out to RenewShine. To put together an accurate quote, please send a few photos or a short walkthrough video of ${rooms}. FaceTime works too if that's easier. Once I review it, I'll have your quote ready. — Grace`
+  return `Hi ${firstName}, thanks for reaching out to RenewShine.
+
+To provide an accurate quote, please send a few photos or a short walkthrough video of ${rooms}.
+
+If it's easier, we can also do a quick FaceTime call.
+
+Once I review it, I'll send over your quote.
+
+— Grace`
 }
 
 export function ComposeSheet({
@@ -160,16 +168,13 @@ export function ComposeSheet({
                 </p>
                 <p className="text-xs leading-relaxed text-slate-600">
                   <span className="font-medium">Subject:</span>{' '}
-                  {firstName}, your RenewShine quote is one step away
+                  A Quick Follow-Up About Your Cleaning Request
                 </p>
                 <p className="mt-2 text-xs leading-relaxed text-slate-600">
-                  Hi {firstName}, thanks for reaching out to RenewShine. To put together an accurate quote, I need to take a look at the space first. Could you send a few photos or a short walkthrough video of {getRoomCallout(job.service_type ?? null)}? FaceTime works great too if that's easier.
+                  Hi {firstName}, thank you for contacting RenewShine. Before I can provide an accurate quote, I'd like to take a look at the space. You can simply reply to this email with a few photos or a short walkthrough video.
                 </p>
                 <p className="mt-2 text-xs leading-relaxed text-slate-600">
-                  Once I've reviewed it, I'll send over your confirmed quote — you won't pay anything until you've seen and approved the price.
-                </p>
-                <p className="mt-2 text-xs text-slate-500 font-medium">
-                  Reply to this email or text us at (771) 253-9204.
+                  If it's easier, we can also schedule a quick FaceTime call. Once I review everything, I'll send over your quote and available appointment options.
                 </p>
               </div>
             </button>
@@ -230,12 +235,27 @@ export function ComposeSheet({
                   <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
                     Message to {job.client_phone}
                   </p>
-                  <p className="text-xs text-slate-400">{smsBody.length} / 160</p>
+                  <p className={`text-xs ${
+                    smsBody.length >= 1000
+                      ? 'text-red-500 font-medium'
+                      : smsBody.length >= 500
+                      ? 'text-amber-500'
+                      : 'text-slate-400'
+                  }`}>
+                    {smsBody.length >= 1000
+                      ? '1000 · max reached'
+                      : smsBody.length >= 500
+                      ? `${smsBody.length} · long message`
+                      : smsBody.length >= 300
+                      ? `${smsBody.length} · may send as 2 texts`
+                      : String(smsBody.length)}
+                  </p>
                 </div>
                 <textarea
                   value={smsBody}
                   onChange={(e) => setSmsBody(e.target.value)}
                   rows={6}
+                  maxLength={1000}
                   className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 focus:border-(--color-brand) focus:outline-none resize-none"
                 />
                 <p className="mt-1.5 text-xs text-slate-400">

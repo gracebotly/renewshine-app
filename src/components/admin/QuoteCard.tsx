@@ -1,9 +1,17 @@
 'use client'
 
 import * as React from 'react'
-import { Mail, MessageSquare, Phone, Send } from 'lucide-react'
+import { Mail, MessageSquare, Send } from 'lucide-react'
 import { InvoicePanel } from '@/components/admin/InvoicePanel'
 import { ComposeSheet } from '@/components/admin/ComposeSheet'
+
+function getServiceLabel(serviceType: string | null): string {
+  if (serviceType === 'standard')           return 'Standard Clean'
+  if (serviceType === 'deep')               return 'Deep Clean'
+  if (serviceType === 'move_out')           return 'Move-In / Move-Out'
+  if (serviceType === 'post_construction')  return 'Post-Construction'
+  return 'cleaning service'
+}
 
 // ─── QuoteComposer ────────────────────────────────────────────────────────────
 
@@ -234,7 +242,8 @@ export function QuoteCard({ job }: { job: any }) {
   const [completedConfirm, setCompletedConfirm] = React.useState(false)
   const [reminderSent, setReminderSent] = React.useState(false)
   const [showCompose, setShowCompose] = React.useState(false)
-  const [callLoading, setCallLoading] = React.useState(false)
+  const [showManualPicker, setShowManualPicker] = React.useState(false)
+  const [manualLogging, setManualLogging] = React.useState(false)
   const [showInlineSms, setShowInlineSms] = React.useState(false)
   const [inlineSmsBody, setInlineSmsBody] = React.useState('')
   const [smsSending, setSmsSending] = React.useState(false)
@@ -429,21 +438,31 @@ export function QuoteCard({ job }: { job: any }) {
     return d.length === 10 ? `(${d.slice(0,3)}) ${d.slice(3,6)}-${d.slice(6)}` : p
   }
 
-  const handleCall = async () => {
-    if (!job.client_phone || callLoading) return
-    setCallLoading(true)
+  const handleManualContact = async (method: string) => {
+    if (manualLogging) return
+    setManualLogging(true)
+    setShowManualPicker(false)
     setErrorMsg('')
-    try {
-      await fetch('/api/admin/initiate-call', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ customerPhone: job.client_phone }),
-      })
-      setSuccessMsg('Calling… your phone will ring in a moment.')
-    } catch {
-      setErrorMsg('Call failed. Check your connection and try again.')
+    const labels: Record<string, string> = {
+      text: 'Contacted via text (outside app)',
+      email: 'Contacted via email (outside app)',
+      verbal: 'Contacted verbally / by phone',
     }
-    setTimeout(() => setCallLoading(false), 4000)
+    const res = await fetch('/api/admin/send-contact', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        jobId: job.id,
+        method: 'external',
+        customBody: labels[method] ?? 'Contacted outside the app',
+      }),
+    })
+    if (res.ok) {
+      handleComposeSuccess(labels[method] ?? 'Logged ✓')
+    } else {
+      setErrorMsg('Failed to log. Please try again.')
+    }
+    setManualLogging(false)
   }
 
   const handleSendInlineSms = async () => {
@@ -682,25 +701,57 @@ export function QuoteCard({ job }: { job: any }) {
         <div className="space-y-2">
           <p className="text-xs font-semibold uppercase tracking-widest text-slate-400">Actions</p>
 
-          {/* Contact customer — Call / Text / Email */}
+          {/* Contact customer — Manual / Text / Email */}
           {activeComposer === null && (
             <div className="space-y-2">
               {/* Three-button row */}
               <div className="grid grid-cols-3 gap-2">
-                {/* Call */}
-                <button
-                  onClick={handleCall}
-                  disabled={!job.client_phone || callLoading}
-                  title={!job.client_phone ? 'No phone number on file' : `Call ${fmtPhone(job.client_phone ?? '')}`}
-                  className="flex items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2 py-2.5 text-xs font-medium text-slate-700 transition-colors duration-200 hover:bg-slate-50 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-                >
-                  <Phone size={13} />
-                  {callLoading ? 'Calling…' : 'Call'}
-                </button>
+                {/* Manual — replaces Call */}
+                <div className="relative">
+                  <button
+                    onClick={() => setShowManualPicker(p => !p)}
+                    disabled={manualLogging}
+                    className={`flex w-full items-center justify-center rounded-lg border py-2.5 text-xs font-medium transition-colors duration-200 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${
+                      showManualPicker
+                        ? 'border-slate-300 bg-slate-100 text-slate-900'
+                        : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+                    }`}
+                  >
+                    {manualLogging ? '…' : 'Manual'}
+                  </button>
+
+                  {showManualPicker && (
+                    <>
+                      <div
+                        className="fixed inset-0 z-10"
+                        onClick={() => setShowManualPicker(false)}
+                      />
+                      <div className="absolute left-0 top-full z-20 mt-1.5 w-36 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg">
+                        <p className="px-3 pt-2.5 pb-1 text-[10px] font-semibold uppercase tracking-widest text-slate-400">
+                          How?
+                        </p>
+                        {[
+                          { key: 'text', label: 'Text' },
+                          { key: 'email', label: 'Email' },
+                          { key: 'verbal', label: 'Verbal' },
+                        ].map(opt => (
+                          <button
+                            key={opt.key}
+                            onClick={() => handleManualContact(opt.key)}
+                            className="flex w-full items-center px-3 py-2.5 text-sm text-slate-700 transition-colors duration-150 hover:bg-[#e8f3ec] hover:text-[#4A7C59] cursor-pointer last:pb-3"
+                          >
+                            {opt.label}
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
 
                 {/* Text */}
                 <button
                   onClick={() => {
+                    setShowManualPicker(false)
                     setShowInlineSms(p => !p)
                     setShowCompose(false)
                     if (!showInlineSms && job.client_phone) {
@@ -709,7 +760,27 @@ export function QuoteCard({ job }: { job: any }) {
                       const presets: Record<string, string> = {
                         new: `Hi ${firstName} — this is Grace from RenewShine. I received your booking request. Do you have a moment to discuss?`,
                         under_review: `Hi ${firstName} — Grace from RenewShine. I'm reviewing your request and have a quick question. Reply when you get a chance!`,
-                        approved: `Hi ${firstName} — just a reminder that your deposit link is still open. Let me know if you have any questions! — Grace, RenewShine`,
+                        approved: (() => {
+                          // Template 2: quote-ready SMS with real price breakdown
+                          const price = savedPrice ?? job.approved_price
+                          if (price) {
+                            const deposit = job.deposit_amount ?? 100
+                            const remaining = Math.max(price - deposit, 0)
+                            const svcLabel = getServiceLabel(job.service_type ?? null)
+                            return `Hi ${firstName} — thanks for sending the photos.
+
+Your ${svcLabel} quote is $${price.toLocaleString()}.
+
+$${deposit} deposit to reserve your date.
+$${remaining.toLocaleString()} due after the cleaning.
+
+Reply YES and I'll send your deposit link.
+
+— Grace`
+                          }
+                          // Fallback: no price set yet
+                          return `Hi ${firstName}, thanks for reaching out to RenewShine. Your quote is being prepared — I'll follow up shortly with details. — Grace`
+                        })(),
                         scheduled: `Hi ${firstName} — your clean with RenewShine is confirmed. I'll be in touch the day before with arrival details. — Grace`,
                       }
                       setInlineSmsBody(presets[job.status] ?? `Hi ${firstName} — Grace from RenewShine. `)
@@ -730,6 +801,7 @@ export function QuoteCard({ job }: { job: any }) {
                 {/* Email */}
                 <button
                   onClick={() => {
+                    setShowManualPicker(false)
                     setShowCompose(true)
                     setShowInlineSms(false)
                   }}
@@ -752,10 +824,25 @@ export function QuoteCard({ job }: { job: any }) {
                     rows={3}
                     placeholder="Type your message…"
                     autoFocus
+                    maxLength={1000}
                     className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-[#4A7C59]/40 focus:outline-none focus:ring-0 resize-none transition-colors duration-200"
                   />
                   <div className="flex items-center justify-between">
-                    <p className="text-[10px] text-slate-400">{inlineSmsBody.length} / 160</p>
+                    <p className={`text-[10px] ${
+                      inlineSmsBody.length >= 1000
+                        ? 'text-red-500 font-medium'
+                        : inlineSmsBody.length >= 500
+                        ? 'text-amber-500'
+                        : 'text-slate-400'
+                    }`}>
+                      {inlineSmsBody.length >= 1000
+                        ? '1000 · max reached'
+                        : inlineSmsBody.length >= 500
+                        ? `${inlineSmsBody.length} · long message`
+                        : inlineSmsBody.length >= 300
+                        ? `${inlineSmsBody.length} · may send as 2 texts`
+                        : String(inlineSmsBody.length)}
+                    </p>
                     <div className="flex gap-2">
                       <button
                         onClick={() => { setShowInlineSms(false); setInlineSmsBody('') }}
