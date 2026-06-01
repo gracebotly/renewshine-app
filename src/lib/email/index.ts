@@ -15,7 +15,7 @@ import { customerQuoteReadyTemplate } from './templates/customer-quote-ready'
 
 const resend = new Resend(process.env.RESEND_API_KEY!)
 const FROM = 'RenewShine <noreply@renewshine.co>'
-const REPLY_TO = 'renewshinedmv@gmail.com'
+const REPLY_TO = 'hello@renewshine.co'
 const OWNER_EMAIL = 'renewshinedmv@gmail.com'
 
 /** Template 1 — fires when customer submits booking form. To: owner. */

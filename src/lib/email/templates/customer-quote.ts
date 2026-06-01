@@ -168,7 +168,7 @@ export function customerQuoteTemplate(job: Job, stripeUrl: string, depositAmount
         </tr>
       </tbody>
     </table>
-    <p style="margin:0;font-size:13px;color:#64748b;text-align:center;line-height:1.6;">Questions? Reply to this email — we're happy to help.</p>`
+    <p style="margin:0;font-size:13px;color:#64748b;text-align:center;line-height:1.6;">Questions? Reach us at <a href="mailto:hello@renewshine.co" style="color:#4A7C59;text-decoration:none;">hello@renewshine.co</a></p>`
 
   // ── Full email body ───────────────────────────────────────────────────────
   const content = `

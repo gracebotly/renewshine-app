@@ -58,6 +58,8 @@ export function baseTemplate(content: string, previewText: string): string {
                     <p style="margin:4px 0 0;font-size:11px;line-height:1.4;">
                       <a href="https://renewshine.co" style="color:${BRAND};text-decoration:none;">renewshine.co</a>
                       &nbsp;&nbsp;|&nbsp;&nbsp;
+                      <a href="mailto:hello@renewshine.co" style="color:${BRAND};text-decoration:none;">hello@renewshine.co</a>
+                      &nbsp;&nbsp;|&nbsp;&nbsp;
                       <a href="tel:+17712539204" style="color:${TEXT_MUTED};text-decoration:none;">(771) 253-9204</a>
                     </p>
                   </td>
