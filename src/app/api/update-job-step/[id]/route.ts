@@ -62,7 +62,7 @@ export async function PATCH(
   // Only update partial jobs — prevents abuse of this endpoint
   const { error } = await supabase
     .from('jobs')
-    .update(update)
+    .update(update as any)
     .eq('id', id)
     .eq('status', 'partial')
 
