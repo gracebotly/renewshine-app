@@ -5,6 +5,14 @@ import { Mail, MessageSquare, Phone, Send } from 'lucide-react'
 import { InvoicePanel } from '@/components/admin/InvoicePanel'
 import { ComposeSheet } from '@/components/admin/ComposeSheet'
 
+function getServiceLabel(serviceType: string | null): string {
+  if (serviceType === 'standard')           return 'Standard Clean'
+  if (serviceType === 'deep')               return 'Deep Clean'
+  if (serviceType === 'move_out')           return 'Move-In / Move-Out'
+  if (serviceType === 'post_construction')  return 'Post-Construction'
+  return 'cleaning service'
+}
+
 // ─── QuoteComposer ────────────────────────────────────────────────────────────
 
 function QuoteComposer({
@@ -709,7 +717,27 @@ export function QuoteCard({ job }: { job: any }) {
                       const presets: Record<string, string> = {
                         new: `Hi ${firstName} — this is Grace from RenewShine. I received your booking request. Do you have a moment to discuss?`,
                         under_review: `Hi ${firstName} — Grace from RenewShine. I'm reviewing your request and have a quick question. Reply when you get a chance!`,
-                        approved: `Hi ${firstName} — just a reminder that your deposit link is still open. Let me know if you have any questions! — Grace, RenewShine`,
+                        approved: (() => {
+                          // Template 2: quote-ready SMS with real price breakdown
+                          const price = savedPrice ?? job.approved_price
+                          if (price) {
+                            const deposit = job.deposit_amount ?? 100
+                            const remaining = Math.max(price - deposit, 0)
+                            const svcLabel = getServiceLabel(job.service_type ?? null)
+                            return `Hi ${firstName} — thanks for sending the photos.
+
+Your ${svcLabel} quote is $${price.toLocaleString()}.
+
+$${deposit} deposit to reserve your date.
+$${remaining.toLocaleString()} due after the cleaning.
+
+Reply YES and I'll send your deposit link.
+
+— Grace`
+                          }
+                          // Fallback: no price set yet
+                          return `Hi ${firstName}, thanks for reaching out to RenewShine. Your quote is being prepared — I'll follow up shortly with details. — Grace`
+                        })(),
                         scheduled: `Hi ${firstName} — your clean with RenewShine is confirmed. I'll be in touch the day before with arrival details. — Grace`,
                       }
                       setInlineSmsBody(presets[job.status] ?? `Hi ${firstName} — Grace from RenewShine. `)
@@ -752,10 +780,25 @@ export function QuoteCard({ job }: { job: any }) {
                     rows={3}
                     placeholder="Type your message…"
                     autoFocus
+                    maxLength={1000}
                     className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-[#4A7C59]/40 focus:outline-none focus:ring-0 resize-none transition-colors duration-200"
                   />
                   <div className="flex items-center justify-between">
-                    <p className="text-[10px] text-slate-400">{inlineSmsBody.length} / 160</p>
+                    <p className={`text-[10px] ${
+                      inlineSmsBody.length >= 1000
+                        ? 'text-red-500 font-medium'
+                        : inlineSmsBody.length >= 500
+                        ? 'text-amber-500'
+                        : 'text-slate-400'
+                    }`}>
+                      {inlineSmsBody.length >= 1000
+                        ? '1000 · max reached'
+                        : inlineSmsBody.length >= 500
+                        ? `${inlineSmsBody.length} · long message`
+                        : inlineSmsBody.length >= 300
+                        ? `${inlineSmsBody.length} · may send as 2 texts`
+                        : String(inlineSmsBody.length)}
+                    </p>
                     <div className="flex gap-2">
                       <button
                         onClick={() => { setShowInlineSms(false); setInlineSmsBody('') }}
