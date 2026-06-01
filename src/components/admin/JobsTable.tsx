@@ -3,12 +3,8 @@
 import * as React from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { AlertTriangle, Search, X, ChevronRight, Mail, Phone } from 'lucide-react'
+import { AlertTriangle, Search, X, ChevronRight } from 'lucide-react'
 import type { Database } from '@/types/database'
-
-function copyToClipboard(text: string) {
-  navigator.clipboard.writeText(text).catch(console.error)
-}
 
 type JobRecord = Database['public']['Tables']['jobs']['Row']
 
@@ -204,39 +200,24 @@ export function JobsTable({ jobs }: { jobs: JobRecord[] }) {
           if (job.status === 'partial') {
             const droppedLabel = job.dropped_at_label
             return (
-              <div key={job.id} className="rounded-xl border border-slate-200 bg-white px-4 py-3.5">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0 flex-1">
-                    <p className="font-semibold text-slate-900 text-sm truncate">
-                      {job.client_name === 'Unknown' ? <span className="italic text-slate-400">Name not provided</span> : job.client_name}
-                    </p>
-                    <p className="mt-0.5 text-xs text-slate-500">{job.client_email}</p>
-                    {job.client_phone && <p className="mt-0.5 text-xs text-slate-500 font-mono tabular-nums">{job.client_phone}</p>}
-                    {job.sms_opt_in && <div className="mt-2"><SmsOptInBadge optedIn /></div>}
-                    <div className="mt-2 flex items-center gap-1.5">
+              <Link key={job.id} href={`/admin/jobs/${job.id}`} className="flex items-start justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3.5 transition-colors duration-150 active:bg-slate-50">
+                <div className="min-w-0 flex-1">
+                  <p className="font-semibold text-slate-900 text-sm truncate">
+                    {job.client_name === 'Unknown' ? <span className="italic text-slate-400">Name not provided</span> : job.client_name}
+                  </p>
+                  <p className="mt-0.5 text-xs text-slate-500">{job.client_email}</p>
+                  {job.client_phone && <p className="mt-0.5 text-xs text-slate-500 font-mono tabular-nums">{job.client_phone}</p>}
+                  {job.sms_opt_in && <div className="mt-2"><SmsOptInBadge optedIn /></div>}
+                  <div className="mt-2 flex items-center gap-2 flex-wrap">
+                    <span className="inline-flex items-center gap-1.5 text-xs font-medium text-amber-700">
                       <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-amber-400" />
-                      <span className="text-xs font-medium text-amber-700">
-                        {droppedLabel ? `Left at · ${droppedLabel}` : 'Started booking'}
-                      </span>
-                      <span className="text-xs text-slate-400">· {timeAgo(job.created_at)}</span>
-                    </div>
+                      {droppedLabel ? `Left at · ${droppedLabel}` : 'Started booking'}
+                    </span>
+                    <span className="text-xs text-slate-400">· {timeAgo(job.created_at)}</span>
                   </div>
                 </div>
-                <div className="mt-3 flex items-center gap-2">
-                  {job.client_email && (
-                    <button type="button" onClick={() => copyToClipboard(job.client_email)} className="inline-flex cursor-pointer items-center gap-1 rounded border border-slate-200 px-2.5 py-1.5 text-xs text-slate-600 transition-colors duration-200 hover:border-slate-300 hover:text-slate-900">
-                      <Mail size={11} />
-                      Copy Email
-                    </button>
-                  )}
-                  {job.client_phone && (
-                    <button type="button" onClick={() => copyToClipboard(job.client_phone!)} className="inline-flex cursor-pointer items-center gap-1 rounded border border-slate-200 px-2.5 py-1.5 text-xs text-slate-600 transition-colors duration-200 hover:border-slate-300 hover:text-slate-900">
-                      <Phone size={11} />
-                      Copy Phone
-                    </button>
-                  )}
-                </div>
-              </div>
+                <ChevronRight size={16} className="mt-1 shrink-0 text-slate-300" />
+              </Link>
             )
           }
 
@@ -283,10 +264,7 @@ export function JobsTable({ jobs }: { jobs: JobRecord[] }) {
                     <td className="px-4 py-3 text-slate-500">{job.availability_start ? formatAvailability(job.availability_start, job.availability_end, job.availability_time_pref) : <span className="text-slate-300">—</span>}</td>
                     <td className="px-4 py-3"><span className="inline-flex items-center gap-1.5 text-xs font-medium text-amber-700"><span className="h-1.5 w-1.5 shrink-0 rounded-full bg-amber-400" />{droppedLabel ? `Left at · ${droppedLabel}` : 'Started booking'}</span></td>
                     <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        {job.client_email && <button type="button" onClick={() => copyToClipboard(job.client_email)} title="Copy email" className="inline-flex cursor-pointer items-center gap-1 rounded border border-slate-200 px-2 py-1 text-xs text-slate-600 transition-colors duration-200 hover:border-slate-300 hover:text-slate-900"><Mail size={11} />Email</button>}
-                        {job.client_phone && <button type="button" onClick={() => copyToClipboard(job.client_phone!)} title="Copy phone" className="inline-flex cursor-pointer items-center gap-1 rounded border border-slate-200 px-2 py-1 text-xs text-slate-600 transition-colors duration-200 hover:border-slate-300 hover:text-slate-900"><Phone size={11} />Phone</button>}
-                      </div>
+                      <Link href={`/admin/jobs/${job.id}`} className="cursor-pointer text-sm font-medium text-(--color-brand) hover:underline">View →</Link>
                     </td>
                   </tr>
                 )
