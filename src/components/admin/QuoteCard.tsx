@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import { Mail, MessageSquare, Phone, Send } from 'lucide-react'
+import { Mail, MessageSquare, Send } from 'lucide-react'
 import { InvoicePanel } from '@/components/admin/InvoicePanel'
 import { ComposeSheet } from '@/components/admin/ComposeSheet'
 
@@ -242,7 +242,8 @@ export function QuoteCard({ job }: { job: any }) {
   const [completedConfirm, setCompletedConfirm] = React.useState(false)
   const [reminderSent, setReminderSent] = React.useState(false)
   const [showCompose, setShowCompose] = React.useState(false)
-  const [callLoading, setCallLoading] = React.useState(false)
+  const [showManualPicker, setShowManualPicker] = React.useState(false)
+  const [manualLogging, setManualLogging] = React.useState(false)
   const [showInlineSms, setShowInlineSms] = React.useState(false)
   const [inlineSmsBody, setInlineSmsBody] = React.useState('')
   const [smsSending, setSmsSending] = React.useState(false)
@@ -437,21 +438,31 @@ export function QuoteCard({ job }: { job: any }) {
     return d.length === 10 ? `(${d.slice(0,3)}) ${d.slice(3,6)}-${d.slice(6)}` : p
   }
 
-  const handleCall = async () => {
-    if (!job.client_phone || callLoading) return
-    setCallLoading(true)
+  const handleManualContact = async (method: string) => {
+    if (manualLogging) return
+    setManualLogging(true)
+    setShowManualPicker(false)
     setErrorMsg('')
-    try {
-      await fetch('/api/admin/initiate-call', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ customerPhone: job.client_phone }),
-      })
-      setSuccessMsg('Calling… your phone will ring in a moment.')
-    } catch {
-      setErrorMsg('Call failed. Check your connection and try again.')
+    const labels: Record<string, string> = {
+      text: 'Contacted via text (outside app)',
+      email: 'Contacted via email (outside app)',
+      verbal: 'Contacted verbally / by phone',
     }
-    setTimeout(() => setCallLoading(false), 4000)
+    const res = await fetch('/api/admin/send-contact', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        jobId: job.id,
+        method: 'external',
+        customBody: labels[method] ?? 'Contacted outside the app',
+      }),
+    })
+    if (res.ok) {
+      handleComposeSuccess(labels[method] ?? 'Logged ✓')
+    } else {
+      setErrorMsg('Failed to log. Please try again.')
+    }
+    setManualLogging(false)
   }
 
   const handleSendInlineSms = async () => {
@@ -690,25 +701,57 @@ export function QuoteCard({ job }: { job: any }) {
         <div className="space-y-2">
           <p className="text-xs font-semibold uppercase tracking-widest text-slate-400">Actions</p>
 
-          {/* Contact customer — Call / Text / Email */}
+          {/* Contact customer — Manual / Text / Email */}
           {activeComposer === null && (
             <div className="space-y-2">
               {/* Three-button row */}
               <div className="grid grid-cols-3 gap-2">
-                {/* Call */}
-                <button
-                  onClick={handleCall}
-                  disabled={!job.client_phone || callLoading}
-                  title={!job.client_phone ? 'No phone number on file' : `Call ${fmtPhone(job.client_phone ?? '')}`}
-                  className="flex items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2 py-2.5 text-xs font-medium text-slate-700 transition-colors duration-200 hover:bg-slate-50 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-                >
-                  <Phone size={13} />
-                  {callLoading ? 'Calling…' : 'Call'}
-                </button>
+                {/* Manual — replaces Call */}
+                <div className="relative">
+                  <button
+                    onClick={() => setShowManualPicker(p => !p)}
+                    disabled={manualLogging}
+                    className={`flex w-full items-center justify-center rounded-lg border py-2.5 text-xs font-medium transition-colors duration-200 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${
+                      showManualPicker
+                        ? 'border-slate-300 bg-slate-100 text-slate-900'
+                        : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+                    }`}
+                  >
+                    {manualLogging ? '…' : 'Manual'}
+                  </button>
+
+                  {showManualPicker && (
+                    <>
+                      <div
+                        className="fixed inset-0 z-10"
+                        onClick={() => setShowManualPicker(false)}
+                      />
+                      <div className="absolute left-0 top-full z-20 mt-1.5 w-36 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg">
+                        <p className="px-3 pt-2.5 pb-1 text-[10px] font-semibold uppercase tracking-widest text-slate-400">
+                          How?
+                        </p>
+                        {[
+                          { key: 'text', label: 'Text' },
+                          { key: 'email', label: 'Email' },
+                          { key: 'verbal', label: 'Verbal' },
+                        ].map(opt => (
+                          <button
+                            key={opt.key}
+                            onClick={() => handleManualContact(opt.key)}
+                            className="flex w-full items-center px-3 py-2.5 text-sm text-slate-700 transition-colors duration-150 hover:bg-[#e8f3ec] hover:text-[#4A7C59] cursor-pointer last:pb-3"
+                          >
+                            {opt.label}
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
 
                 {/* Text */}
                 <button
                   onClick={() => {
+                    setShowManualPicker(false)
                     setShowInlineSms(p => !p)
                     setShowCompose(false)
                     if (!showInlineSms && job.client_phone) {
@@ -758,6 +801,7 @@ Reply YES and I'll send your deposit link.
                 {/* Email */}
                 <button
                   onClick={() => {
+                    setShowManualPicker(false)
                     setShowCompose(true)
                     setShowInlineSms(false)
                   }}
