@@ -18,19 +18,13 @@ export async function POST(request: NextRequest) {
 
   const supabase = createServerClient()
 
-  const updatePayload: Record<string, unknown> = {
-    confirmed_date:        confirmedDate,
-    appointment_confirmed: true,
-  }
-
-  // Save arrival window if provided
-  if (timePref) {
-    updatePayload.availability_time_pref = timePref
-  }
-
   const { error: updateError } = await supabase
     .from('jobs')
-    .update(updatePayload)
+    .update({
+      confirmed_date:        confirmedDate,
+      appointment_confirmed: true,
+      ...(timePref ? { availability_time_pref: timePref } : {}),
+    })
     .eq('id', jobId)
 
   if (updateError) {
