@@ -79,6 +79,7 @@ export interface Database {
           deposit_amount: number
           remaining_amount: number | null
           deposit_paid: boolean
+          appointment_confirmed: boolean | null
           stripe_payment_link: string | null
           stripe_session_id: string | null
           notes: string | null
@@ -124,6 +125,7 @@ export interface Database {
           deposit_amount?: number
           remaining_amount?: number | null
           deposit_paid?: boolean
+          appointment_confirmed?: boolean | null
           stripe_payment_link?: string | null
           stripe_session_id?: string | null
           notes?: string | null

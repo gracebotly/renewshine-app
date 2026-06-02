@@ -286,6 +286,13 @@ export function QuoteCard({ job }: { job: any }) {
   const [smsSending, setSmsSending] = React.useState(false)
   const [successMsg, setSuccessMsg] = React.useState('')
   const [errorMsg, setErrorMsg] = React.useState('')
+  const [confirmingAppointment, setConfirmingAppointment] = React.useState(false)
+  const [appointmentDateInput, setAppointmentDateInput] = React.useState<string>(
+    job.confirmed_date ? new Date(job.confirmed_date).toISOString().split('T')[0] : ''
+  )
+  const [appointmentConfirmed, setAppointmentConfirmed] = React.useState<boolean>(
+    job.appointment_confirmed ?? false
+  )
 
   // Lock-in form
   const [lockInOpen, setLockInOpen] = React.useState(false)
@@ -485,6 +492,29 @@ export function QuoteCard({ job }: { job: any }) {
       body: JSON.stringify({ jobId: job.id, status: 'scheduled' }),
     })
     if (res.ok) setOverrideStatus('scheduled')
+  }
+
+  const handleConfirmAppointment = async () => {
+    if (!appointmentDateInput || confirmingAppointment) return
+    setConfirmingAppointment(true)
+    setErrorMsg('')
+    try {
+      const res = await fetch('/api/admin/confirm-appointment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ jobId: job.id, confirmedDate: appointmentDateInput }),
+      })
+      if (res.ok) {
+        setAppointmentConfirmed(true)
+        setSavedDate(appointmentDateInput)
+        setSuccessMsg(`Appointment confirmed — confirmation email sent to ${job.client_name.split(' ')[0]} ✓`)
+      } else {
+        setErrorMsg('Failed to confirm appointment. Try again.')
+      }
+    } catch {
+      setErrorMsg('Something went wrong. Check your connection.')
+    }
+    setConfirmingAppointment(false)
   }
 
   const handleComposeSuccess = (_note: string) => {
@@ -906,6 +936,61 @@ export function QuoteCard({ job }: { job: any }) {
         <div className="space-y-2">
           <p className="text-xs font-semibold uppercase tracking-widest text-slate-400">Actions</p>
 
+          {/* ── Deposit received — confirm appointment ── */}
+          {job.deposit_paid && !appointmentConfirmed && (
+            <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 space-y-3">
+              <div className="flex items-start gap-2.5">
+                <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-amber-400">
+                  <span className="text-[10px] font-bold text-white">!</span>
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-amber-900">Deposit received — confirm the date</p>
+                  <p className="mt-0.5 text-xs text-amber-700 leading-relaxed">
+                    {job.client_name.split(' ')[0]} paid the deposit. Set the final confirmed date and send them their appointment confirmation.
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="block text-[10px] font-semibold uppercase tracking-widest text-amber-800">
+                  Confirmed date
+                </label>
+                <input
+                  type="date"
+                  value={appointmentDateInput}
+                  onChange={e => setAppointmentDateInput(e.target.value)}
+                  className="w-full rounded-lg border border-amber-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-[#4A7C59]/40 focus:outline-none transition-colors duration-200 cursor-pointer"
+                />
+                {job.availability_start && job.availability_end && (
+                  <p className="text-[10px] text-amber-700">
+                    Requested window: {new Date(job.availability_start).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – {new Date(job.availability_end).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                  </p>
+                )}
+              </div>
+
+              <button
+                onClick={handleConfirmAppointment}
+                disabled={!appointmentDateInput || confirmingAppointment}
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#4A7C59] px-4 py-2.5 text-sm font-semibold text-white transition-colors duration-200 hover:bg-[#3d6b4a] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+              >
+                {confirmingAppointment ? 'Confirming…' : 'Confirm & send email to ' + job.client_name.split(' ')[0]}
+              </button>
+              <p className="text-center text-[10px] text-amber-700">
+                Sends the appointment confirmation email — then use the Text button to send the SMS
+              </p>
+            </div>
+          )}
+
+          {/* Appointment confirmed badge */}
+          {job.deposit_paid && appointmentConfirmed && (
+            <div className="flex items-center gap-2 rounded-xl border border-[#4A7C59]/20 bg-[#e8f3ec] px-3 py-2.5">
+              <div className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[#4A7C59]">
+                <span className="text-[8px] font-bold text-white">✓</span>
+              </div>
+              <p className="text-xs font-medium text-[#4A7C59]">Appointment confirmed — email sent</p>
+            </div>
+          )}
+
           {/* Contact customer — Manual / Text / Email */}
           {activeComposer === null && (
             <div className="space-y-2">
@@ -986,7 +1071,30 @@ Reply YES and I'll send your deposit link.
                           // Fallback: no price set yet
                           return `Hi ${firstName}, thanks for reaching out to RenewShine. Your quote is being prepared — I'll follow up shortly with details. — Grace`
                         })(),
-                        scheduled: `Hi ${firstName} — your clean with RenewShine is confirmed. I'll be in touch the day before with arrival details. — Grace`,
+                        scheduled: (() => {
+                          const date = appointmentDateInput || savedDate
+                          const dateStr = date
+                            ? new Date(date).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
+                            : 'your scheduled date'
+                          const dayName = date
+                            ? new Date(date).toLocaleDateString('en-US', { weekday: 'long' })
+                            : 'that day'
+                          const svcLabel = getServiceLabel(job.service_type ?? null)
+                          return `Hi ${firstName} — your ${svcLabel} is confirmed for ${dateStr}.
+
+A few quick notes before we arrive:
+
+• Please have floors, countertops, and surfaces reasonably clear of personal items.
+• If you have priority areas to focus on, let me know beforehand.
+• For safety, we don't move heavy furniture or appliances.
+• Pets should be secured if they may be uncomfortable around cleaning equipment.
+
+We'll bring all supplies needed. We'll also give you a call 48 hours before your appointment.
+
+If you have any questions before ${dayName}, feel free to reply here.
+
+— Grace, RenewShine`
+                        })(),
                       }
                       setInlineSmsBody(presets[job.status] ?? `Hi ${firstName} — Grace from RenewShine. `)
                     }
