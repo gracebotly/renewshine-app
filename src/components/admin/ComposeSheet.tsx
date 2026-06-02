@@ -64,11 +64,17 @@ export function ComposeSheet({
   mediaCount,
   onClose,
   onSuccess,
+  initialTemplate,
+  initialDate,
+  initialTimePref,
 }: {
-  job:        any
-  mediaCount: number
-  onClose:    () => void
-  onSuccess:  (note: string) => void
+  job:              any
+  mediaCount:       number
+  onClose:          () => void
+  onSuccess:        (note: string) => void
+  initialTemplate?: 'reminder' | 'request_photos' | 'quote_ready' | 'appointment_confirmed'
+  initialDate?:     string   // YYYY-MM-DD — overrides job.confirmed_date
+  initialTimePref?: string   // overrides job.availability_time_pref
 }) {
   const firstName   = job.client_name?.split(' ')[0] ?? 'there'
   const serviceType = job.service_type ?? null
@@ -78,19 +84,29 @@ export function ComposeSheet({
   const deposit     = job.deposit_amount ?? 100
   const remaining   = price ? Math.max(price - deposit, 0) : null
 
-  const confirmedDate = job.confirmed_date
-    ? new Date(job.confirmed_date).toLocaleDateString('en-US', {
+  // Editable date/time fields — for templates that use confirmed date + arrival window
+  const [templateDate,     setTemplateDate]     = React.useState<string>(
+    initialDate
+      ?? (job.confirmed_date ? new Date(job.confirmed_date).toISOString().split('T')[0] : '')
+  )
+  const [templateTimePref, setTemplateTimePref] = React.useState<string>(
+    initialTimePref ?? job.availability_time_pref ?? 'morning'
+  )
+
+  // These are derived from editable state — they update when Grace changes the fields
+  const confirmedDate = templateDate
+    ? new Date(templateDate + 'T12:00:00').toLocaleDateString('en-US', {
         weekday: 'long', month: 'long', day: 'numeric',
       })
     : null
-  const dayName = job.confirmed_date
-    ? new Date(job.confirmed_date).toLocaleDateString('en-US', { weekday: 'long' })
+  const dayName = templateDate
+    ? new Date(templateDate + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long' })
     : null
-  const timePref = getTimePref(job.availability_time_pref ?? null)
+  const timePref = getTimePref(templateTimePref)
 
   // ── Template definitions ──────────────────────────────────────────────────
 
-  const smsTemplates: SmsTemplate[] = [
+  const smsTemplates: SmsTemplate[] = React.useMemo(() => [
     {
       id:       'request_photos',
       label:    'Request photos',
@@ -130,24 +146,36 @@ Reply YES and I'll send your deposit link.
       disabledReason: 'requires confirmed date',
       body: confirmedDate
         ? `Hi ${firstName} — your ${svcLabel} is confirmed for ${confirmedDate}.
+We'll arrive between ${timePref}.
 
-A few quick notes before we arrive:
+A few things before we get there:
+• Clear floors and countertops of personal items
+• Let me know any priority areas in advance
+• Secure pets if needed — we'll have equipment running
 
-• Please have floors, countertops, and surfaces reasonably clear of personal items.
-• If you have priority areas to focus on, let me know beforehand.
-• For safety, we don't move heavy furniture or appliances.
-• Pets should be secured if they may be uncomfortable around cleaning equipment.
+We bring everything needed.
 
-We'll bring all supplies needed. We'll also give you a call 48 hours before your appointment.
-
-If you have any questions before ${dayName}, feel free to reply here.
-
-— Grace, RenewShine`
+If you have any questions before ${dayName}, feel free to reply here.`
         : '',
     },
-  ]
+    {
+      id:            'reminder',
+      label:         'Day-before reminder',
+      disabled:      !confirmedDate,
+      disabledReason: 'requires confirmed date',
+      body: confirmedDate
+        ? `Hi ${firstName} — reminder: your ${svcLabel} is tomorrow, ${confirmedDate}.
 
-  const emailTemplates: EmailTemplate[] = [
+We'll arrive between ${timePref}.
+Address: ${job.address ?? 'on file'}
+
+If anything's changed, just reply here. See you tomorrow.`
+        : '',
+    },
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  ], [templateDate, templateTimePref])
+
+  const emailTemplates: EmailTemplate[] = React.useMemo(() => [
     {
       id:            'need_photos',
       label:         'Photo request',
@@ -165,8 +193,7 @@ You can simply reply to this email with a few photos or a short walkthrough vide
 
 Once I review everything, I'll send over your quote and available appointment options.
 
-Thank you,
-Grace`,
+Thank you`,
     },
     {
       id:            'quote_ready',
@@ -190,9 +217,7 @@ Remaining balance: $${remaining?.toLocaleString()}
 
 To move forward, simply reply to this email and I'll send over your deposit link.
 
-We look forward to taking care of your home.
-
-Grace`
+We look forward to taking care of your home.`
         : '',
     },
     {
@@ -201,37 +226,86 @@ Grace`
       disabled:      !confirmedDate,
       disabledReason: 'requires confirmed date',
       subject:       confirmedDate ? `${firstName}, your ${svcLabel} is confirmed — ${confirmedDate}` : '',
-      templateKey:   'appointment_confirmed',
-      fixedTemplate: true,  // fires full HTML template with prep notes cards — not editable
+      templateKey:   'custom_formatted',
+      fixedTemplate: false,
       body: confirmedDate
-        ? `Hi ${firstName} — your ${svcLabel} is confirmed.
+        ? `Hi ${firstName},
+
+Your ${svcLabel} is confirmed.
 
 Date: ${confirmedDate}
-Arrival: ${timePref}
+Arrival window: ${timePref}
 
-• Clear surfaces of personal items
-• Flag any priority areas beforehand
-• We don't move heavy furniture
-• Secure pets if needed
+We'll take care of everything from there. Here's what to have ready:
 
-We'll call you 48 hours before your appointment.
+· Floors and countertops reasonably clear
+· Any priority areas flagged in advance
+· Pets secured if they're sensitive to equipment
 
-— Grace, RenewShine`
+We bring all supplies and equipment. Before we leave, we do a final walkthrough to make sure everything is right.
+
+If we need anything before your appointment, we'll reach out directly.
+
+If anything comes up before then, just reply here.`
         : '',
     },
-  ]
+    {
+      id:            'reminder',
+      label:         'Day-before reminder',
+      disabled:      !confirmedDate,
+      disabledReason: 'requires confirmed date',
+      subject:       confirmedDate ? `Reminder — your ${svcLabel} is tomorrow, ${confirmedDate}` : '',
+      templateKey:   'custom_formatted',
+      fixedTemplate: false,
+      body: confirmedDate
+        ? `Hi ${firstName},
+
+Just a quick reminder that your ${svcLabel} is tomorrow, ${confirmedDate}.
+
+Arrival window: ${timePref}
+Address: ${job.address ?? 'on file'}
+
+We'll bring everything needed. If you have any last-minute questions, just reply to this email.
+
+See you tomorrow.`
+        : '',
+    },
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  ], [templateDate, templateTimePref])
 
   // ── State ─────────────────────────────────────────────────────────────────
 
+  // Resolve initial indices from prop
+  const initSmsIdx   = initialTemplate
+    ? Math.max(smsTemplates.findIndex(t => t.id === initialTemplate), 0)
+    : 0
+  const initEmailIdx = initialTemplate
+    ? Math.max(emailTemplates.findIndex(t => t.id === initialTemplate), 0)
+    : 0
+
   const [tab,            setTab]            = React.useState<'sms' | 'email'>('sms')
-  const [selectedSms,    setSelectedSms]    = React.useState(0)
-  const [selectedEmail,  setSelectedEmail]  = React.useState(0)
-  const [smsBody,        setSmsBody]        = React.useState(smsTemplates[0].body)
-  const [emailBody,      setEmailBody]      = React.useState(emailTemplates[0].body)
-  const [emailSubject,   setEmailSubject]   = React.useState(emailTemplates[0].subject)
+  const [selectedSms,    setSelectedSms]    = React.useState(initSmsIdx)
+  const [selectedEmail,  setSelectedEmail]  = React.useState(initEmailIdx)
+  const [smsBody,        setSmsBody]        = React.useState(smsTemplates[initSmsIdx].body)
+  const [emailBody,      setEmailBody]      = React.useState(emailTemplates[initEmailIdx].body)
+  const [emailSubject,   setEmailSubject]   = React.useState(emailTemplates[initEmailIdx].subject)
   const [step,           setStep]           = React.useState<'compose' | 'preview'>('compose')
   const [loading,        setLoading]        = React.useState(false)
   const [error,          setError]          = React.useState('')
+
+  // Keep body/subject in sync when template fields change date or time
+  React.useEffect(() => {
+    const t = smsTemplates[selectedSms]
+    if (t && !t.disabled) setSmsBody(t.body)
+  }, [smsTemplates, selectedSms])
+
+  React.useEffect(() => {
+    const t = emailTemplates[selectedEmail]
+    if (t && !t.disabled) {
+      setEmailBody(t.body)
+      setEmailSubject(t.subject)
+    }
+  }, [emailTemplates, selectedEmail])
 
   // ── Handlers ──────────────────────────────────────────────────────────────
 
@@ -322,6 +396,9 @@ We'll call you 48 hours before your appointment.
   const cardDis  = 'border-slate-100 bg-slate-50 opacity-50 cursor-not-allowed'
 
   const activeEmail = emailTemplates[selectedEmail]
+  const DATE_TEMPLATES = ['reminder', 'appointment_confirmed']
+  const smsNeedsDateFields   = DATE_TEMPLATES.includes(smsTemplates[selectedSms]?.id)
+  const emailNeedsDateFields = DATE_TEMPLATES.includes(emailTemplates[selectedEmail]?.id)
 
   // ─────────────────────────────────────────────────────────────────────────
   // RENDER
@@ -443,6 +520,65 @@ We'll call you 48 hours before your appointment.
                       To <span className="font-semibold text-slate-900">{fmtPhone(job.client_phone)}</span>
                       <span className="ml-2 text-slate-400">· Edit before sending</span>
                     </div>
+
+                    {/* Date + arrival fields — shown for date-based templates */}
+                    {smsNeedsDateFields && (
+                      <div className="border-b border-slate-100 bg-[#f8faf9] px-3.5 py-3 space-y-2.5">
+                        <p className="text-[10px] font-semibold uppercase tracking-widest text-[#4A7C59]">
+                          Confirm details — updates message automatically
+                        </p>
+
+                        <div className="grid grid-cols-2 gap-2">
+                          {/* Date picker */}
+                          <div className="space-y-1">
+                            <label className="text-[10px] font-semibold uppercase tracking-widest text-slate-400">
+                              Confirmed date
+                            </label>
+                            <input
+                              type="date"
+                              value={templateDate}
+                              onChange={e => setTemplateDate(e.target.value)}
+                              className="w-full rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs text-slate-900 focus:border-[#4A7C59]/40 focus:outline-none transition-colors duration-200 cursor-pointer"
+                            />
+                          </div>
+
+                          {/* Arrival window */}
+                          <div className="space-y-1">
+                            <label className="text-[10px] font-semibold uppercase tracking-widest text-slate-400">
+                              Arrival window
+                            </label>
+                            <select
+                              value={templateTimePref}
+                              onChange={e => setTemplateTimePref(e.target.value)}
+                              className="w-full rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs text-slate-900 focus:border-[#4A7C59]/40 focus:outline-none transition-colors duration-200 cursor-pointer"
+                            >
+                              <option value="early_morning">8am – 10am</option>
+                              <option value="mid_morning">10am – 12pm</option>
+                              <option value="noon">12pm – 2pm</option>
+                              <option value="early_afternoon">2pm – 4pm</option>
+                              <option value="late_afternoon">4pm – 6pm</option>
+                              <option value="flexible">Morning to Afternoon</option>
+                              <option value="morning">8am – 12pm</option>
+                              <option value="afternoon">12pm – 5pm</option>
+                            </select>
+                          </div>
+                        </div>
+
+                        {/* Customer's requested window helper note */}
+                        {(job.availability_start || job.availability_end) && (
+                          <p className="text-[10px] text-slate-400">
+                            Customer requested:{' '}
+                            {job.availability_start
+                              ? new Date(job.availability_start + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+                              : '—'}
+                            {' – '}
+                            {job.availability_end
+                              ? new Date(job.availability_end + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+                              : '—'}
+                          </p>
+                        )}
+                      </div>
+                    )}
                     <textarea
                       value={smsBody}
                       onChange={e => setSmsBody(e.target.value)}
@@ -535,6 +671,61 @@ We'll call you 48 hours before your appointment.
                       )}
                     </div>
                   </div>
+
+                  {/* Date + arrival fields — shown for date-based templates */}
+                  {emailNeedsDateFields && (
+                    <div className="border-b border-slate-100 bg-[#f8faf9] px-3.5 py-3 space-y-2.5">
+                      <p className="text-[10px] font-semibold uppercase tracking-widest text-[#4A7C59]">
+                        Confirm details — updates message automatically
+                      </p>
+
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-semibold uppercase tracking-widest text-slate-400">
+                            Confirmed date
+                          </label>
+                          <input
+                            type="date"
+                            value={templateDate}
+                            onChange={e => setTemplateDate(e.target.value)}
+                            className="w-full rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs text-slate-900 focus:border-[#4A7C59]/40 focus:outline-none transition-colors duration-200 cursor-pointer"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-semibold uppercase tracking-widest text-slate-400">
+                            Arrival window
+                          </label>
+                          <select
+                            value={templateTimePref}
+                            onChange={e => setTemplateTimePref(e.target.value)}
+                            className="w-full rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs text-slate-900 focus:border-[#4A7C59]/40 focus:outline-none transition-colors duration-200 cursor-pointer"
+                          >
+                            <option value="early_morning">8am – 10am</option>
+                            <option value="mid_morning">10am – 12pm</option>
+                            <option value="noon">12pm – 2pm</option>
+                            <option value="early_afternoon">2pm – 4pm</option>
+                            <option value="late_afternoon">4pm – 6pm</option>
+                            <option value="flexible">Morning to Afternoon</option>
+                            <option value="morning">8am – 12pm</option>
+                            <option value="afternoon">12pm – 5pm</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      {(job.availability_start || job.availability_end) && (
+                        <p className="text-[10px] text-slate-400">
+                          Customer requested:{' '}
+                          {job.availability_start
+                            ? new Date(job.availability_start + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+                            : '—'}
+                          {' – '}
+                          {job.availability_end
+                            ? new Date(job.availability_end + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+                            : '—'}
+                        </p>
+                      )}
+                    </div>
+                  )}
 
                   {/* Body — editable unless fixedTemplate */}
                   {activeEmail.fixedTemplate ? (
