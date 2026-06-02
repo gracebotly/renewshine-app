@@ -153,7 +153,9 @@ A few things before we get there:
 • Let me know any priority areas in advance
 • Secure pets if needed — we'll have equipment running
 
-We bring everything. See you ${dayName}. — Grace, RenewShine`
+We bring everything needed.
+
+If you have any questions before ${dayName}, feel free to reply here.`
         : '',
     },
     {
@@ -167,7 +169,7 @@ We bring everything. See you ${dayName}. — Grace, RenewShine`
 We'll arrive between ${timePref}.
 Address: ${job.address ?? 'on file'}
 
-If anything's changed, just reply here. See you tomorrow. — Grace, RenewShine`
+If anything's changed, just reply here. See you tomorrow.`
         : '',
     },
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -191,8 +193,7 @@ You can simply reply to this email with a few photos or a short walkthrough vide
 
 Once I review everything, I'll send over your quote and available appointment options.
 
-Thank you,
-Grace`,
+Thank you`,
     },
     {
       id:            'quote_ready',
@@ -216,9 +217,7 @@ Remaining balance: $${remaining?.toLocaleString()}
 
 To move forward, simply reply to this email and I'll send over your deposit link.
 
-We look forward to taking care of your home.
-
-Grace`
+We look forward to taking care of your home.`
         : '',
     },
     {
@@ -245,12 +244,9 @@ We'll take care of everything from there. Here's what to have ready:
 
 We bring all supplies and equipment. Before we leave, we do a final walkthrough to make sure everything is right.
 
-We'll call you 48 hours before your appointment to confirm access details.
+If we need anything before your appointment, we'll reach out directly.
 
-If anything comes up before then, just reply here.
-
-— Grace
-RenewShine`
+If anything comes up before then, just reply here.`
         : '',
     },
     {
@@ -271,10 +267,7 @@ Address: ${job.address ?? 'on file'}
 
 We'll bring everything needed. If you have any last-minute questions, just reply to this email.
 
-See you tomorrow.
-
-— Grace
-RenewShine`
+See you tomorrow.`
         : '',
     },
   // eslint-disable-next-line react-hooks/exhaustive-deps
