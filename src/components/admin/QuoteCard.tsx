@@ -273,12 +273,11 @@ export function QuoteCard({ job }: { job: any }) {
   const [loadingStripe, setLoadingStripe] = React.useState(false)
   const [loadingSmsSend, setLoadingSmsSend] = React.useState(false)
   const [loadingResend, setLoadingResend] = React.useState(false)
-  const [loadingReminder, setLoadingReminder] = React.useState(false)
   const [loadingComplete, setLoadingComplete] = React.useState(false)
   const [loadingOverride, setLoadingOverride] = React.useState(false)
   const [completedConfirm, setCompletedConfirm] = React.useState(false)
-  const [reminderSent, setReminderSent] = React.useState(false)
   const [showCompose, setShowCompose] = React.useState(false)
+  const [reminderTemplate, setReminderTemplate] = React.useState<'reminder' | undefined>(undefined)
   const [showManualPicker, setShowManualPicker] = React.useState(false)
   const [manualLogging, setManualLogging] = React.useState(false)
   const [showInlineSms, setShowInlineSms] = React.useState(false)
@@ -566,16 +565,9 @@ export function QuoteCard({ job }: { job: any }) {
     setLoadingComplete(false)
   }
 
-  const handleReminder = async () => {
-    setLoadingReminder(true)
-    await fetch('/api/admin/send-reminder', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ jobId: job.id }),
-    })
-    setReminderSent(true)
-    setLoadingReminder(false)
-    setSuccessMsg('Day-before reminder sent ✓')
+  const handleOpenReminder = () => {
+    setShowCompose(true)
+    setReminderTemplate('reminder')
   }
 
   const openQuoteComposer = () => {
@@ -1322,11 +1314,10 @@ If you have any questions before ${dayName}, feel free to reply here.
               {/* Day-before reminder */}
               {(overrideStatus === 'scheduled' || job.deposit_paid) && (
                 <button
-                  onClick={handleReminder}
-                  disabled={loadingReminder || reminderSent}
-                  className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition-colors duration-200 hover:bg-slate-50 disabled:opacity-50"
+                  onClick={handleOpenReminder}
+                  className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition-colors duration-200 hover:bg-slate-50"
                 >
-                  {reminderSent ? 'Reminder sent ✓' : loadingReminder ? 'Sending…' : 'Send day-before reminder'}
+                  Send day-before reminder
                 </button>
               )}
 
@@ -1396,8 +1387,9 @@ If you have any questions before ${dayName}, feel free to reply here.
         <ComposeSheet
           job={job}
           mediaCount={job.job_media?.length ?? 0}
-          onClose={() => setShowCompose(false)}
+          onClose={() => { setShowCompose(false); setReminderTemplate(undefined) }}
           onSuccess={handleComposeSuccess}
+          initialTemplate={reminderTemplate}
         />
       )}
 

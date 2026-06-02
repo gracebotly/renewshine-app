@@ -64,11 +64,13 @@ export function ComposeSheet({
   mediaCount,
   onClose,
   onSuccess,
+  initialTemplate,
 }: {
-  job:        any
-  mediaCount: number
-  onClose:    () => void
-  onSuccess:  (note: string) => void
+  job:             any
+  mediaCount:      number
+  onClose:         () => void
+  onSuccess:       (note: string) => void
+  initialTemplate?: 'reminder' | 'request_photos' | 'quote_ready' | 'appointment_confirmed'
 }) {
   const firstName   = job.client_name?.split(' ')[0] ?? 'there'
   const serviceType = job.service_type ?? null
@@ -141,6 +143,22 @@ A few quick notes before we arrive:
 We'll bring all supplies needed. We'll also give you a call 48 hours before your appointment.
 
 If you have any questions before ${dayName}, feel free to reply here.
+
+— Grace, RenewShine`
+        : '',
+    },
+    {
+      id:            'reminder',
+      label:         'Day-before reminder',
+      disabled:      !confirmedDate,
+      disabledReason: 'requires confirmed date',
+      body: confirmedDate
+        ? `Hi ${firstName} — just a reminder that your ${svcLabel} is tomorrow, ${confirmedDate}.
+
+Arrival window: ${timePref}.
+Address: ${job.address ?? 'on file'}.
+
+We'll bring all supplies. If you need to reach us, just reply here.
 
 — Grace, RenewShine`
         : '',
@@ -219,16 +237,47 @@ We'll call you 48 hours before your appointment.
 — Grace, RenewShine`
         : '',
     },
+    {
+      id:            'reminder',
+      label:         'Day-before reminder',
+      disabled:      !confirmedDate,
+      disabledReason: 'requires confirmed date',
+      subject:       confirmedDate ? `Reminder — your RenewShine ${svcLabel} is tomorrow` : '',
+      templateKey:   'custom_formatted',
+      fixedTemplate: false,
+      body: confirmedDate
+        ? `Hi ${firstName},
+
+Just a quick reminder that your ${svcLabel} is scheduled for tomorrow, ${confirmedDate}.
+
+Arrival window: ${timePref}
+Address: ${job.address ?? 'on file'}
+
+We'll bring all cleaning supplies and equipment. If you need to reach us before your appointment, feel free to reply to this email.
+
+See you tomorrow!
+
+Grace`
+        : '',
+    },
   ]
 
   // ── State ─────────────────────────────────────────────────────────────────
 
+  // Resolve initial indices from prop
+  const initSmsIdx   = initialTemplate
+    ? Math.max(smsTemplates.findIndex(t => t.id === initialTemplate), 0)
+    : 0
+  const initEmailIdx = initialTemplate
+    ? Math.max(emailTemplates.findIndex(t => t.id === initialTemplate), 0)
+    : 0
+
   const [tab,            setTab]            = React.useState<'sms' | 'email'>('sms')
-  const [selectedSms,    setSelectedSms]    = React.useState(0)
-  const [selectedEmail,  setSelectedEmail]  = React.useState(0)
-  const [smsBody,        setSmsBody]        = React.useState(smsTemplates[0].body)
-  const [emailBody,      setEmailBody]      = React.useState(emailTemplates[0].body)
-  const [emailSubject,   setEmailSubject]   = React.useState(emailTemplates[0].subject)
+  const [selectedSms,    setSelectedSms]    = React.useState(initSmsIdx)
+  const [selectedEmail,  setSelectedEmail]  = React.useState(initEmailIdx)
+  const [smsBody,        setSmsBody]        = React.useState(smsTemplates[initSmsIdx].body)
+  const [emailBody,      setEmailBody]      = React.useState(emailTemplates[initEmailIdx].body)
+  const [emailSubject,   setEmailSubject]   = React.useState(emailTemplates[initEmailIdx].subject)
   const [step,           setStep]           = React.useState<'compose' | 'preview'>('compose')
   const [loading,        setLoading]        = React.useState(false)
   const [error,          setError]          = React.useState('')
