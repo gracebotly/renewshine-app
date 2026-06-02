@@ -1,6 +1,6 @@
 import { stripe } from '@/lib/stripe/client'
 import { createServerClient } from '@/lib/supabase/server'
-import { sendCustomerBooked, sendOwnerBooked } from '@/lib/email'
+import { sendOwnerBooked } from '@/lib/email'
 import { notifyDepositPaid } from '@/lib/slack'
 
 // Required: raw body for Stripe signature verification
@@ -119,7 +119,7 @@ export async function POST(request: Request) {
       return Response.json({ error: 'DB update failed' }, { status: 500 })
     }
 
-    console.log('Webhook: job', resolvedJobId, 'marked scheduled — sending confirmation emails')
+    console.log('Webhook: job', resolvedJobId, 'marked scheduled — sending owner deposit alert')
 
     const { data: updatedJob } = await supabase
       .from('jobs')
@@ -127,14 +127,15 @@ export async function POST(request: Request) {
       .eq('id', resolvedJobId)
       .single()
 
-    // Send Templates 4 + 5 — never block webhook response on email failure
+    // Template 5 — owner deposit alert fires automatically
+    // Template 4 (customer confirmation) is sent manually by Grace after she confirms the final date
     try {
       if (updatedJob && paymentType !== 'invoice') {
-        await Promise.all([sendCustomerBooked(updatedJob), sendOwnerBooked(updatedJob)])
-        console.log('Webhook: confirmation emails sent for job', resolvedJobId)
+        await sendOwnerBooked(updatedJob)
+        console.log('Webhook: owner booked email sent for job', resolvedJobId)
       }
     } catch (emailError) {
-      console.error('Webhook: confirmation emails failed (non-blocking):', emailError)
+      console.error('Webhook: owner booked email failed (non-blocking):', emailError)
     }
 
     // Slack alert

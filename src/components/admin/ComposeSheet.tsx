@@ -1,7 +1,9 @@
 'use client'
 
 import * as React from 'react'
-import { X, Send } from 'lucide-react'
+import { X, Send, ChevronLeft, Eye } from 'lucide-react'
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function getRoomCallout(serviceType: string | null): string {
   if (serviceType === 'standard' || serviceType === 'deep')
@@ -12,17 +14,50 @@ function getRoomCallout(serviceType: string | null): string {
 }
 
 function getServiceLabel(serviceType: string | null): string {
-  if (serviceType === 'standard')          return 'Standard Clean'
-  if (serviceType === 'deep')              return 'Deep Clean'
-  if (serviceType === 'move_out')          return 'Move-In / Move-Out'
-  if (serviceType === 'post_construction') return 'Post-Construction'
+  if (serviceType === 'standard')           return 'Standard Clean'
+  if (serviceType === 'deep')               return 'Deep Clean'
+  if (serviceType === 'move_out')           return 'Move-In / Move-Out'
+  if (serviceType === 'post_construction')  return 'Post-Construction'
   return 'cleaning service'
 }
 
 function fmtPhone(p: string): string {
   const d = p.replace(/\D/g, '').slice(-10)
-  return d.length === 10 ? `(${d.slice(0,3)}) ${d.slice(3,6)}-${d.slice(6)}` : p
+  return d.length === 10 ? `(${d.slice(0, 3)}) ${d.slice(3, 6)}-${d.slice(6)}` : p
 }
+
+function getTimePref(pref: string | null): string {
+  const map: Record<string, string> = {
+    morning: '8am – 12pm', afternoon: '12pm – 5pm',
+    early_morning: '8am – 10am', mid_morning: '10am – 12pm',
+    noon: '12pm – 2pm', early_afternoon: '2pm – 4pm',
+    late_afternoon: '4pm – 6pm', flexible: 'Morning to Afternoon',
+  }
+  return pref ? (map[pref] ?? 'Morning to Afternoon') : 'Morning to Afternoon'
+}
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+interface SmsTemplate {
+  id:            string
+  label:         string
+  disabled:      boolean
+  disabledReason?: string
+  body:          string
+}
+
+interface EmailTemplate {
+  id:            string
+  label:         string
+  disabled:      boolean
+  disabledReason?: string
+  subject:       string
+  body:          string          // plain text preview / editable body
+  templateKey:   string          // sent to API — 'need_photos' | 'quote_ready' | 'appointment_confirmed' | 'custom_formatted'
+  fixedTemplate: boolean         // true = not editable (fires pre-built HTML); false = editable, sends custom_formatted
+}
+
+// ─── Component ────────────────────────────────────────────────────────────────
 
 export function ComposeSheet({
   job,
@@ -30,10 +65,10 @@ export function ComposeSheet({
   onClose,
   onSuccess,
 }: {
-  job: any
+  job:        any
   mediaCount: number
-  onClose: () => void
-  onSuccess: (contactNote: string) => void
+  onClose:    () => void
+  onSuccess:  (note: string) => void
 }) {
   const firstName   = job.client_name?.split(' ')[0] ?? 'there'
   const serviceType = job.service_type ?? null
@@ -43,13 +78,24 @@ export function ComposeSheet({
   const deposit     = job.deposit_amount ?? 100
   const remaining   = price ? Math.max(price - deposit, 0) : null
 
-  const smsTemplates = [
+  const confirmedDate = job.confirmed_date
+    ? new Date(job.confirmed_date).toLocaleDateString('en-US', {
+        weekday: 'long', month: 'long', day: 'numeric',
+      })
+    : null
+  const dayName = job.confirmed_date
+    ? new Date(job.confirmed_date).toLocaleDateString('en-US', { weekday: 'long' })
+    : null
+  const timePref = getTimePref(job.availability_time_pref ?? null)
+
+  // ── Template definitions ──────────────────────────────────────────────────
+
+  const smsTemplates: SmsTemplate[] = [
     {
-      label:         'Request photos',
-      disabledReason: '',
-      disabled:      false,
-      preview:       `Hi ${firstName}, thanks for reaching out to RenewShine. To provide an accurate quote, please send a few photos or a short walkthrough video…`,
-      body:          `Hi ${firstName}, thanks for reaching out to RenewShine.
+      id:       'request_photos',
+      label:    'Request photos',
+      disabled: false,
+      body: `Hi ${firstName}, thanks for reaching out to RenewShine.
 
 To provide an accurate quote, please send a few photos or a short walkthrough video of ${rooms}.
 
@@ -60,12 +106,10 @@ Once I review it, I'll send over your quote.
 — Grace`,
     },
     {
-      label:          'Quote ready',
-      disabled:       !price,
+      id:            'quote_ready',
+      label:         'Quote ready',
+      disabled:      !price,
       disabledReason: 'requires confirmed price',
-      preview: price
-        ? `Hi ${firstName} — thanks for sending the photos. Your ${svcLabel} quote is $${price.toLocaleString()}. $${deposit} deposit to reserve your date…`
-        : 'Lock in a price on this job first to use this template.',
       body: price
         ? `Hi ${firstName} — thanks for sending the photos.
 
@@ -79,158 +123,243 @@ Reply YES and I'll send your deposit link.
 — Grace`
         : '',
     },
+    {
+      id:            'appointment_confirmed',
+      label:         'Appointment confirmed',
+      disabled:      !confirmedDate,
+      disabledReason: 'requires confirmed date',
+      body: confirmedDate
+        ? `Hi ${firstName} — your ${svcLabel} is confirmed for ${confirmedDate}.
+
+A few quick notes before we arrive:
+
+• Please have floors, countertops, and surfaces reasonably clear of personal items.
+• If you have priority areas to focus on, let me know beforehand.
+• For safety, we don't move heavy furniture or appliances.
+• Pets should be secured if they may be uncomfortable around cleaning equipment.
+
+We'll bring all supplies needed. We'll also give you a call 48 hours before your appointment.
+
+If you have any questions before ${dayName}, feel free to reply here.
+
+— Grace, RenewShine`
+        : '',
+    },
   ]
 
-  const emailTemplates = [
+  const emailTemplates: EmailTemplate[] = [
     {
-      label:    'Photo request',
-      subject:  'A Quick Follow-Up About Your Cleaning Request',
-      template: 'need_photos',
-      disabled: false,
-      preview:  `Hi ${firstName}, thank you for contacting RenewShine. Before I can provide an accurate quote, I'd like to take a quick look at the space…`,
-      body:     `Hi ${firstName},
+      id:            'need_photos',
+      label:         'Photo request',
+      disabled:      false,
+      subject:       'A Quick Follow-Up About Your Cleaning Request',
+      templateKey:   'custom_formatted',
+      fixedTemplate: false,
+      body: `Hi ${firstName},
 
 Thank you for contacting RenewShine.
 
 Before I can provide an accurate quote, I'd like to take a quick look at the space.
 
-You can simply reply to this email with a few photos or a short walkthrough video. If it's easier, we can also schedule a quick FaceTime call.
+You can simply reply to this email with a few photos or a short walkthrough video of ${rooms}. If it's easier, we can also schedule a quick FaceTime call.
 
 Once I review everything, I'll send over your quote and available appointment options.
 
 Thank you,
-Grace
-RenewShine`,
+Grace`,
     },
     {
-      label:    'Quote ready',
-      subject:  'Your RenewShine Cleaning Quote',
-      template: 'quote_ready',
-      disabled: !price,
-      preview: price
-        ? `Hi ${firstName}, thank you for sending the photos. Your quote is ready. Service: ${svcLabel}. Total: $${price.toLocaleString()}…`
-        : 'Lock in a price on this job first to use this template.',
+      id:            'quote_ready',
+      label:         'Quote ready',
+      disabled:      !price,
+      disabledReason: 'requires confirmed price',
+      subject:       'Your RenewShine Cleaning Quote',
+      templateKey:   'custom_formatted',
+      fixedTemplate: false,
       body: price
         ? `Hi ${firstName},
 
 Thank you for sending the photos.
 
-Based on the information provided, your quote is ready.
+Based on what I reviewed, your quote is ready.
 
 Service: ${svcLabel}
 Total: $${price.toLocaleString()}
 Deposit required: $${deposit}
 Remaining balance: $${remaining?.toLocaleString()}
 
-To move forward, simply reply to this email or submit your deposit once the payment link is provided.
+To move forward, simply reply to this email and I'll send over your deposit link.
 
 We look forward to taking care of your home.
 
-Grace
-RenewShine
-Premium Cleaning Services`
+Grace`
+        : '',
+    },
+    {
+      id:            'appointment_confirmed',
+      label:         'Appointment confirmed',
+      disabled:      !confirmedDate,
+      disabledReason: 'requires confirmed date',
+      subject:       confirmedDate ? `${firstName}, your ${svcLabel} is confirmed — ${confirmedDate}` : '',
+      templateKey:   'appointment_confirmed',
+      fixedTemplate: true,  // fires full HTML template with prep notes cards — not editable
+      body: confirmedDate
+        ? `Hi ${firstName} — your ${svcLabel} is confirmed.
+
+Date: ${confirmedDate}
+Arrival: ${timePref}
+
+• Clear surfaces of personal items
+• Flag any priority areas beforehand
+• We don't move heavy furniture
+• Secure pets if needed
+
+We'll call you 48 hours before your appointment.
+
+— Grace, RenewShine`
         : '',
     },
   ]
 
-  const [tab, setTab]                     = React.useState<'sms' | 'email'>('sms')
-  const [selectedSms, setSelectedSms]     = React.useState(0)
-  const [selectedEmail, setSelectedEmail] = React.useState(0)
-  const [smsBody, setSmsBody]             = React.useState(smsTemplates[0].body)
-  const [loading, setLoading]             = React.useState(false)
-  const [error, setError]                 = React.useState('')
+  // ── State ─────────────────────────────────────────────────────────────────
+
+  const [tab,            setTab]            = React.useState<'sms' | 'email'>('sms')
+  const [selectedSms,    setSelectedSms]    = React.useState(0)
+  const [selectedEmail,  setSelectedEmail]  = React.useState(0)
+  const [smsBody,        setSmsBody]        = React.useState(smsTemplates[0].body)
+  const [emailBody,      setEmailBody]      = React.useState(emailTemplates[0].body)
+  const [emailSubject,   setEmailSubject]   = React.useState(emailTemplates[0].subject)
+  const [step,           setStep]           = React.useState<'compose' | 'preview'>('compose')
+  const [loading,        setLoading]        = React.useState(false)
+  const [error,          setError]          = React.useState('')
+
+  // ── Handlers ──────────────────────────────────────────────────────────────
 
   const handleSelectSms = (i: number) => {
     if (smsTemplates[i].disabled) return
     setSelectedSms(i)
     setSmsBody(smsTemplates[i].body)
+    setError('')
   }
 
   const handleSelectEmail = (i: number) => {
     if (emailTemplates[i].disabled) return
     setSelectedEmail(i)
+    setEmailBody(emailTemplates[i].body)
+    setEmailSubject(emailTemplates[i].subject)
+    setError('')
+  }
+
+  const handlePreview = () => {
+    setError('')
+    if (tab === 'sms' && !job.client_phone) {
+      setError('No phone number on file. Switch to the Email tab.')
+      return
+    }
+    if (tab === 'sms' && !smsBody.trim()) {
+      setError('Message cannot be empty.')
+      return
+    }
+    if (tab === 'email' && !emailBody.trim()) {
+      setError('Email body cannot be empty.')
+      return
+    }
+    setStep('preview')
   }
 
   const handleSend = async () => {
     if (loading) return
     setLoading(true)
     setError('')
-    const isEmail = tab === 'email'
+
+    const isEmail    = tab === 'email'
+    const tmpl       = isEmail ? emailTemplates[selectedEmail] : null
     const payload: Record<string, unknown> = {
       jobId:  job.id,
       method: isEmail ? 'email' : 'sms',
     }
-    if (isEmail) {
-      if (emailTemplates[selectedEmail].disabled) {
-        setError('Lock in a price before sending this template.')
-        setLoading(false)
-        return
+
+    if (isEmail && tmpl) {
+      if (tmpl.fixedTemplate) {
+        payload.template = tmpl.templateKey
+      } else {
+        payload.template   = 'custom_formatted'
+        payload.customBody = emailBody.trim()
+        payload.subject    = emailSubject.trim()
       }
-      payload.template = emailTemplates[selectedEmail].template
     } else {
-      if (!job.client_phone) {
-        setError('No phone number on file. Use the Email tab instead.')
-        setLoading(false)
-        return
-      }
-      if (!smsBody.trim()) {
-        setError('Message cannot be empty.')
-        setLoading(false)
-        return
-      }
       payload.customBody = smsBody.trim()
     }
+
     const res = await fetch('/api/admin/send-contact', {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
       body:    JSON.stringify(payload),
     })
+
     if (res.ok) {
       const data = await res.json()
       onSuccess(data.contactNote ?? 'Message sent ✓')
     } else {
       const data = await res.json().catch(() => ({}))
       setError((data as any).error ?? 'Failed to send. Please try again.')
+      setStep('compose')
     }
     setLoading(false)
   }
 
-  const smsLen = smsBody.length
-  const smsCountClass = smsLen >= 1000
-    ? 'text-red-500 font-medium'
-    : smsLen >= 500
-    ? 'text-amber-500'
-    : 'text-slate-400'
-  const smsCountText = smsLen >= 1000
-    ? '1000 · max'
-    : smsLen >= 500
-    ? `${smsLen} · long`
-    : smsLen >= 300
-    ? `${smsLen} · 2 segments`
-    : String(smsLen)
+  // ── Char counter ──────────────────────────────────────────────────────────
 
-  const activeEmailTemplate = emailTemplates[selectedEmail]
+  const smsLen   = smsBody.length
+  const smsColor = smsLen >= 1000 ? 'text-red-500 font-medium' : smsLen >= 500 ? 'text-amber-500' : 'text-slate-400'
+  const smsCount = smsLen >= 1000 ? '1000 · max' : smsLen >= 500 ? `${smsLen} · long` : smsLen >= 300 ? `${smsLen} · 2 segments` : String(smsLen)
+
+  // ── Card styles ───────────────────────────────────────────────────────────
 
   const cardBase = 'w-full text-left rounded-xl border p-3.5 transition-colors duration-150 cursor-pointer'
   const cardOn   = 'border-[#4A7C59] bg-[#f4fbf6]'
   const cardOff  = 'border-slate-200 bg-white hover:border-slate-300'
   const cardDis  = 'border-slate-100 bg-slate-50 opacity-50 cursor-not-allowed'
 
+  const activeEmail = emailTemplates[selectedEmail]
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // RENDER
+  // ─────────────────────────────────────────────────────────────────────────
+
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-white">
 
-      {/* ── Header ───────────────────────────────────────────────── */}
+      {/* ── Header ──────────────────────────────────────────────────────── */}
       <div className="shrink-0 border-b border-slate-200 px-5 py-4">
-        <div className="flex items-start justify-between">
-          <div>
-            <p className="text-base font-semibold text-slate-900">Contact {firstName}</p>
-            <p className="mt-0.5 text-xs text-slate-400">
-              {job.client_email}
-              {mediaCount > 0
-                ? ` · ${mediaCount} photo${mediaCount === 1 ? '' : 's'} on file`
-                : ' · No photos submitted'}
+        <div className="flex items-center justify-between">
+          {step === 'preview' ? (
+            <button
+              onClick={() => setStep('compose')}
+              className="flex items-center gap-1.5 text-sm font-medium text-slate-500 hover:text-slate-800 transition-colors cursor-pointer"
+            >
+              <ChevronLeft size={16} />
+              Edit
+            </button>
+          ) : (
+            <div>
+              <p className="text-base font-semibold text-slate-900">Contact {firstName}</p>
+              <p className="mt-0.5 text-xs text-slate-400">
+                {job.client_email}
+                {job.client_phone ? ` · ${fmtPhone(job.client_phone)}` : ''}
+                {mediaCount > 0
+                  ? ` · ${mediaCount} photo${mediaCount === 1 ? '' : 's'} on file`
+                  : ' · No photos on file'}
+              </p>
+            </div>
+          )}
+
+          {step === 'preview' && (
+            <p className="text-sm font-semibold text-slate-900">
+              {tab === 'sms' ? 'Preview SMS' : 'Preview Email'}
             </p>
-          </div>
+          )}
+
           <button
             onClick={onClose}
             className="cursor-pointer rounded-lg p-2 transition-colors duration-200 hover:bg-slate-100"
@@ -239,162 +368,336 @@ Premium Cleaning Services`
           </button>
         </div>
 
-        {/* Tab switcher */}
-        <div className="mt-4 flex -mx-5 px-5 border-b border-slate-100">
-          {(['sms', 'email'] as const).map(t => (
-            <button
-              key={t}
-              type="button"
-              onClick={() => { setTab(t); setError('') }}
-              className={`mr-6 pb-3 text-sm font-medium border-b-2 transition-colors duration-150 cursor-pointer ${
-                tab === t
-                  ? 'border-[#4A7C59] text-[#4A7C59]'
-                  : 'border-transparent text-slate-400 hover:text-slate-600'
-              }`}
-            >
-              {t === 'sms' ? 'SMS' : 'Email'}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* ── Body ─────────────────────────────────────────────────── */}
-      <div className="flex-1 overflow-y-auto px-5 py-5 space-y-3">
-
-        <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400 mb-1">
-          Select a template
-        </p>
-
-        {/* ── SMS tab ──────────────────────────────────────────── */}
-        {tab === 'sms' && (
-          <>
-            {smsTemplates.map((t, i) => (
+        {/* Tab switcher — only shown on compose step */}
+        {step === 'compose' && (
+          <div className="mt-4 flex -mx-5 px-5 border-b border-slate-100">
+            {(['sms', 'email'] as const).map(t => (
               <button
-                key={i}
+                key={t}
                 type="button"
-                onClick={() => handleSelectSms(i)}
-                className={`${cardBase} ${t.disabled ? cardDis : selectedSms === i ? cardOn : cardOff}`}
+                onClick={() => { setTab(t); setError('') }}
+                className={`mr-6 pb-3 text-sm font-medium border-b-2 transition-colors duration-150 cursor-pointer ${
+                  tab === t
+                    ? 'border-[#4A7C59] text-[#4A7C59]'
+                    : 'border-transparent text-slate-400 hover:text-slate-600'
+                }`}
               >
-                <div className="flex items-center justify-between mb-2">
-                  <span className={`text-xs font-semibold ${
-                    t.disabled ? 'text-slate-400' : selectedSms === i ? 'text-[#3a6347]' : 'text-slate-700'
-                  }`}>
-                    {t.label}
-                    {t.disabled && (
-                      <span className="ml-1.5 text-[10px] font-normal text-slate-400">
-                        — {t.disabledReason}
-                      </span>
-                    )}
-                  </span>
-                  <span className={`w-3.5 h-3.5 rounded-full border shrink-0 ${
-                    selectedSms === i && !t.disabled
-                      ? 'bg-[#4A7C59] border-[#4A7C59]'
-                      : 'bg-white border-slate-300'
-                  }`} />
-                </div>
-                <p className="text-xs text-slate-400 leading-relaxed line-clamp-2">{t.preview}</p>
+                {t === 'sms' ? 'SMS' : 'Email'}
               </button>
             ))}
-
-            {job.client_phone ? (
-              <div className="rounded-xl border border-slate-200 overflow-hidden">
-                <div className="px-3.5 py-2 border-b border-slate-100 text-xs text-slate-500">
-                  To <span className="font-semibold text-slate-900">{fmtPhone(job.client_phone)}</span>
-                </div>
-                <textarea
-                  value={smsBody}
-                  onChange={e => setSmsBody(e.target.value)}
-                  maxLength={1000}
-                  rows={6}
-                  className="w-full px-3.5 py-3 text-sm text-slate-900 leading-relaxed focus:outline-none resize-none bg-white"
-                />
-                <div className="flex items-center justify-between px-3.5 py-2 border-t border-slate-100 bg-slate-50">
-                  <span className={`text-[10px] ${smsCountClass}`}>{smsCountText}</span>
-                  <button
-                    onClick={handleSend}
-                    disabled={!smsBody.trim() || loading}
-                    className="flex items-center gap-1.5 rounded-lg bg-[#4A7C59] px-4 py-1.5 text-xs font-semibold text-white transition-colors duration-200 hover:bg-[#3d6b4a] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-                  >
-                    <Send size={11} />
-                    {loading ? 'Sending…' : 'Send'}
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div className="rounded-xl border border-amber-100 bg-amber-50 px-4 py-3">
-                <p className="text-sm font-medium text-amber-800">No phone number on file</p>
-                <p className="mt-0.5 text-xs text-amber-700">Switch to the Email tab.</p>
-              </div>
-            )}
-          </>
-        )}
-
-        {/* ── Email tab ────────────────────────────────────────── */}
-        {tab === 'email' && (
-          <>
-            {emailTemplates.map((t, i) => (
-              <button
-                key={i}
-                type="button"
-                onClick={() => handleSelectEmail(i)}
-                className={`${cardBase} ${t.disabled ? cardDis : selectedEmail === i ? cardOn : cardOff}`}
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <span className={`text-xs font-semibold ${
-                    t.disabled ? 'text-slate-400' : selectedEmail === i ? 'text-[#3a6347]' : 'text-slate-700'
-                  }`}>
-                    {t.label}
-                    {t.disabled && (
-                      <span className="ml-1.5 text-[10px] font-normal text-slate-400">
-                        — requires confirmed price
-                      </span>
-                    )}
-                  </span>
-                  <span className={`w-3.5 h-3.5 rounded-full border shrink-0 ${
-                    selectedEmail === i && !t.disabled
-                      ? 'bg-[#4A7C59] border-[#4A7C59]'
-                      : 'bg-white border-slate-300'
-                  }`} />
-                </div>
-                <p className="text-[11px] text-slate-400 mb-1">
-                  <span className="font-medium">Subject:</span> {t.subject}
-                </p>
-                <p className="text-xs text-slate-400 leading-relaxed line-clamp-2">{t.preview}</p>
-              </button>
-            ))}
-
-            <div className="rounded-xl border border-slate-200 overflow-hidden">
-              <div className="px-3.5 py-2 border-b border-slate-100 text-xs text-slate-500">
-                To <span className="font-semibold text-slate-900">{job.client_email}</span>
-              </div>
-              <div className="px-3.5 py-2 border-b border-slate-100 text-xs text-slate-500">
-                Subject <span className="font-semibold text-slate-900">{activeEmailTemplate.subject}</span>
-              </div>
-              <div className="px-3.5 py-4 text-sm text-slate-700 leading-relaxed whitespace-pre-line">
-                {activeEmailTemplate.body || (
-                  <span className="text-slate-400 italic">Lock in a price to preview this template.</span>
-                )}
-              </div>
-              <div className="flex items-center justify-end px-3.5 py-2.5 border-t border-slate-100 bg-slate-50">
-                <button
-                  onClick={handleSend}
-                  disabled={activeEmailTemplate.disabled || loading}
-                  className="flex items-center gap-1.5 rounded-lg bg-[#4A7C59] px-4 py-1.5 text-xs font-semibold text-white transition-colors duration-200 hover:bg-[#3d6b4a] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-                >
-                  <Send size={11} />
-                  {loading ? 'Sending…' : 'Send email'}
-                </button>
-              </div>
-            </div>
-          </>
-        )}
-
-        {error && (
-          <div className="rounded-xl border border-red-100 bg-red-50 px-4 py-3">
-            <p className="text-sm text-red-700">{error}</p>
           </div>
         )}
       </div>
+
+      {/* ── Body ────────────────────────────────────────────────────────── */}
+      <div className="flex-1 overflow-y-auto">
+
+        {/* ════════════════════════════════════════════════════════════════
+            STEP 1 — COMPOSE
+        ════════════════════════════════════════════════════════════════ */}
+        {step === 'compose' && (
+          <div className="px-5 py-5 space-y-3">
+
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400">
+              Select a template
+            </p>
+
+            {/* ── SMS compose ────────────────────────────────────────── */}
+            {tab === 'sms' && (
+              <>
+                {smsTemplates.map((t, i) => (
+                  <button
+                    key={t.id}
+                    type="button"
+                    onClick={() => handleSelectSms(i)}
+                    className={`${cardBase} ${t.disabled ? cardDis : selectedSms === i ? cardOn : cardOff}`}
+                  >
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className={`text-xs font-semibold ${
+                        t.disabled ? 'text-slate-400' : selectedSms === i ? 'text-[#3a6347]' : 'text-slate-700'
+                      }`}>
+                        {t.label}
+                        {t.disabled && t.disabledReason && (
+                          <span className="ml-1.5 text-[10px] font-normal text-slate-400">
+                            — {t.disabledReason}
+                          </span>
+                        )}
+                      </span>
+                      <span className={`w-3.5 h-3.5 rounded-full border shrink-0 ${
+                        selectedSms === i && !t.disabled
+                          ? 'bg-[#4A7C59] border-[#4A7C59]'
+                          : 'bg-white border-slate-300'
+                      }`} />
+                    </div>
+                    {!t.disabled && (
+                      <p className="text-[11px] text-slate-400 leading-relaxed line-clamp-2 whitespace-pre-line">
+                        {t.body.split('\n')[0]}…
+                      </p>
+                    )}
+                  </button>
+                ))}
+
+                {job.client_phone ? (
+                  <div className="rounded-xl border border-slate-200 overflow-hidden">
+                    <div className="px-3.5 py-2 border-b border-slate-100 bg-slate-50 text-xs text-slate-500">
+                      To <span className="font-semibold text-slate-900">{fmtPhone(job.client_phone)}</span>
+                      <span className="ml-2 text-slate-400">· Edit before sending</span>
+                    </div>
+                    <textarea
+                      value={smsBody}
+                      onChange={e => setSmsBody(e.target.value)}
+                      maxLength={1000}
+                      rows={8}
+                      className="w-full px-3.5 py-3 text-sm text-slate-900 leading-relaxed focus:outline-none resize-none bg-white"
+                    />
+                    <div className="flex items-center justify-between px-3.5 py-2.5 border-t border-slate-100 bg-slate-50">
+                      <span className={`text-[10px] ${smsColor}`}>{smsCount}</span>
+                      <button
+                        onClick={handlePreview}
+                        disabled={!smsBody.trim()}
+                        className="flex items-center gap-1.5 rounded-lg bg-slate-800 px-4 py-1.5 text-xs font-semibold text-white transition-colors duration-200 hover:bg-slate-900 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                      >
+                        <Eye size={11} />
+                        Preview
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="rounded-xl border border-amber-100 bg-amber-50 px-4 py-3">
+                    <p className="text-sm font-medium text-amber-800">No phone number on file</p>
+                    <p className="mt-0.5 text-xs text-amber-700">Switch to the Email tab.</p>
+                  </div>
+                )}
+              </>
+            )}
+
+            {/* ── Email compose ──────────────────────────────────────── */}
+            {tab === 'email' && (
+              <>
+                {emailTemplates.map((t, i) => (
+                  <button
+                    key={t.id}
+                    type="button"
+                    onClick={() => handleSelectEmail(i)}
+                    className={`${cardBase} ${t.disabled ? cardDis : selectedEmail === i ? cardOn : cardOff}`}
+                  >
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className={`text-xs font-semibold ${
+                        t.disabled ? 'text-slate-400' : selectedEmail === i ? 'text-[#3a6347]' : 'text-slate-700'
+                      }`}>
+                        {t.label}
+                        {t.disabled && t.disabledReason && (
+                          <span className="ml-1.5 text-[10px] font-normal text-slate-400">
+                            — {t.disabledReason}
+                          </span>
+                        )}
+                        {t.fixedTemplate && !t.disabled && (
+                          <span className="ml-1.5 text-[10px] font-normal text-[#4A7C59]">
+                            — styled HTML email
+                          </span>
+                        )}
+                      </span>
+                      <span className={`w-3.5 h-3.5 rounded-full border shrink-0 ${
+                        selectedEmail === i && !t.disabled
+                          ? 'bg-[#4A7C59] border-[#4A7C59]'
+                          : 'bg-white border-slate-300'
+                      }`} />
+                    </div>
+                    {!t.disabled && (
+                      <p className="text-[11px] text-slate-400">
+                        <span className="font-medium">Subject:</span> {t.subject}
+                      </p>
+                    )}
+                  </button>
+                ))}
+
+                <div className="rounded-xl border border-slate-200 overflow-hidden">
+                  <div className="px-3.5 py-2 border-b border-slate-100 bg-slate-50 text-xs text-slate-500">
+                    To <span className="font-semibold text-slate-900">{job.client_email}</span>
+                  </div>
+
+                  {/* Subject — editable (disabled for fixed templates) */}
+                  <div className="border-b border-slate-100">
+                    <div className="flex items-center gap-2 px-3.5 py-2">
+                      <span className="text-[10px] font-semibold uppercase tracking-widest text-slate-400 shrink-0">
+                        Subject
+                      </span>
+                      {activeEmail.fixedTemplate ? (
+                        <p className="text-xs text-slate-700 truncate">{emailSubject}</p>
+                      ) : (
+                        <input
+                          type="text"
+                          value={emailSubject}
+                          onChange={e => setEmailSubject(e.target.value)}
+                          className="flex-1 text-xs text-slate-900 bg-transparent focus:outline-none placeholder:text-slate-400"
+                          placeholder="Email subject…"
+                        />
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Body — editable unless fixedTemplate */}
+                  {activeEmail.fixedTemplate ? (
+                    <div className="px-3.5 py-3">
+                      <div className="rounded-lg bg-[#f4fbf6] border border-[#4A7C59]/20 px-3.5 py-3">
+                        <p className="text-[10px] font-semibold uppercase tracking-widest text-[#4A7C59] mb-2">
+                          Styled HTML Email
+                        </p>
+                        <p className="text-xs text-slate-600 leading-relaxed whitespace-pre-line">
+                          {activeEmail.body}
+                        </p>
+                        <p className="mt-2 text-[10px] text-[#4A7C59]">
+                          This template includes formatted prep notes and branded footer.
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    <textarea
+                      value={emailBody}
+                      onChange={e => setEmailBody(e.target.value)}
+                      rows={9}
+                      className="w-full px-3.5 py-3 text-sm text-slate-900 leading-relaxed focus:outline-none resize-none bg-white"
+                      placeholder="Type your message…"
+                    />
+                  )}
+
+                  <div className="flex items-center justify-between px-3.5 py-2.5 border-t border-slate-100 bg-slate-50">
+                    <span className="text-[10px] text-slate-400">
+                      {activeEmail.fixedTemplate ? 'Sends as branded HTML' : 'Sends with RenewShine header & footer'}
+                    </span>
+                    <button
+                      onClick={handlePreview}
+                      disabled={activeEmail.disabled || (!activeEmail.fixedTemplate && !emailBody.trim())}
+                      className="flex items-center gap-1.5 rounded-lg bg-slate-800 px-4 py-1.5 text-xs font-semibold text-white transition-colors duration-200 hover:bg-slate-900 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                    >
+                      <Eye size={11} />
+                      Preview
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
+
+            {error && (
+              <div className="rounded-xl border border-red-100 bg-red-50 px-4 py-3">
+                <p className="text-sm text-red-700">{error}</p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ════════════════════════════════════════════════════════════════
+            STEP 2 — PREVIEW
+        ════════════════════════════════════════════════════════════════ */}
+        {step === 'preview' && (
+          <div className="px-5 py-5 space-y-4">
+
+            {tab === 'sms' && (
+              <>
+                {/* Phone mock */}
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                  <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400 mb-3">
+                    Sending to {job.client_phone ? fmtPhone(job.client_phone) : '—'}
+                  </p>
+
+                  {/* iMessage-style bubble */}
+                  <div className="flex flex-col items-end gap-1">
+                    <div
+                      className="max-w-[85%] rounded-2xl rounded-tr-sm px-4 py-3 text-sm leading-relaxed whitespace-pre-line text-white"
+                      style={{ background: '#4A7C59' }}
+                    >
+                      {smsBody}
+                    </div>
+                    <p className="text-[10px] text-slate-400 mr-1">
+                      From RenewShine · (771) 253-9204
+                    </p>
+                  </div>
+                </div>
+
+                <p className="text-xs text-slate-500 text-center">
+                  This is exactly what {firstName} will receive. Multi-line messages send as MMS.
+                </p>
+              </>
+            )}
+
+            {tab === 'email' && (
+              <>
+                {/* Email preview card */}
+                <div className="rounded-2xl border border-slate-200 overflow-hidden">
+                  {/* Email header mock */}
+                  <div className="bg-slate-50 border-b border-slate-200 px-4 py-3 space-y-1.5">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-semibold uppercase tracking-widest text-slate-400 w-12 shrink-0">From</span>
+                      <span className="text-xs text-slate-600">RenewShine Team &lt;hello@renewshine.co&gt;</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-semibold uppercase tracking-widest text-slate-400 w-12 shrink-0">To</span>
+                      <span className="text-xs text-slate-600">{job.client_email}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-semibold uppercase tracking-widest text-slate-400 w-12 shrink-0">Re</span>
+                      <span className="text-xs font-medium text-slate-900">{emailSubject}</span>
+                    </div>
+                  </div>
+
+                  {/* Body */}
+                  <div className="px-4 py-4">
+                    {activeEmail.fixedTemplate ? (
+                      <div className="space-y-2">
+                        <div className="rounded-lg bg-[#f4fbf6] border border-[#4A7C59]/20 px-3 py-2.5">
+                          <p className="text-[10px] font-semibold text-[#4A7C59] mb-1">Styled HTML — includes formatted prep notes</p>
+                          <p className="text-xs text-slate-600 leading-relaxed whitespace-pre-line">{activeEmail.body}</p>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-line">
+                        {emailBody}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Footer mock */}
+                  <div className="border-t border-slate-100 bg-slate-50 px-4 py-3">
+                    <p className="text-[10px] text-slate-400">— Grace · RenewShine · (771) 253-9204 · renewshine.co</p>
+                    <p className="text-[10px] text-slate-400 mt-0.5">Full branded footer included in actual email</p>
+                  </div>
+                </div>
+
+                <p className="text-xs text-slate-500 text-center">
+                  The actual email includes your full branded header, logo, and footer.
+                </p>
+              </>
+            )}
+
+            {error && (
+              <div className="rounded-xl border border-red-100 bg-red-50 px-4 py-3">
+                <p className="text-sm text-red-700">{error}</p>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* ── Footer — Send button (preview step only) ─────────────────────── */}
+      {step === 'preview' && (
+        <div className="shrink-0 border-t border-slate-200 px-5 py-4">
+          <button
+            onClick={handleSend}
+            disabled={loading}
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#4A7C59] px-4 py-3 text-sm font-semibold text-white transition-colors duration-200 hover:bg-[#3d6b4a] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+          >
+            <Send size={14} />
+            {loading
+              ? 'Sending…'
+              : tab === 'sms'
+              ? `Confirm & send SMS to ${firstName}`
+              : `Confirm & send email to ${firstName}`}
+          </button>
+          <p className="mt-2 text-center text-[10px] text-slate-400">
+            This will be sent immediately and logged to the job record.
+          </p>
+        </div>
+      )}
     </div>
   )
 }

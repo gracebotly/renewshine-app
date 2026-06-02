@@ -12,7 +12,7 @@ function toE164(phone: string): string {
 
 export async function POST(request: Request) { /* trimmed for brevity in command */
   try { await requireAdmin() } catch (err) { if (err instanceof Response) return err; return Response.json({ error: 'Unauthorized' }, { status: 401 }) }
-  const { jobId, method, template, customBody } = await request.json()
+  const { jobId, method, template, customBody, subject } = await request.json()
   if (!jobId || !method) return Response.json({ error: 'jobId and method are required' }, { status: 400 })
   if (!['email', 'sms', 'external'].includes(method)) return Response.json({ error: 'method must be email, sms, or external' }, { status: 400 })
   const supabase = createServerClient(); const { data: job, error: fetchError } = await supabase.from('jobs').select('*').eq('id', jobId).single(); if (fetchError || !job) return Response.json({ error: 'Job not found' }, { status: 404 })
@@ -24,6 +24,44 @@ export async function POST(request: Request) { /* trimmed for brevity in command
     } else if (template === 'quote_ready') {
       await sendContactQuoteReady(job)
       contactNote = 'Email sent — quote shared'
+    } else if (template === 'appointment_confirmed') {
+      // Fires the full sendCustomerBooked HTML template (prep notes, 48hr call, etc.)
+      const { sendCustomerBooked } = await import('@/lib/email')
+      await sendCustomerBooked(job)
+      contactNote = 'Email sent — appointment confirmation with prep notes'
+    } else if (template === 'custom_formatted' && customBody?.trim()) {
+      // Wraps any plain-text custom body in the branded base template HTML
+      // Accepts optional subject via the request body
+      const { baseTemplate, para, divider } = await import('@/lib/email/templates/base')
+      const { Resend } = await import('resend')
+      const resend = new Resend(process.env.RESEND_API_KEY!)
+
+      // Convert plain text paragraphs to HTML paras using existing base helper
+      const paragraphs = customBody.trim().split(/\n\n+/).map((p: string) =>
+        para(p.replace(/\n/g, '<br />'))
+      ).join('')
+
+      // Build a minimal content block with the body + divider + Grace sign-off
+      const firstName = job.client_name?.split(' ')[0] ?? 'there'
+      const content = `
+        ${paragraphs}
+        ${divider}
+        <p style="margin:0;font-size:14px;color:#475569;line-height:1.8;">
+          — <strong style="color:#0f172a;">Grace</strong><br/>
+          <span style="color:#4A7C59;font-weight:500;">RenewShine</span>
+        </p>
+      `
+      // Allow custom subject via request body, fall back to generic
+      const customSubject = subject?.trim() || `Message from RenewShine regarding your booking`
+
+      await resend.emails.send({
+        from:    'RenewShine Team <hello@renewshine.co>',
+        to:      job.client_email,
+        replyTo: 'hello@renewshine.co',
+        subject: customSubject,
+        html:    baseTemplate(content, `${firstName} — ${customSubject}`),
+      })
+      contactNote = `Formatted email sent: "${customBody.trim().slice(0, 80)}"`
     } else if (template === 'custom' && customBody?.trim()) {
       const { Resend } = await import('resend')
       const resend = new Resend(process.env.RESEND_API_KEY!)
