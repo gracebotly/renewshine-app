@@ -277,7 +277,9 @@ export function QuoteCard({ job }: { job: any }) {
   const [loadingOverride, setLoadingOverride] = React.useState(false)
   const [completedConfirm, setCompletedConfirm] = React.useState(false)
   const [showCompose, setShowCompose] = React.useState(false)
-  const [reminderTemplate, setReminderTemplate] = React.useState<'reminder' | undefined>(undefined)
+  const [reminderTemplate, setReminderTemplate] = React.useState<'reminder' | 'appointment_confirmed' | undefined>(undefined)
+  const [initialComposeDate, setInitialComposeDate] = React.useState<string | undefined>(undefined)
+  const [initialComposeTimePref, setInitialComposeTimePref] = React.useState<string | undefined>(undefined)
   const [showManualPicker, setShowManualPicker] = React.useState(false)
   const [manualLogging, setManualLogging] = React.useState(false)
   const [showInlineSms, setShowInlineSms] = React.useState(false)
@@ -288,6 +290,9 @@ export function QuoteCard({ job }: { job: any }) {
   const [confirmingAppointment, setConfirmingAppointment] = React.useState(false)
   const [appointmentDateInput, setAppointmentDateInput] = React.useState<string>(
     job.confirmed_date ? new Date(job.confirmed_date).toISOString().split('T')[0] : ''
+  )
+  const [arrivalWindowInput, setArrivalWindowInput] = React.useState<string>(
+    job.availability_time_pref ?? 'morning'
   )
   const [appointmentConfirmed, setAppointmentConfirmed] = React.useState<boolean>(
     job.appointment_confirmed ?? false
@@ -498,17 +503,27 @@ export function QuoteCard({ job }: { job: any }) {
     setConfirmingAppointment(true)
     setErrorMsg('')
     try {
+      // Step 1 — save date + arrival window to DB, set appointment_confirmed = true
       const res = await fetch('/api/admin/confirm-appointment', {
-        method: 'POST',
+        method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ jobId: job.id, confirmedDate: appointmentDateInput }),
+        body:    JSON.stringify({
+          jobId:         job.id,
+          confirmedDate: appointmentDateInput,
+          timePref:      arrivalWindowInput,
+        }),
       })
       if (res.ok) {
         setAppointmentConfirmed(true)
         setSavedDate(appointmentDateInput)
-        setSuccessMsg(`Appointment confirmed — confirmation email sent to ${job.client_name.split(' ')[0]} ✓`)
+        // Step 2 — open ComposeSheet pre-loaded to appointment_confirmed template
+        // with the exact date and window Grace just entered
+        setInitialComposeDate(appointmentDateInput)
+        setInitialComposeTimePref(arrivalWindowInput)
+        setReminderTemplate('appointment_confirmed')
+        setShowCompose(true)
       } else {
-        setErrorMsg('Failed to confirm appointment. Try again.')
+        setErrorMsg('Failed to save appointment. Try again.')
       }
     } catch {
       setErrorMsg('Something went wrong. Check your connection.')
@@ -517,7 +532,21 @@ export function QuoteCard({ job }: { job: any }) {
   }
 
   const handleComposeSuccess = (_note: string) => {
+    const sentTemplate = reminderTemplate
     setShowCompose(false)
+    setReminderTemplate(undefined)
+    setInitialComposeDate(undefined)
+    setInitialComposeTimePref(undefined)
+
+    if (sentTemplate === 'appointment_confirmed') {
+      setSuccessMsg('Appointment confirmed — booking message sent ✓')
+      return
+    }
+    if (sentTemplate === 'reminder') {
+      setSuccessMsg('Day-before reminder sent ✓')
+      return
+    }
+
     setOverrideStatus('contacted')
     setSuccessMsg('Message sent ✓ — job marked as contacted.')
   }
@@ -566,8 +595,10 @@ export function QuoteCard({ job }: { job: any }) {
   }
 
   const handleOpenReminder = () => {
-    setShowCompose(true)
+    setInitialComposeDate(undefined)
+    setInitialComposeTimePref(undefined)
     setReminderTemplate('reminder')
+    setShowCompose(true)
   }
 
   const openQuoteComposer = () => {
@@ -943,21 +974,53 @@ export function QuoteCard({ job }: { job: any }) {
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <label className="block text-[10px] font-semibold uppercase tracking-widest text-amber-800">
-                  Confirmed date
-                </label>
-                <input
-                  type="date"
-                  value={appointmentDateInput}
-                  onChange={e => setAppointmentDateInput(e.target.value)}
-                  className="w-full rounded-lg border border-amber-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-[#4A7C59]/40 focus:outline-none transition-colors duration-200 cursor-pointer"
-                />
-                {job.availability_start && job.availability_end && (
-                  <p className="text-[10px] text-amber-700">
-                    Requested window: {new Date(job.availability_start).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – {new Date(job.availability_end).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+              <div className="space-y-2.5">
+                {/* Customer's requested window — reference */}
+                {(job.availability_start || job.availability_end) && (
+                  <p className="text-[10px] text-amber-700 bg-amber-100/60 rounded-lg px-2.5 py-1.5">
+                    Requested: {job.availability_start
+                      ? new Date(job.availability_start + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+                      : '—'} – {job.availability_end
+                      ? new Date(job.availability_end + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+                      : '—'}
                   </p>
                 )}
+
+                <div className="grid grid-cols-2 gap-2">
+                  {/* Confirmed date */}
+                  <div className="space-y-1">
+                    <label className="block text-[10px] font-semibold uppercase tracking-widest text-amber-800">
+                      Confirmed date
+                    </label>
+                    <input
+                      type="date"
+                      value={appointmentDateInput}
+                      onChange={e => setAppointmentDateInput(e.target.value)}
+                      className="w-full rounded-lg border border-amber-200 bg-white px-2.5 py-1.5 text-xs text-slate-900 focus:border-[#4A7C59]/40 focus:outline-none transition-colors duration-200 cursor-pointer"
+                    />
+                  </div>
+
+                  {/* Arrival window */}
+                  <div className="space-y-1">
+                    <label className="block text-[10px] font-semibold uppercase tracking-widest text-amber-800">
+                      Arrival window
+                    </label>
+                    <select
+                      value={arrivalWindowInput}
+                      onChange={e => setArrivalWindowInput(e.target.value)}
+                      className="w-full rounded-lg border border-amber-200 bg-white px-2.5 py-1.5 text-xs text-slate-900 focus:border-[#4A7C59]/40 focus:outline-none transition-colors duration-200 cursor-pointer"
+                    >
+                      <option value="early_morning">8am – 10am</option>
+                      <option value="mid_morning">10am – 12pm</option>
+                      <option value="noon">12pm – 2pm</option>
+                      <option value="early_afternoon">2pm – 4pm</option>
+                      <option value="late_afternoon">4pm – 6pm</option>
+                      <option value="morning">8am – 12pm</option>
+                      <option value="afternoon">12pm – 5pm</option>
+                      <option value="flexible">Morning to Afternoon</option>
+                    </select>
+                  </div>
+                </div>
               </div>
 
               <button
@@ -965,10 +1028,10 @@ export function QuoteCard({ job }: { job: any }) {
                 disabled={!appointmentDateInput || confirmingAppointment}
                 className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#4A7C59] px-4 py-2.5 text-sm font-semibold text-white transition-colors duration-200 hover:bg-[#3d6b4a] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
               >
-                {confirmingAppointment ? 'Confirming…' : 'Confirm & send email to ' + job.client_name.split(' ')[0]}
+                {confirmingAppointment ? 'Saving…' : 'Send booking confirmation to ' + job.client_name.split(' ')[0]}
               </button>
               <p className="text-center text-[10px] text-amber-700">
-                Sends the appointment confirmation email — then use the Text button to send the SMS
+                Saves the date, then opens a preview so you choose SMS or email before anything sends
               </p>
             </div>
           )}
@@ -1387,9 +1450,16 @@ If you have any questions before ${dayName}, feel free to reply here.
         <ComposeSheet
           job={job}
           mediaCount={job.job_media?.length ?? 0}
-          onClose={() => { setShowCompose(false); setReminderTemplate(undefined) }}
+          onClose={() => {
+            setShowCompose(false)
+            setReminderTemplate(undefined)
+            setInitialComposeDate(undefined)
+            setInitialComposeTimePref(undefined)
+          }}
           onSuccess={handleComposeSuccess}
           initialTemplate={reminderTemplate}
+          initialDate={initialComposeDate}
+          initialTimePref={initialComposeTimePref}
         />
       )}
 

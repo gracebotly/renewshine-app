@@ -65,12 +65,16 @@ export function ComposeSheet({
   onClose,
   onSuccess,
   initialTemplate,
+  initialDate,
+  initialTimePref,
 }: {
-  job:             any
-  mediaCount:      number
-  onClose:         () => void
-  onSuccess:       (note: string) => void
+  job:              any
+  mediaCount:       number
+  onClose:          () => void
+  onSuccess:        (note: string) => void
   initialTemplate?: 'reminder' | 'request_photos' | 'quote_ready' | 'appointment_confirmed'
+  initialDate?:     string   // YYYY-MM-DD — overrides job.confirmed_date
+  initialTimePref?: string   // overrides job.availability_time_pref
 }) {
   const firstName   = job.client_name?.split(' ')[0] ?? 'there'
   const serviceType = job.service_type ?? null
@@ -81,11 +85,12 @@ export function ComposeSheet({
   const remaining   = price ? Math.max(price - deposit, 0) : null
 
   // Editable date/time fields — for templates that use confirmed date + arrival window
-  const [templateDate,      setTemplateDate]      = React.useState<string>(
-    job.confirmed_date ? new Date(job.confirmed_date).toISOString().split('T')[0] : ''
+  const [templateDate,     setTemplateDate]     = React.useState<string>(
+    initialDate
+      ?? (job.confirmed_date ? new Date(job.confirmed_date).toISOString().split('T')[0] : '')
   )
-  const [templateTimePref,  setTemplateTimePref]  = React.useState<string>(
-    job.availability_time_pref ?? 'flexible'
+  const [templateTimePref, setTemplateTimePref] = React.useState<string>(
+    initialTimePref ?? job.availability_time_pref ?? 'morning'
   )
 
   // These are derived from editable state — they update when Grace changes the fields
@@ -141,19 +146,14 @@ Reply YES and I'll send your deposit link.
       disabledReason: 'requires confirmed date',
       body: confirmedDate
         ? `Hi ${firstName} — your ${svcLabel} is confirmed for ${confirmedDate}.
+We'll arrive between ${timePref}.
 
-A few quick notes before we arrive:
+A few things before we get there:
+• Clear floors and countertops of personal items
+• Let me know any priority areas in advance
+• Secure pets if needed — we'll have equipment running
 
-• Please have floors, countertops, and surfaces reasonably clear of personal items.
-• If you have priority areas to focus on, let me know beforehand.
-• For safety, we don't move heavy furniture or appliances.
-• Pets should be secured if they may be uncomfortable around cleaning equipment.
-
-We'll bring all supplies needed. We'll also give you a call 48 hours before your appointment.
-
-If you have any questions before ${dayName}, feel free to reply here.
-
-— Grace, RenewShine`
+We bring everything. See you ${dayName}. — Grace, RenewShine`
         : '',
     },
     {
@@ -162,14 +162,12 @@ If you have any questions before ${dayName}, feel free to reply here.
       disabled:      !confirmedDate,
       disabledReason: 'requires confirmed date',
       body: confirmedDate
-        ? `Hi ${firstName} — just a reminder that your ${svcLabel} is tomorrow, ${confirmedDate}.
+        ? `Hi ${firstName} — reminder: your ${svcLabel} is tomorrow, ${confirmedDate}.
 
-Arrival window: ${timePref}.
-Address: ${job.address ?? 'on file'}.
+We'll arrive between ${timePref}.
+Address: ${job.address ?? 'on file'}
 
-We'll bring all supplies. If you need to reach us, just reply here.
-
-— Grace, RenewShine`
+If anything's changed, just reply here. See you tomorrow. — Grace, RenewShine`
         : '',
     },
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -229,22 +227,30 @@ Grace`
       disabled:      !confirmedDate,
       disabledReason: 'requires confirmed date',
       subject:       confirmedDate ? `${firstName}, your ${svcLabel} is confirmed — ${confirmedDate}` : '',
-      templateKey:   'appointment_confirmed',
-      fixedTemplate: true,  // fires full HTML template with prep notes cards — not editable
+      templateKey:   'custom_formatted',
+      fixedTemplate: false,
       body: confirmedDate
-        ? `Hi ${firstName} — your ${svcLabel} is confirmed.
+        ? `Hi ${firstName},
+
+Your ${svcLabel} is confirmed.
 
 Date: ${confirmedDate}
-Arrival: ${timePref}
+Arrival window: ${timePref}
 
-• Clear surfaces of personal items
-• Flag any priority areas beforehand
-• We don't move heavy furniture
-• Secure pets if needed
+We'll take care of everything from there. Here's what to have ready:
 
-We'll call you 48 hours before your appointment.
+· Floors and countertops reasonably clear
+· Any priority areas flagged in advance
+· Pets secured if they're sensitive to equipment
 
-— Grace, RenewShine`
+We bring all supplies and equipment. Before we leave, we do a final walkthrough to make sure everything is right.
+
+We'll call you 48 hours before your appointment to confirm access details.
+
+If anything comes up before then, just reply here.
+
+— Grace
+RenewShine`
         : '',
     },
     {
@@ -252,22 +258,23 @@ We'll call you 48 hours before your appointment.
       label:         'Day-before reminder',
       disabled:      !confirmedDate,
       disabledReason: 'requires confirmed date',
-      subject:       confirmedDate ? `Reminder — your RenewShine ${svcLabel} is tomorrow` : '',
+      subject:       confirmedDate ? `Reminder — your ${svcLabel} is tomorrow, ${confirmedDate}` : '',
       templateKey:   'custom_formatted',
       fixedTemplate: false,
       body: confirmedDate
         ? `Hi ${firstName},
 
-Just a quick reminder that your ${svcLabel} is scheduled for tomorrow, ${confirmedDate}.
+Just a quick reminder that your ${svcLabel} is tomorrow, ${confirmedDate}.
 
 Arrival window: ${timePref}
 Address: ${job.address ?? 'on file'}
 
-We'll bring all cleaning supplies and equipment. If you need to reach us before your appointment, feel free to reply to this email.
+We'll bring everything needed. If you have any last-minute questions, just reply to this email.
 
-See you tomorrow!
+See you tomorrow.
 
-Grace`
+— Grace
+RenewShine`
         : '',
     },
   // eslint-disable-next-line react-hooks/exhaustive-deps
