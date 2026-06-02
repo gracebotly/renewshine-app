@@ -5,6 +5,13 @@ import { notifyQuoteSent } from '@/lib/slack'
 import { requireAdmin } from '@/lib/require-admin'
 import { sendSms } from '@/lib/sms'
 
+function toE164(phone: string): string {
+  const digits = phone.replace(/\D/g, '')
+  if (digits.length === 10) return `+1${digits}`
+  if (digits.length === 11 && digits.startsWith('1')) return `+${digits}`
+  return phone
+}
+
 export async function POST(request: Request) {
   try {
     await requireAdmin()
@@ -13,7 +20,7 @@ export async function POST(request: Request) {
     return Response.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const { jobId, approvedPrice, depositAmount, confirmedDate, regenerate, channel = 'email' } = await request.json()
+  const { jobId, approvedPrice, depositAmount, confirmedDate, regenerate, channel = 'email', customSmsBody } = await request.json()
 
   // Validate
   if (!jobId || !approvedPrice) {
@@ -125,7 +132,8 @@ export async function POST(request: Request) {
           const deposit   = resolvedDeposit
           const remaining = Math.max(total - deposit, 0)
 
-          const smsBody =
+          // Use custom body if Grace edited it — otherwise use the default template
+          const smsBody = (customSmsBody as string | undefined)?.trim() || (
             `Hi ${firstName}, your RenewShine ${serviceLabel} quote is $${total.toLocaleString()}.
 
 ` +
@@ -137,8 +145,54 @@ ${paymentLink.url}
 
 ` +
             `— Grace`
+          )
+          const finalSmsBody = smsBody.replace('[deposit link included]', paymentLink.url)
+          await sendSms(job.client_phone, finalSmsBody)
 
-          await sendSms(job.client_phone, smsBody)
+          // Log to inbox thread — same pattern as send-contact/route.ts
+          const normalizedPhone = toE164(job.client_phone)
+          const preview = `You: ${finalSmsBody.slice(0, 90)}`
+          const { data: existingConv } = await supabase
+            .from('sms_conversations')
+            .select('id')
+            .or(`contact_phone.eq.${job.client_phone},contact_phone.eq.${normalizedPhone}`)
+            .maybeSingle()
+
+          if (existingConv) {
+            await supabase.from('sms_messages').insert({
+              conversation_id: existingConv.id,
+              direction: 'outbound',
+              body: finalSmsBody,
+            })
+            await supabase.from('sms_conversations').update({
+              last_message_at: new Date().toISOString(),
+              last_message_preview: preview,
+              status: 'waiting_on_customer',
+              unread_count: 0,
+            }).eq('id', existingConv.id)
+          } else {
+            const { data: newConv } = await supabase
+              .from('sms_conversations')
+              .insert({
+                contact_phone: normalizedPhone,
+                contact_name: job.client_name,
+                last_message_at: new Date().toISOString(),
+                last_message_preview: preview,
+                status: 'waiting_on_customer',
+                lead_source: 'website',
+                notes: null,
+                tags: [],
+              })
+              .select('id')
+              .single()
+            if (newConv) {
+              await supabase.from('sms_messages').insert({
+                conversation_id: newConv.id,
+                direction: 'outbound',
+                body: finalSmsBody,
+              })
+            }
+          }
         } else {
           console.warn('send-deposit-link: SMS channel requested but no client_phone on job', jobId)
         }
