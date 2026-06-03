@@ -3,7 +3,7 @@ import { baseTemplate, badge, heading, para, divider, infoTable, infoRow } from 
 
 export function customerSubmittedTemplate(job: Job): { subject: string; html: string } {
   const firstName = job.client_name.split(' ')[0]
-  const subject = `We received your cleaning request — RenewShine`
+  const subject = `Your cleaning request has been received — RenewShine`
   const isCommercial = job.type === 'commercial'
   const isPostConstruction = job.service_type === 'post_construction'
 
@@ -144,9 +144,9 @@ export function customerSubmittedTemplate(job: Job): { subject: string; html: st
 
   // ── Assemble content ──────────────────────────────────────────────────────
   const content = `
-    ${badge('Request confirmed', 'green')}
-    ${heading(`Thanks, ${firstName}.`)}
-    ${para(`Your request has been received. We\u2019re reviewing your details now and will follow up shortly to confirm availability and finalize next steps.`)}
+    ${badge('Request received', 'green')}
+    ${heading(`Your request has been confirmed, ${firstName}.`)}
+    ${para(`We've received your cleaning request and will follow up within 24 hours to review your details and confirm next steps.`)}
 
     ${stepsHtml}
 

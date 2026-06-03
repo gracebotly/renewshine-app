@@ -4,14 +4,13 @@ import { baseTemplate, badge, heading, para, ctaButton, divider } from './base'
 
 export function customerQuoteTemplate(job: Job, stripeUrl: string, depositAmountOverride?: number): { subject: string; html: string } {
   const firstName = job.client_name.split(' ')[0]
-  const subject = `${firstName}, your RenewShine quote is ready`
-
   const serviceLabel =
     job.service_type === 'standard'            ? 'Standard Clean'
     : job.service_type === 'deep'              ? 'Deep Clean'
     : job.service_type === 'move_out'          ? 'Move-In / Move-Out'
     : job.service_type === 'post_construction' ? 'Post-Construction'
     : 'Cleaning Service'
+  const subject = `Your ${serviceLabel} quote is ready — RenewShine`
 
   const timePrefMap: Record<string, string> = {
     morning:         '8am – 12pm',
@@ -173,8 +172,8 @@ export function customerQuoteTemplate(job: Job, stripeUrl: string, depositAmount
   // ── Full email body ───────────────────────────────────────────────────────
   const content = `
     ${badge('Quote ready', 'green')}
-    ${heading(`${firstName}, your RenewShine quote is ready.`)}
-    ${para('Review your quote below and complete your deposit to lock in your date.')}
+    ${heading(`${firstName}, your quote is ready.`)}
+    ${para('Review the details below and submit your deposit to secure your appointment.')}
 
     ${appointmentSection}
     ${serviceSection}
@@ -189,7 +188,7 @@ export function customerQuoteTemplate(job: Job, stripeUrl: string, depositAmount
     subject,
     html: baseTemplate(
       content,
-      `${firstName}, your RenewShine quote is ready. Complete your deposit to lock in your date.`
+      `${firstName}, your ${serviceLabel} quote is ready. Submit your deposit to secure your appointment.`
     ),
   }
 }
