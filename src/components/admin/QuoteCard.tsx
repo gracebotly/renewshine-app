@@ -680,7 +680,7 @@ export function QuoteCard({ job }: { job: Job }) {
                     <p className="text-[10px] text-slate-400 mb-1">Arrival</p>
                     <select
                       value={arrivalInput}
-                      onChange={e => setArrivalInput(e.target.value)}
+                      onChange={e => setArrivalInput(e.target.value as typeof arrivalInput)}
                       className="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-900 focus:border-[#4A7C59]/40 focus:outline-none cursor-pointer"
                     >
                       <option value="early_morning">8am – 10am</option>
