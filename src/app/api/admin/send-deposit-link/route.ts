@@ -32,9 +32,6 @@ export async function POST(request: Request) {
   if (!['email', 'sms'].includes(channel)) {
     return Response.json({ error: 'channel must be email or sms' }, { status: 400 })
   }
-  if (channel === 'email' && !confirmedDate) {
-    return Response.json({ error: 'confirmedDate is required for email quotes' }, { status: 400 })
-  }
   if (Number(approvedPrice) <= 100) {
     return Response.json({ error: 'approvedPrice must be greater than $100' }, { status: 400 })
   }
