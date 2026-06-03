@@ -16,12 +16,12 @@ export function customerAbandonedTemplate(
 ): { subject: string; html: string } {
   const { firstName, resumeUrl } = params
 
-  const subject = `${firstName}, still want that quote?`
+  const subject = `${firstName}, your RenewShine quote request isn't complete`
 
   const content = `
-    ${badge('Almost There', 'green')}
-    ${heading(`You were so close, ${firstName}.`)}
-    ${para(`You started a quote request with us earlier but didn't quite finish. It only takes about 2 more minutes — pick up right where you left off.`)}
+    ${badge('Quote not completed', 'amber')}
+    ${heading(`${firstName}, your quote request isn't finished.`)}
+    ${para(`You started a cleaning quote with RenewShine but didn't complete it. It takes about 2 minutes — pick up where you left off.`)}
 
     ${ctaButton('Finish my quote', resumeUrl)}
 

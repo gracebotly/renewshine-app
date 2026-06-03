@@ -4,14 +4,13 @@ import { baseTemplate, badge, heading, para, ctaButton, divider } from './base'
 
 export function customerQuoteTemplate(job: Job, stripeUrl: string, depositAmountOverride?: number): { subject: string; html: string } {
   const firstName = job.client_name.split(' ')[0]
-  const subject = `${firstName}, your RenewShine quote is ready`
-
   const serviceLabel =
     job.service_type === 'standard'            ? 'Standard Clean'
     : job.service_type === 'deep'              ? 'Deep Clean'
     : job.service_type === 'move_out'          ? 'Move-In / Move-Out'
     : job.service_type === 'post_construction' ? 'Post-Construction'
     : 'Cleaning Service'
+  const subject = `Your ${serviceLabel} quote is ready — RenewShine`
 
   const timePrefMap: Record<string, string> = {
     morning:         '8am – 12pm',
@@ -139,7 +138,7 @@ export function customerQuoteTemplate(job: Job, stripeUrl: string, depositAmount
         </tr>
       </tbody>
     </table>
-    <p style="margin:0 0 24px;font-size:12px;color:#94a3b8;line-height:1.6;">No hidden fees. If anything differs from your submitted photos or request details, we'll confirm with you before proceeding.</p>`
+    <p style="margin:0 0 24px;font-size:12px;color:#94a3b8;line-height:1.6;">No hidden fees. No surprise charges. If anything differs from the photos provided, we'll discuss it with you before any additional work is performed.</p>`
 
   // ── Section: What happens next ───────────────────────────────────────────
   const nextStepsSection = `
@@ -173,12 +172,30 @@ export function customerQuoteTemplate(job: Job, stripeUrl: string, depositAmount
   // ── Full email body ───────────────────────────────────────────────────────
   const content = `
     ${badge('Quote ready', 'green')}
-    ${heading(`${firstName}, your RenewShine quote is ready.`)}
-    ${para('Review your quote below and complete your deposit to lock in your date.')}
+    ${heading(`${firstName}, your quote is ready.`)}
+    ${para('Review the details below and submit your deposit to secure your appointment.')}
 
     ${appointmentSection}
     ${serviceSection}
     ${paymentSection}
+
+    <table width="100%" cellpadding="0" cellspacing="0" role="presentation"
+      style="background:#f8faf9;border:1px solid #d1e7d9;border-radius:8px;margin:0 0 20px;padding:16px 20px;">
+      <tr>
+        <td>
+          <p style="margin:0 0 10px;font-size:11px;font-weight:700;color:#4A7C59;text-transform:uppercase;letter-spacing:0.08em;">Why homeowners choose RenewShine</p>
+          <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
+            <tr><td style="padding:3px 0;font-size:13px;color:#0f172a;line-height:1.5;"><span style="color:#4A7C59;font-weight:700;margin-right:8px;">·</span>Fully insured and background-checked</td></tr>
+            <tr><td style="padding:3px 0;font-size:13px;color:#0f172a;line-height:1.5;"><span style="color:#4A7C59;font-weight:700;margin-right:8px;">·</span>Transparent pricing — confirmed before you pay</td></tr>
+            <tr><td style="padding:3px 0;font-size:13px;color:#0f172a;line-height:1.5;"><span style="color:#4A7C59;font-weight:700;margin-right:8px;">·</span>No surprise charges</td></tr>
+            <tr><td style="padding:3px 0;font-size:13px;color:#0f172a;line-height:1.5;"><span style="color:#4A7C59;font-weight:700;margin-right:8px;">·</span>Satisfaction guaranteed</td></tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+
+    <p style="margin:0 0 8px;font-size:13px;font-weight:600;color:#0f172a;text-align:center;">Questions before booking?</p>
+    <p style="margin:0 0 20px;font-size:13px;color:#64748b;text-align:center;line-height:1.6;">Reply to this email or text us at <a href="sms:+17712539204" style="color:#4A7C59;text-decoration:none;">(771) 253-9204</a> and we'll be happy to help.</p>
 
     ${ctaButton('Confirm Booking', stripeUrl)}
 
@@ -189,7 +206,7 @@ export function customerQuoteTemplate(job: Job, stripeUrl: string, depositAmount
     subject,
     html: baseTemplate(
       content,
-      `${firstName}, your RenewShine quote is ready. Complete your deposit to lock in your date.`
+      `${firstName}, your ${serviceLabel} quote is ready. Submit your deposit to secure your appointment.`
     ),
   }
 }

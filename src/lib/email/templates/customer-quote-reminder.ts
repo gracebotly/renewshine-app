@@ -37,7 +37,7 @@ export function customerQuoteReminderTemplate(
   const content = `
     ${badge('Quote still active', 'amber')}
     ${heading(`${firstName}, your quote is still open.`)}
-    ${para('We sent your estimate and wanted to follow up. Your confirmed price and date are still available — but your date isn’t held until you confirm.')}
+    ${para(`We wanted to follow up on your quote — your confirmed price and requested date window are still available. Submitting your deposit is what holds your spot on the calendar.`)}
 
     ${infoTable(
       infoRow('Date', confirmedDateStr) +
@@ -60,7 +60,7 @@ export function customerQuoteReminderTemplate(
     subject,
     html: baseTemplate(
       content,
-      `${firstName}, your RenewShine quote is still open. Confirm your appointment to lock in your date.`
+      `${firstName}, your RenewShine quote is still open. Submit your deposit to hold your spot on the calendar.`
     ),
   }
 }

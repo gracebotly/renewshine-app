@@ -1,5 +1,5 @@
 import type { Job } from '@/types/database'
-import { baseTemplate, heading, para, divider, infoTable, infoRow } from './base'
+import { baseTemplate, badge, heading, para, divider, infoTable, infoRow } from './base'
 
 function getServiceLabel(serviceType: string | null): string {
   if (serviceType === 'standard')          return 'Standard Clean'
@@ -10,31 +10,34 @@ function getServiceLabel(serviceType: string | null): string {
 }
 
 export function customerQuoteReadyTemplate(job: Job): { subject: string; html: string } {
-  const firstName   = job.client_name.split(' ')[0]
-  const price       = job.approved_price ?? 0
-  const deposit     = job.deposit_amount ?? 100
-  const remaining   = Math.max(price - deposit, 0)
+  const firstName    = job.client_name.split(' ')[0]
+  const price        = job.approved_price ?? 0
+  const deposit      = job.deposit_amount ?? 100
+  const remaining    = Math.max(price - deposit, 0)
   const serviceLabel = getServiceLabel(job.service_type ?? null)
-  const subject     = `Your RenewShine Cleaning Quote`
+  const subject      = `Your ${serviceLabel} quote is ready — RenewShine`
 
   const content = `
-    ${heading(`Hi ${firstName},`)}
-    ${para(`Thank you for sending the photos.`)}
-    ${para(`Based on the information provided, your quote is ready.`)}
-    ${infoTable(`
-      ${infoRow('Service', serviceLabel)}
-      ${infoRow('Total', `$${price.toLocaleString()}`)}
-      ${infoRow('Deposit required', `$${deposit}`)}
-      ${infoRow('Remaining balance', `$${remaining.toLocaleString()}`)}
-    `)}
-    ${para(`To move forward, simply reply to this email or submit your deposit once the payment link is provided.`)}
-    ${para(`We look forward to taking care of your home.`)}
+    ${badge('Quote ready', 'green')}
+    ${heading(`${firstName}, your quote is ready.`)}
+    ${para(`We've reviewed your photos and prepared your quote for the ${serviceLabel}.`)}
+
+    ${infoTable(
+      infoRow('Service', serviceLabel) +
+      infoRow('Address', job.address ?? '—') +
+      (job.bedrooms ? infoRow('Home size', `${job.bedrooms} bed · ${job.bathrooms} bath`) : '') +
+      infoRow('Total', `$${price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`) +
+      infoRow('Deposit due today', `$${deposit.toFixed(2)}`) +
+      infoRow('Remaining after service', `$${remaining.toFixed(2)}`)
+    )}
+
+    ${para(`To move forward, please reply to this email and we'll send your deposit link to confirm the appointment.`)}
+
     ${divider}
-    <p style="margin:0;font-size:14px;color:#475569;line-height:1.8;">
-      Thank you,<br/>
-      <strong style="color:#0f172a;">Grace</strong><br/>
-      <span style="color:#4A7C59;font-weight:500;">RenewShine</span><br/>
-      <span style="color:#94a3b8;font-size:12px;">Premium Cleaning Services</span>
+
+    <p style="margin:0;font-size:12px;color:#94a3b8;line-height:1.6;text-align:center;">
+      Questions? Reply to this email or text us at
+      <a href="sms:+17712539204" style="color:#4A7C59;text-decoration:none;">(771) 253-9204</a>
     </p>
   `
 
@@ -42,7 +45,7 @@ export function customerQuoteReadyTemplate(job: Job): { subject: string; html: s
     subject,
     html: baseTemplate(
       content,
-      `${firstName}, your RenewShine quote is ready. — Grace`
+      `${firstName}, your ${serviceLabel} quote is ready — $${price.toLocaleString()} total, $${deposit} deposit to confirm.`
     ),
   }
 }

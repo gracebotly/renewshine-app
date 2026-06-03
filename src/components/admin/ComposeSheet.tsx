@@ -93,7 +93,7 @@ export function ComposeSheet({
     initialTimePref ?? job.availability_time_pref ?? 'morning'
   )
 
-  // These are derived from editable state — they update when Grace changes the fields
+  // These are derived from editable state — they update when the fields change
   const confirmedDate = templateDate
     ? new Date(templateDate + 'T12:00:00').toLocaleDateString('en-US', {
         weekday: 'long', month: 'long', day: 'numeric',
@@ -115,11 +115,11 @@ export function ComposeSheet({
 
 To provide an accurate quote, please send a few photos or a short walkthrough video of ${rooms}.
 
-If it's easier, we can also do a quick FaceTime call.
+If it's easier, we can also schedule a quick FaceTime call.
 
-Once I review it, I'll send over your quote.
+Once we've reviewed the space, we'll send over your confirmed quote.
 
-— Grace`,
+— RenewShine`,
     },
     {
       id:            'quote_ready',
@@ -127,16 +127,15 @@ Once I review it, I'll send over your quote.
       disabled:      !price,
       disabledReason: 'requires confirmed price',
       body: price
-        ? `Hi ${firstName} — thanks for sending the photos.
+        ? `Hi ${firstName} — your ${svcLabel} quote is ready.
 
-Your ${svcLabel} quote is $${price.toLocaleString()}.
+Total: $${price.toLocaleString()}
+Deposit due today: $${deposit}
+Remaining after service: $${remaining?.toLocaleString()}
 
-$${deposit} deposit to reserve your date.
-$${remaining?.toLocaleString()} due after the cleaning.
+Reply YES and we'll send your deposit link.
 
-Reply YES and I'll send your deposit link.
-
-— Grace`
+— RenewShine`
         : '',
     },
     {
@@ -146,16 +145,21 @@ Reply YES and I'll send your deposit link.
       disabledReason: 'requires confirmed date',
       body: confirmedDate
         ? `Hi ${firstName} — your ${svcLabel} is confirmed for ${confirmedDate}.
-We'll arrive between ${timePref}.
 
-A few things before we get there:
-• Clear floors and countertops of personal items
-• Let me know any priority areas in advance
-• Secure pets if needed — we'll have equipment running
+Arrival window: ${timePref}
+Address: ${job.address ?? 'on file'}
 
-We bring everything needed.
+A few notes before we arrive:
+• Please have floors and countertops reasonably clear.
+• Let us know any priority areas in advance.
+• We don't move heavy furniture or appliances.
+• Please secure pets if they're uncomfortable around equipment.
 
-If you have any questions before ${dayName}, feel free to reply here.`
+We bring all supplies. We'll also call 48 hours before your appointment to confirm details.
+
+Questions before ${dayName}? Reply here anytime.
+
+— RenewShine`
         : '',
     },
     {
@@ -164,12 +168,14 @@ If you have any questions before ${dayName}, feel free to reply here.`
       disabled:      !confirmedDate,
       disabledReason: 'requires confirmed date',
       body: confirmedDate
-        ? `Hi ${firstName} — reminder: your ${svcLabel} is tomorrow, ${confirmedDate}.
+        ? `Hi ${firstName} — your ${svcLabel} is tomorrow, ${confirmedDate}.
 
-We'll arrive between ${timePref}.
+Arrival window: ${timePref}
 Address: ${job.address ?? 'on file'}
 
-If anything's changed, just reply here. See you tomorrow.`
+Reply YES to confirm or let us know if anything has changed.
+
+— RenewShine`
         : '',
     },
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -187,11 +193,11 @@ If anything's changed, just reply here. See you tomorrow.`
 
 Thank you for contacting RenewShine.
 
-Before I can provide an accurate quote, I'd like to take a quick look at the space.
+Before we can provide an accurate quote, our team reviews photos of every space. Please send a few photos or a short walkthrough video of ${rooms}.
 
-You can simply reply to this email with a few photos or a short walkthrough video of ${rooms}. If it's easier, we can also schedule a quick FaceTime call.
+If it's easier, we can also schedule a quick FaceTime call — just reply and we'll arrange a time.
 
-Once I review everything, I'll send over your quote and available appointment options.
+Once we've reviewed everything, we'll send over your confirmed quote and available appointment options.
 
 Thank you`,
     },
@@ -208,14 +214,14 @@ Thank you`,
 
 Thank you for sending the photos.
 
-Based on what I reviewed, your quote is ready.
+Based on our review, your quote is ready.
 
 Service: ${svcLabel}
 Total: $${price.toLocaleString()}
-Deposit required: $${deposit}
-Remaining balance: $${remaining?.toLocaleString()}
+Deposit due today: $${deposit}
+Remaining after service: $${remaining?.toLocaleString()}
 
-To move forward, simply reply to this email and I'll send over your deposit link.
+To move forward, simply reply to this email and we'll send over your deposit link.
 
 We look forward to taking care of your home.`
         : '',
@@ -849,7 +855,7 @@ See you tomorrow.`
 
                   {/* Footer mock */}
                   <div className="border-t border-slate-100 bg-slate-50 px-4 py-3">
-                    <p className="text-[10px] text-slate-400">— Grace · RenewShine · (771) 253-9204 · renewshine.co</p>
+                    <p className="text-[10px] text-slate-400">— RenewShine · (771) 253-9204 · renewshine.co</p>
                     <p className="text-[10px] text-slate-400 mt-0.5">Full branded footer included in actual email</p>
                   </div>
                 </div>

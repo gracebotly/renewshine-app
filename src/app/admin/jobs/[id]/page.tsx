@@ -27,6 +27,40 @@ function Section({ title }: { title: string }) {
   )
 }
 
+// ── Type badge — shown in the SubmissionCard header ───────────────────────────
+function TypeBadge({ type, serviceType }: { type: string | null; serviceType: string | null }) {
+  if (serviceType === 'post_construction') {
+    return (
+      <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-300 bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600">
+        <span className="h-1.5 w-1.5 rounded-full bg-slate-400" />
+        Post-Construction
+      </span>
+    )
+  }
+  if (type === 'commercial') {
+    return (
+      <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700">
+        <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
+        Commercial
+      </span>
+    )
+  }
+  // Residential — subtle, since it's the default
+  return (
+    <span className="inline-flex items-center gap-1.5 rounded-full border border-[#4A7C59]/20 bg-[#e8f3ec] px-2.5 py-1 text-xs font-semibold text-[#4A7C59]">
+      <span className="h-1.5 w-1.5 rounded-full bg-[#4A7C59]" />
+      Residential
+    </span>
+  )
+}
+
+// ── Left border accent — keyed by job type ────────────────────────────────────
+function getCardBorderClass(type: string | null, serviceType: string | null): string {
+  if (serviceType === 'post_construction') return 'border-l-4 border-l-slate-400'
+  if (type === 'commercial') return 'border-l-4 border-l-amber-400'
+  return 'border-l-4 border-l-[#4A7C59]'
+}
+
 // ── Inline editable submission form ──────────────────────────────────────────
 function SubmissionCard({ job }: { job: any }) {
   async function saveDetails(formData: FormData) {
@@ -50,12 +84,19 @@ function SubmissionCard({ job }: { job: any }) {
         add_ons: selectedAddOns,
         notes: String(formData.get('notes') ?? '') || null,
         home_type: (String(formData.get('home_type') ?? '') || null) as any,
+        type: (String(formData.get('type') ?? '') || 'residential') as any,
+        business_name: String(formData.get('business_name') ?? '') || null,
+        property_type: String(formData.get('property_type') ?? '') || null,
       })
       .eq('id', job.id)
     // Reload the page after save so the right panel re-reads updated job data
     const { redirect } = await import('next/navigation')
     redirect(`/admin/jobs/${job.id}`)
   }
+
+  const isCommercial = job.type === 'commercial'
+  const isPostConstruction = job.service_type === 'post_construction'
+  const usesCommercialLayout = isCommercial || isPostConstruction
 
   const timePrefMap: Record<string, string> = {
     morning: 'Morning (8am–12pm)',
@@ -97,10 +138,13 @@ function SubmissionCard({ job }: { job: any }) {
   return (
     <form
       action={saveDetails}
-      className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm"
+      className={`rounded-xl border border-slate-200 bg-white p-6 shadow-sm ${getCardBorderClass(job.type, job.service_type)}`}
     >
       <div className="mb-5 flex items-center justify-between">
-        <h2 className="text-base font-semibold text-slate-900">Booking Submission</h2>
+        <div className="flex items-center gap-3">
+          <h2 className="text-base font-semibold text-slate-900">Booking Submission</h2>
+          <TypeBadge type={job.type} serviceType={job.service_type} />
+        </div>
         <button
           type="submit"
           className="cursor-pointer rounded-lg bg-(--color-brand) px-4 py-1.5 text-sm font-medium text-white transition-colors duration-200 hover:bg-(--color-brand-hover)"
@@ -110,6 +154,23 @@ function SubmissionCard({ job }: { job: any }) {
       </div>
 
       <dl>
+        {/* ── JOB TYPE — editable, first field so it's always visible ── */}
+        <div className="mb-5 flex items-start gap-4 rounded-lg border border-slate-100 bg-slate-50 px-3 py-2.5">
+          <dt className="w-32 shrink-0 pt-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
+            Job Type
+          </dt>
+          <dd className="flex-1">
+            <select
+              name="type"
+              defaultValue={job.type ?? 'residential'}
+              className={`${inputClass} bg-slate-50`}
+            >
+              <option value="residential">Residential</option>
+              <option value="commercial">Commercial</option>
+            </select>
+          </dd>
+        </div>
+
         {/* ── CONTACT ── */}
         <Section title="Contact" />
 
@@ -176,6 +237,7 @@ function SubmissionCard({ job }: { job: any }) {
         {/* ── SERVICE ── */}
         <Section title="Service" />
 
+        {/* Service type — always first */}
         <div className="flex min-h-[32px] items-start gap-4 py-1">
           <dt className="w-32 shrink-0 pt-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
             Type
@@ -194,7 +256,55 @@ function SubmissionCard({ job }: { job: any }) {
           </dd>
         </div>
 
-        {job.service_type !== 'post_construction' && (
+        {/* Commercial/post-construction fields: Business Name + Property Type surfaced to top */}
+        {usesCommercialLayout && (
+          <>
+            <div className="flex min-h-[32px] items-start gap-4 py-1">
+              <dt className="w-32 shrink-0 text-xs font-semibold uppercase tracking-wide text-slate-400 pt-2">
+                Business
+              </dt>
+              <dd className="flex-1">
+                <input
+                  name="business_name"
+                  defaultValue={job.business_name ?? ''}
+                  placeholder="Business or organization name"
+                  className={inputClass}
+                />
+              </dd>
+            </div>
+
+            <div className="flex min-h-[32px] items-start gap-4 py-1">
+              <dt className="w-32 shrink-0 pt-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
+                Property Type
+              </dt>
+              <dd className="flex-1">
+                <select
+                  name="property_type"
+                  defaultValue={(job as any).property_type ?? ''}
+                  className={inputClass}
+                >
+                  <option value="">— Unknown —</option>
+                  <option value="office">Office</option>
+                  <option value="retail">Retail</option>
+                  <option value="restaurant">Restaurant / Food Service</option>
+                  <option value="medical">Medical / Dental</option>
+                  <option value="industrial">Warehouse / Industrial</option>
+                  <option value="residential_unit">Residential Unit (Managed)</option>
+                  <option value="other">Other</option>
+                </select>
+              </dd>
+            </div>
+          </>
+        )}
+
+        {/* Sq Footage — shown for all types */}
+        <Row
+          label="Sq Footage"
+          value={job.square_footage ? `${job.square_footage.toLocaleString()} sq ft` : '—'}
+        />
+
+        {/* Residential-only fields: Bedrooms, Bathrooms, Home Type */}
+        {!usesCommercialLayout && (
           <>
             <div className="flex min-h-[32px] items-start gap-4 py-1">
               <dt className="w-32 shrink-0 text-xs font-semibold uppercase tracking-wide text-slate-400 pt-2">
@@ -213,58 +323,35 @@ function SubmissionCard({ job }: { job: any }) {
                 <input name="bathrooms" type="number" min="0" defaultValue={job.bathrooms ?? ''} className={`${inputClass} max-w-[80px]`} />
               </dd>
             </div>
+
+            <div className="flex min-h-[32px] items-start gap-4 py-1">
+              <dt className="w-32 shrink-0 pt-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
+                Home Type
+              </dt>
+              <dd className="flex-1">
+                <select name="home_type" defaultValue={job.home_type ?? ''} className={inputClass}>
+                  <option value="">— Unknown —</option>
+                  <option value="apartment">Apartment</option>
+                  <option value="condo">Condo</option>
+                  <option value="townhouse">Townhouse</option>
+                  <option value="single_family">Single Family Home</option>
+                </select>
+              </dd>
+            </div>
           </>
         )}
 
-        {/* Home Type — editable */}
-        <div className="flex min-h-[32px] items-start gap-4 py-1">
-          <dt className="w-32 shrink-0 pt-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
-            Home Type
-          </dt>
-          <dd className="flex-1">
-            <select name="home_type" defaultValue={job.home_type ?? ''} className={inputClass}>
-              <option value="">— Unknown —</option>
-              <option value="apartment">Apartment</option>
-              <option value="condo">Condo</option>
-              <option value="townhouse">Townhouse</option>
-              <option value="single_family">Single Family Home</option>
-            </select>
-          </dd>
-        </div>
-
-        <Row
-          label="Business"
-          value={job.business_name ?? '—'}
-        />
-        {/* Property type — commercial and post-construction */}
-        <Row
-          label="Property Type"
-          value={
-            (job as any).property_type
-              ? (job as any).property_type === 'other' && (job as any).property_other_description
-                ? `Other — ${(job as any).property_other_description}`
-                : String((job as any).property_type).replace('_', ' ')
-              : '—'
-          }
-        />
-
-        <Row
-          label="Sq Footage"
-          value={job.square_footage ? `${job.square_footage.toLocaleString()} sq ft` : '—'}
-        />
-
-        {/* Pets — always show, residential and commercial */}
-        <Row
-          label="Pets"
-          value={petsMap[job.pets ?? ''] ?? (job.pets ? job.pets : '—')}
-        />
-
-        {/* Condition — always show */}
+        {/* Condition — always shown */}
         <Row
           label="Condition"
           value={conditionMap[job.condition ?? ''] ?? (job.condition ? job.condition : '—')}
         />
 
+        {/* Pets — always shown */}
+        <Row
+          label="Pets"
+          value={petsMap[job.pets ?? ''] ?? (job.pets ? job.pets : '—')}
+        />
 
         <div className="flex items-start gap-4 py-1">
           <dt className="w-32 shrink-0 pt-1 text-xs font-semibold uppercase tracking-wide text-slate-400">
@@ -338,7 +425,6 @@ function SubmissionCard({ job }: { job: any }) {
           month: 'short', day: 'numeric', year: 'numeric',
           hour: 'numeric', minute: '2-digit',
         })} />
-        <Row label="Job Type" value={job.type ?? 'residential'} />
       </dl>
     </form>
   )

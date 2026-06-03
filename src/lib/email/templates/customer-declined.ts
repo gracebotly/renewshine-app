@@ -14,9 +14,9 @@ export function customerDeclinedTemplate(
     : `<p style="margin:0 0 16px;font-size:14px;color:#475569;line-height:1.7;">We’d encourage you to reach out to another provider who may be better equipped for this scope.</p>`
 
   const content = `
-    ${badge('Request update', 'amber')}
-    ${heading(`Thanks for reaching out, ${firstName}.`)}
-    ${para('After reviewing your request, we’re not able to take this job at this time.')}
+    ${badge('Request reviewed', 'amber')}
+    ${heading(`An update on your cleaning request, ${firstName}.`)}
+    ${para(`After reviewing the details of your request, we're unable to accommodate it at this time.`)}
 
     <div style="margin:0 0 20px;padding:16px 20px;background:#f8fafc;border-left:4px solid #4A7C59;border-radius:0 8px 8px 0;">
       <p style="margin:0;font-size:14px;color:#334155;line-height:1.7;">${reason}</p>
