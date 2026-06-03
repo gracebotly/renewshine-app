@@ -168,10 +168,19 @@ Questions before ${dayName}? Reply here anytime.
       disabled:      !confirmedDate,
       disabledReason: 'requires confirmed date',
       body: confirmedDate
-        ? `Hi ${firstName} — your ${svcLabel} is tomorrow, ${confirmedDate}.
+        ? `Hi ${firstName} — your RenewShine appointment is coming up on ${confirmedDate}.
 
 Arrival window: ${timePref}
-Address: ${job.address ?? 'on file'}
+
+Address:
+${job.address ?? 'on file'}
+
+A few quick reminders:
+- Please clear countertops and bathroom surfaces if possible.
+- If you won't be home, please reply with access instructions.
+- Let us know if anything has changed.
+
+We'll bring all supplies and equipment needed for the service.
 
 Reply YES to confirm or let us know if anything has changed.
 

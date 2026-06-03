@@ -70,11 +70,20 @@ We bring all supplies. We'll also call 48 hours before your appointment to confi
 — RenewShine`,
       },
       {
-        label: 'Day-Before Reminder',
-        message: `Hi [NAME] — your [SERVICE] is tomorrow, [DATE].
+        label: '48-Hour Reminder',
+        message: `Hi [NAME] — your RenewShine appointment is coming up on [DAY], [DATE].
 
 Arrival window: [TIME]
-Address: [ADDRESS]
+
+Address:
+[ADDRESS]
+
+A few quick reminders:
+- Please clear countertops and bathroom surfaces if possible.
+- If you won't be home, please reply with access instructions.
+- Let us know if anything has changed.
+
+We'll bring all supplies and equipment needed for the service.
 
 Reply YES to confirm or let us know if anything has changed.
 
