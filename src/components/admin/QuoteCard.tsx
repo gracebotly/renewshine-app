@@ -1,10 +1,8 @@
 'use client'
 
 import * as React from 'react'
-import { Mail, MessageSquare, Send } from 'lucide-react'
-import { InvoicePanel } from '@/components/admin/InvoicePanel'
-import { ComposeSheet } from '@/components/admin/ComposeSheet'
-import { ADD_ONS } from '@/lib/pricing'
+import { Pencil, ChevronDown, Table } from 'lucide-react'
+import type { Job } from '@/types/database'
 
 function getServiceLabel(serviceType: string | null): string {
   if (serviceType === 'standard')           return 'Standard Clean'
@@ -14,479 +12,462 @@ function getServiceLabel(serviceType: string | null): string {
   return 'cleaning service'
 }
 
-// ─── QuoteComposer ────────────────────────────────────────────────────────────
-
-function QuoteComposer({
-  items,
-  setItems,
-  depositAmount,
-  setDepositAmount,
-  dueDate,
-  setDueDate,
-  notes,
-  setNotes,
-  quoteTotal,
-  depositAmt,
-  onSend,
-  onSendExternal,
-  onCancel,
-  loading,
-  clientEmail,
-  clientPhone,
-  onPreview,
-  onSmsPreview,
-  onOpenSmsEdit,
-  savedDate,
-}: {
-  items: Array<{ description: string; amount: string }>
-  setItems: React.Dispatch<React.SetStateAction<Array<{ description: string; amount: string }>>>
-  depositAmount: string
-  setDepositAmount: (v: string) => void
-  dueDate: string
-  setDueDate: (v: string) => void
-  notes: string
-  setNotes: (v: string) => void
-  quoteTotal: number
-  depositAmt: number
-  onSend: () => void
-  onSendSms: () => void
-  onOpenSmsEdit: () => void
-  onSendExternal: () => void
-  onCancel: () => void
-  loading: boolean
-  clientEmail: string
-  clientPhone: string | null
-  onPreview: () => void
-  onSmsPreview: () => void
-  savedDate: string | null
-}) {
-  const remaining = Math.max(quoteTotal - depositAmt, 0)
-  const hasDate = Boolean(dueDate || savedDate)
-
-  function addItem() {
-    setItems((prev) => [...prev, { description: '', amount: '' }])
-  }
-  function removeItem(i: number) {
-    setItems((prev) => prev.filter((_, idx) => idx !== i))
-  }
-  function updateItem(i: number, field: 'description' | 'amount', value: string) {
-    setItems((prev) =>
-      prev.map((item, idx) => (idx === i ? { ...item, [field]: value } : item))
-    )
-  }
-
-  const inputClass =
-    'w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600 transition-colors duration-200'
-
+function ManualLogDropdown({ onLog }: { onLog: (m: 'text' | 'email' | 'verbal') => void }) {
+  const [open, setOpen] = React.useState(false)
   return (
-    <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 space-y-4">
-      <div className="flex items-center justify-between">
-        <p className="text-sm font-semibold text-slate-900">Quote + deposit link</p>
-        <button
-          onClick={onCancel}
-          className="cursor-pointer text-xs text-slate-400 hover:text-slate-600 transition-colors duration-200"
-        >
-          Cancel
-        </button>
-      </div>
-
-      {/* Line items */}
-      <div className="space-y-2">
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Line items</p>
-        {items.map((item, index) => (
-          <div key={index} className="flex gap-2 items-center">
-            <input
-              type="text"
-              placeholder="e.g. Deep Clean — 3BR/2BA"
-              value={item.description}
-              onChange={(e) => updateItem(index, 'description', e.target.value)}
-              className="min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600"
-            />
-            <div className="relative shrink-0 w-24">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-slate-400 pointer-events-none">
-                $
-              </span>
-              <input
-                type="number"
-                placeholder="0"
-                value={item.amount}
-                onChange={(e) => updateItem(index, 'amount', e.target.value)}
-                min="0"
-                step="1"
-                className="w-full rounded-lg border border-slate-200 bg-white pl-6 pr-3 py-2 text-sm font-mono text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600"
-              />
-            </div>
-            {items.length > 1 && (
+    <div className="relative">
+      <button
+        onClick={() => setOpen(p => !p)}
+        className="text-[11px] text-slate-400 underline cursor-pointer bg-none border-none hover:text-slate-600 transition-colors"
+      >
+        Log manual contact
+      </button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
+          <div className="absolute bottom-full left-0 z-20 mb-1 w-40 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg">
+            {[
+              { key: 'text' as const, label: 'Via text (outside app)' },
+              { key: 'email' as const, label: 'Via email (outside app)' },
+              { key: 'verbal' as const, label: 'Verbally / by phone' },
+            ].map(opt => (
               <button
-                onClick={() => removeItem(index)}
-                className="shrink-0 cursor-pointer rounded-lg border border-slate-200 bg-white px-2 py-2 text-xs text-red-400 hover:bg-red-50 hover:border-red-200 transition-colors duration-200"
+                key={opt.key}
+                onClick={() => { onLog(opt.key); setOpen(false) }}
+                className="flex w-full items-center px-3 py-2.5 text-xs text-slate-700 hover:bg-[#e8f3ec] hover:text-[#4A7C59] transition-colors cursor-pointer"
               >
-                ✕
+                {opt.label}
               </button>
-            )}
+            ))}
           </div>
-        ))}
-        <button
-          onClick={addItem}
-          className="cursor-pointer text-xs font-medium text-blue-600 hover:underline"
-        >
-          + Add line item
-        </button>
-      </div>
-
-      {/* Totals */}
-      {quoteTotal > 0 && (
-        <div className="overflow-hidden rounded-lg border border-slate-200 bg-white text-sm">
-          <div className="flex justify-between border-b border-slate-100 px-4 py-2.5 text-slate-600">
-            <span>Total</span>
-            <span className="font-mono tabular-nums">${quoteTotal.toFixed(2)}</span>
-          </div>
-          <div className="flex justify-between border-b border-slate-100 px-4 py-2.5 text-slate-600">
-            <span>Deposit due now</span>
-            <span className="font-mono tabular-nums font-medium text-slate-900">
-              ${depositAmt.toFixed(2)}
-            </span>
-          </div>
-          <div className="flex justify-between bg-[#1A3F6F] px-4 py-3 font-semibold text-white">
-            <span>Remaining after deposit</span>
-            <span className="font-mono tabular-nums">${remaining.toFixed(2)}</span>
-          </div>
-        </div>
+        </>
       )}
-
-      {/* Deposit amount + due date */}
-      <div className="grid grid-cols-2 gap-3">
-        <label className="block space-y-1">
-          <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-            Deposit ($)
-          </span>
-          <input
-            type="number"
-            value={depositAmount}
-            onChange={(e) => setDepositAmount(e.target.value)}
-            min="0"
-            step="1"
-            className={inputClass + ' font-mono'}
-          />
-        </label>
-        <label className="block space-y-1">
-          <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-            Due date{!savedDate && <span className="text-red-400 ml-0.5">*</span>}
-          </span>
-          <input
-            type="date"
-            value={dueDate}
-            onChange={(e) => setDueDate(e.target.value)}
-            className={inputClass}
-          />
-          {savedDate && !dueDate && (
-            <p className="text-[10px] text-slate-400">Using locked-in date</p>
-          )}
-        </label>
-      </div>
-
-      {/* Notes */}
-      <label className="block space-y-1">
-        <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-          Notes{' '}
-          <span className="normal-case font-normal text-slate-400">(shown on quote)</span>
-        </span>
-        <textarea
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-          rows={2}
-          placeholder="Optional note shown to the customer…"
-          className={inputClass + ' resize-none'}
-        />
-      </label>
-
-      {/* Primary: Send email */}
-      <button
-        onClick={onSend}
-        disabled={quoteTotal <= 0 || loading || !hasDate}
-        className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg bg-[#1A3F6F] px-4 py-3 text-sm font-semibold text-white transition-colors duration-200 hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
-      >
-        {loading
-          ? 'Sending…'
-          : !hasDate
-          ? 'Set a due date to send'
-          : quoteTotal > 0
-          ? depositAmt > 0
-            ? `Send via email — $${depositAmt.toFixed(0)} deposit · $${quoteTotal.toFixed(2)} total`
-            : `Send via email — $${quoteTotal.toFixed(2)} total`
-          : 'Add line items to send'}
-      </button>
-
-      {/* Secondary: Edit & send via text */}
-      <button
-        onClick={onOpenSmsEdit}
-        disabled={quoteTotal <= 0 || !clientPhone}
-        title={!clientPhone ? 'No phone number on file' : undefined}
-        className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition-colors duration-200 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
-      >
-        {!clientPhone
-          ? 'No phone number on file'
-          : quoteTotal > 0
-          ? 'Edit & send via text'
-          : 'Add line items to send'}
-      </button>
-
-      {/* Preview row — email + text side by side */}
-      <div className="grid grid-cols-2 gap-2">
-        <button
-          onClick={onPreview}
-          disabled={quoteTotal <= 0}
-          className="flex cursor-pointer items-center justify-center rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-500 transition-colors duration-200 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          Preview email
-        </button>
-        <button
-          onClick={onSmsPreview}
-          disabled={quoteTotal <= 0 || !clientPhone}
-          title={!clientPhone ? 'No phone number on file' : undefined}
-          className="flex cursor-pointer items-center justify-center rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-500 transition-colors duration-200 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          Preview text
-        </button>
-      </div>
-
-      {/* Mark sent manually — no Stripe link, no message sent */}
-      <button
-        onClick={onSendExternal}
-        disabled={quoteTotal <= 0 || loading}
-        className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg px-4 py-2 text-xs text-slate-400 transition-colors duration-200 hover:text-slate-600 disabled:opacity-50 disabled:cursor-not-allowed"
-      >
-        Sent manually — mark as approved
-      </button>
-
-      <p className="text-center text-xs text-slate-400">
-        {clientPhone ? `Email: ${clientEmail} · Text: ${clientPhone}` : `Email: ${clientEmail}`}
-      </p>
     </div>
   )
 }
 
+const ARRIVAL_MAP: Record<string, string> = {
+  early_morning: '8am – 10am',
+  mid_morning: '10am – 12pm',
+  noon: '12pm – 2pm',
+  early_afternoon: '2pm – 4pm',
+  late_afternoon: '4pm – 6pm',
+  morning: '8am – 12pm',
+  afternoon: '12pm – 5pm',
+  flexible: 'Morning to Afternoon',
+}
+
+const EMAIL_TEMPLATE_LIST = [
+  { id: 'photos',     label: 'Request photos / video' },
+  { id: 'quote_dep',  label: 'Quote + deposit link' },
+  { id: 'quote_no',   label: 'Quote — no deposit' },
+  { id: 'appt',       label: 'Appointment confirmation' },
+  { id: 'reminder',   label: '48-hour before arrival' },
+  { id: 'invoice',    label: 'Invoice (balance due)' },
+  { id: 'custom',     label: 'Custom message' },
+]
+
+const SMS_TEMPLATE_LIST = [
+  { id: 'photos',     label: 'Request photos / video' },
+  { id: 'quote_dep',  label: 'Quote + deposit link' },
+  { id: 'quote_no',   label: 'Quote — no deposit' },
+  { id: 'appt',       label: 'Appointment confirmation' },
+  { id: 'reminder',   label: '48-hour before arrival' },
+  { id: 'invoice',    label: 'Invoice (balance due)' },
+  { id: 'custom',     label: 'Custom message' },
+]
+
+function getRoomCallout(serviceType: string | null): string {
+  if (serviceType === 'standard' || serviceType === 'deep')
+    return ' of the kitchen, bathrooms, bedrooms, and living areas'
+  if (serviceType === 'move_out')
+    return ' of the property — the kitchen, bathrooms, and any areas needing extra attention'
+  return ''
+}
+
+function getTemplateContent(
+  id: string,
+  channel: 'email' | 'sms',
+  j: Job,
+  price: number | null,
+  date: string | null,
+  arrival: string
+): string {
+  const first = j.client_name?.split(' ')[0] ?? 'there'
+  const svc = getServiceLabel(j.service_type ?? null)
+  const beds = j.bedrooms && j.bathrooms ? ` · ${j.bedrooms} bed / ${j.bathrooms} bath` : ''
+  const dep = j.deposit_amount ?? 100
+  const remaining = price ? Math.max(price - dep, 0) : null
+  const priceFmt = price ? `$${price.toLocaleString()}` : '—'
+  const remainFmt = remaining !== null ? `$${remaining.toLocaleString()}` : '—'
+  const arrFmt = ARRIVAL_MAP[arrival] ?? arrival
+  const dateFmt = date
+    ? new Date(date + 'T12:00:00').toLocaleDateString('en-US', {
+        weekday: 'long', month: 'long', day: 'numeric',
+      })
+    : null
+  const noDate = '(Set a confirmed date in the Booking card first)'
+
+  const t: Record<string, Record<'email' | 'sms', string>> = {
+    photos: {
+      email: `Hi ${first},
+
+Thank you for contacting RenewShine. Before I can provide an accurate quote, I'd like to take a look at the space.
+
+You can reply with a few photos or a short walkthrough video${getRoomCallout(j.service_type)}. FaceTime works too.
+
+Once I review everything, I'll send over your quote.
+
+— Grace, RenewShine`,
+      sms:   `Hi ${first}, thanks for reaching out to RenewShine.
+
+To provide an accurate quote, please send a few photos or a short walkthrough video${getRoomCallout(j.service_type)}.
+
+FaceTime works too. Once I review it, I'll send over your quote.
+
+— Grace`,
+    },
+    quote_dep: {
+      email: `Hi ${first},
+
+Thank you for sending the photos.
+
+Service: ${svc}${beds}
+Total: ${priceFmt}
+Deposit to reserve: $${dep}
+Balance after service: ${remainFmt}
+
+Once you pay the deposit, your date is locked in.
+
+— Grace, RenewShine`,
+      sms:   `Hi ${first} — thanks for sending the photos.
+
+Your ${svc} quote is ${priceFmt}.
+
+$${dep} deposit to reserve your date.
+${remainFmt} due after the cleaning.
+
+Reply YES and I'll send your deposit link.
+
+— Grace`,
+    },
+    quote_no: {
+      email: `Hi ${first},
+
+Thank you for sending the details.
+
+Service: ${svc}${beds}
+Total: ${priceFmt}
+
+No deposit required. Reply to this email or call (771) 253-9204 to confirm and I'll get you scheduled.
+
+— Grace, RenewShine`,
+      sms:   `Hi ${first} — your ${svc} quote is ${priceFmt}.
+
+No deposit required. Reply YES to confirm and I'll get you scheduled.
+
+— Grace, RenewShine`,
+    },
+    appt: {
+      email: dateFmt
+        ? `Hi ${first},
+
+Your ${svc} is confirmed for ${dateFmt} · ${arrFmt}.
+
+A few quick notes before we arrive:
+• Please have floors, countertops, and surfaces reasonably clear.
+• Let me know any priority areas beforehand.
+• For safety, we don't move heavy furniture or appliances.
+• Pets should be secured if they may be uncomfortable.
+
+We'll bring all supplies. We'll also call you 48 hours before.
+
+Questions? Feel free to reply here.
+
+— Grace, RenewShine`
+        : noDate,
+      sms: dateFmt
+        ? `Hi ${first} — your ${svc} is confirmed for ${dateFmt} · ${arrFmt}.
+
+Before we arrive:
+• Clear surfaces of personal items.
+• Let me know priority areas.
+• We don't move heavy furniture.
+• Pets should be secured.
+
+We'll bring all supplies. We'll call you 48 hours before.
+
+— Grace, RenewShine`
+        : noDate,
+    },
+    reminder: {
+      email: dateFmt
+        ? `Hi ${first},
+
+Just a reminder — your ${svc} is scheduled for ${dateFmt}, ${arrFmt}.
+
+Address on file: ${j.address ?? '—'}
+
+If anything has changed or you have questions, feel free to reply here or call (771) 253-9204.
+
+See you then!
+— Grace, RenewShine`
+        : noDate,
+      sms: dateFmt
+        ? `Hi ${first} — reminder that your ${svc} is tomorrow, ${dateFmt}, ${arrFmt}.
+
+Address: ${j.address ?? 'on file'}. Questions? Reply here.
+
+— Grace, RenewShine`
+        : noDate,
+    },
+    invoice: {
+      email: `Hi ${first},
+
+Thank you for choosing RenewShine.
+
+Service: ${svc}${dateFmt ? ` · ${dateFmt}` : ''}
+Total: ${priceFmt}${j.deposit_paid ? `
+Deposit paid: $${dep}` : ''}
+Balance due: ${remainFmt}
+
+A payment link will be included when you send this.
+
+— Grace, RenewShine`,
+      sms:   `Hi ${first} — your ${svc} is complete. Thank you!
+
+Balance due: ${remainFmt}
+
+Payment link below.
+
+— Grace, RenewShine`,
+    },
+    custom: { email: '', sms: '' },
+  }
+
+  return t[id]?.[channel] ?? ''
+}
+
+function getEmailSubject(id: string, j: Job, price: number | null, date: string | null): string {
+  void price
+  const first = j.client_name?.split(' ')[0] ?? ''
+  const svc = getServiceLabel(j.service_type ?? null)
+  const dateFmt = date
+    ? new Date(date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
+    : null
+  const subjects: Record<string, string> = {
+    photos:    'A quick follow-up about your cleaning request',
+    quote_dep: `${first}, your RenewShine quote is ready`,
+    quote_no:  `${first}, your RenewShine quote is ready`,
+    appt:      dateFmt ? `${first}, your ${svc} is confirmed — ${dateFmt}` : `${first}, your ${svc} is confirmed`,
+    reminder:  `${first} — your clean is tomorrow`,
+    invoice:   `${first} — your RenewShine invoice`,
+    custom:    '',
+  }
+  return subjects[id] ?? ''
+}
+
 // ─── QuoteCard ────────────────────────────────────────────────────────────────
 
-export function QuoteCard({ job }: { job: any }) {
+export function QuoteCard({ job }: { job: Job }) {
   const [overrideStatus, setOverrideStatus] = React.useState(job.status)
-  const [loadingStripe, setLoadingStripe] = React.useState(false)
-  const [loadingSmsSend, setLoadingSmsSend] = React.useState(false)
   const [loadingResend, setLoadingResend] = React.useState(false)
   const [loadingComplete, setLoadingComplete] = React.useState(false)
   const [loadingOverride, setLoadingOverride] = React.useState(false)
   const [completedConfirm, setCompletedConfirm] = React.useState(false)
-  const [showCompose, setShowCompose] = React.useState(false)
-  const [reminderTemplate, setReminderTemplate] = React.useState<'reminder' | 'appointment_confirmed' | undefined>(undefined)
-  const [initialComposeDate, setInitialComposeDate] = React.useState<string | undefined>(undefined)
-  const [initialComposeTimePref, setInitialComposeTimePref] = React.useState<string | undefined>(undefined)
-  const [showManualPicker, setShowManualPicker] = React.useState(false)
-  const [manualLogging, setManualLogging] = React.useState(false)
-  const [showInlineSms, setShowInlineSms] = React.useState(false)
-  const [inlineSmsBody, setInlineSmsBody] = React.useState('')
-  const [smsSending, setSmsSending] = React.useState(false)
   const [successMsg, setSuccessMsg] = React.useState('')
   const [errorMsg, setErrorMsg] = React.useState('')
-  const [confirmingAppointment, setConfirmingAppointment] = React.useState(false)
-  const [appointmentDateInput, setAppointmentDateInput] = React.useState<string>(
-    job.confirmed_date ? new Date(job.confirmed_date).toISOString().split('T')[0] : ''
-  )
-  const [arrivalWindowInput, setArrivalWindowInput] = React.useState<string>(
-    job.availability_time_pref ?? 'morning'
-  )
+  const [savedDate, setSavedDate] = React.useState<string | null>(job.confirmed_date ?? null)
+  const [savedPrice, setSavedPrice] = React.useState<number | null>(job.approved_price ?? null)
+  const [savedNotes] = React.useState<string>(job.notes ?? '')
   const [appointmentConfirmed, setAppointmentConfirmed] = React.useState<boolean>(
     job.appointment_confirmed ?? false
   )
 
-  // Lock-in form
-  const [lockInOpen, setLockInOpen] = React.useState(false)
-  const [lockInDate, setLockInDate] = React.useState(
-    job.confirmed_date ? new Date(job.confirmed_date).toISOString().split('T')[0] : ''
-  )
-  const [lockInPrice, setLockInPrice] = React.useState(
+  // Booking card edit state
+  const [priceEditOpen, setPriceEditOpen] = React.useState(false)
+  const [dateEditOpen, setDateEditOpen] = React.useState(false)
+  const [priceInput, setPriceInput] = React.useState(
     job.approved_price ? String(job.approved_price) : ''
   )
-  const [lockInNotes, setLockInNotes] = React.useState(job.notes ?? '')
-  const [lockInLoading, setLockInLoading] = React.useState(false)
-
-  // Saved booking state — updated optimistically after lock-in saves
-  const [savedDate, setSavedDate] = React.useState<string | null>(job.confirmed_date ?? null)
-  const [savedPrice, setSavedPrice] = React.useState<number | null>(job.approved_price ?? null)
-  const [savedNotes, setSavedNotes] = React.useState<string>(job.notes ?? '')
-
-  // Active composer
-  const [activeComposer, setActiveComposer] = React.useState<'quote' | 'invoice' | null>(null)
-
-  // Quote composer fields
-  const [quoteItems, setQuoteItems] = React.useState<Array<{ description: string; amount: string }>>(
-    [{ description: '', amount: '' }]
+  const [dateInput, setDateInput] = React.useState(
+    job.confirmed_date ? new Date(job.confirmed_date).toISOString().split('T')[0] : ''
   )
-  const [quoteDepositAmount, setQuoteDepositAmount] = React.useState('100')
-  const [quoteDueDate, setQuoteDueDate] = React.useState('')
-  const [quoteNotes, setQuoteNotes] = React.useState('')
-  const [showQuotePreview, setShowQuotePreview] = React.useState(false)
-  const [quotePreviewHtml, setQuotePreviewHtml] = React.useState('')
-  const [quotePreviewLoading, setQuotePreviewLoading] = React.useState(false)
-  const [showSmsPreview, setShowSmsPreview] = React.useState(false)
-  const [smsPreviewText, setSmsPreviewText] = React.useState('')
-  const [showSmsEdit, setShowSmsEdit] = React.useState(false)
-  const [smsEditBody, setSmsEditBody] = React.useState('')
+  const [arrivalInput, setArrivalInput] = React.useState(
+    job.availability_time_pref ?? 'morning'
+  )
+  const [savedArrival, setSavedArrival] = React.useState<string>(
+    job.availability_time_pref ?? 'morning'
+  )
+  const [priceSaving, setPriceSaving] = React.useState(false)
+  const [dateSaving, setDateSaving] = React.useState(false)
+  const [chartOpen, setChartOpen] = React.useState(false)
 
-  const quoteTotal = quoteItems.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0)
-  const depositAmount = Number.isFinite(parseFloat(quoteDepositAmount)) ? parseFloat(quoteDepositAmount) : 0
+  // Contact panel state
+  const [currentChannel, setCurrentChannel] = React.useState<'email' | 'sms'>(
+    job.preferred_contact === 'text' ? 'sms' : 'email'
+  )
+  const [currentTemplate, setCurrentTemplate] = React.useState<string>('photos')
+  const [contactEditMode, setContactEditMode] = React.useState(false)
+  const [contactEditBody, setContactEditBody] = React.useState('')
+  const [contactSending, setContactSending] = React.useState(false)
 
-  // Derived
-  const hasBooking = Boolean(savedDate || savedPrice)
-  const paymentStatus: 'unpaid' | 'deposit_paid' | 'fully_paid' =
-    overrideStatus === 'completed' || job.remaining_amount === 0
-      ? 'fully_paid'
-      : job.deposit_paid
-      ? 'deposit_paid'
-      : 'unpaid'
-
-  // ── Handlers ─────────────────────────────────────────────────────────────
-
-  const handleLockIn = async () => {
-    if (!lockInDate && !lockInPrice) {
-      setErrorMsg('Enter a date or price to lock in the booking.')
-      return
-    }
-    setLockInLoading(true)
-    setErrorMsg('')
-    setSuccessMsg('')
+  const handleSavePrice = async () => {
+    const val = parseFloat(priceInput)
+    if (!priceInput || isNaN(val)) return
+    setPriceSaving(true)
     const res = await fetch('/api/admin/lock-in-booking', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        jobId: job.id,
-        confirmedDate: lockInDate || null,
-        finalPrice: lockInPrice || null,
-        bookingNotes: lockInNotes,
-      }),
+      body: JSON.stringify({ jobId: job.id, finalPrice: val }),
     })
     if (res.ok) {
-      setSavedDate(lockInDate || null)
-      setSavedPrice(lockInPrice ? Number(lockInPrice) : null)
-      setSavedNotes(lockInNotes)
-      setLockInOpen(false)
-      setSuccessMsg('Booking locked in ✓')
+      setSavedPrice(val)
+      setPriceEditOpen(false)
+      setSuccessMsg('Price saved.')
+      setTimeout(() => setSuccessMsg(''), 3000)
     } else {
-      setErrorMsg('Failed to save. Please try again.')
+      setErrorMsg('Failed to save price.')
     }
-    setLockInLoading(false)
+    setPriceSaving(false)
   }
 
-  const handleStripe = async () => {
-    const dateToSend = savedDate ?? quoteDueDate
-    if (!dateToSend) {
-      setErrorMsg('Set a deposit due date before sending.')
-      return
-    }
-    if (quoteTotal <= 0) {
-      setErrorMsg('Add at least one line item with an amount.')
-      return
-    }
-    setLoadingStripe(true)
-    setErrorMsg('')
-    setSuccessMsg('')
-    const res = await fetch('/api/admin/send-deposit-link', {
+  const handleSaveDate = async () => {
+    if (!dateInput) return
+    setDateSaving(true)
+    const res = await fetch('/api/admin/lock-in-booking', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        jobId: job.id,
-        approvedPrice: quoteTotal,
-        depositAmount: depositAmount,
-        confirmedDate: dateToSend,
-        lineItems: quoteItems.filter((item) => item.description.trim() && parseFloat(item.amount) > 0),
-      }),
+      body: JSON.stringify({ jobId: job.id, confirmedDate: dateInput }),
     })
     if (res.ok) {
-      setSuccessMsg(`Quote + deposit link sent to ${job.client_email} ✓`)
-      setActiveComposer(null)
-      setOverrideStatus('approved')
+      setSavedDate(dateInput)
+      setSavedArrival(arrivalInput)
+      setDateEditOpen(false)
+      setSuccessMsg('Date saved.')
+      setTimeout(() => setSuccessMsg(''), 3000)
     } else {
-      const err = await res.json().catch(() => ({}))
-      setErrorMsg((err as any).error ?? 'Failed to send. Please try again.')
+      setErrorMsg('Failed to save date.')
     }
-    setLoadingStripe(false)
+    setDateSaving(false)
   }
 
-  const handleStripeSms = async () => {
-    const dateToSend = savedDate ?? quoteDueDate ?? null
-    if (quoteTotal <= 0) {
-      setErrorMsg('Add at least one line item with an amount.')
-      return
-    }
-    if (!job.client_phone) {
-      setErrorMsg('No phone number on file for this customer.')
-      return
-    }
-    setLoadingSmsSend(true)
+  const handleSendTemplate = async () => {
+    if (contactSending) return
+    setContactSending(true)
     setErrorMsg('')
-    setSuccessMsg('')
-    const res = await fetch('/api/admin/send-deposit-link', {
+    const body = contactEditMode ? contactEditBody : getTemplateContent(currentTemplate, currentChannel, job, savedPrice, savedDate, savedArrival)
+    try {
+      if (currentTemplate === 'photos' || currentTemplate === 'custom') {
+        await fetch('/api/admin/send-contact', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            jobId: job.id,
+            method: currentChannel === 'email' ? 'email' : 'sms',
+            template: currentChannel === 'email' ? 'custom_formatted' : undefined,
+            customBody: body,
+            subject: currentChannel === 'email' ? previewSubject : undefined,
+          }),
+        })
+      } else if (currentTemplate === 'quote_dep') {
+        await fetch('/api/admin/send-deposit-link', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            jobId: job.id,
+            approvedPrice: savedPrice ?? job.approved_price,
+            depositAmount: job.deposit_amount ?? 100,
+            confirmedDate: savedDate || null,
+            channel: currentChannel,
+            customSmsBody: currentChannel === 'sms' ? body : undefined,
+          }),
+        })
+        setOverrideStatus('approved')
+      } else if (currentTemplate === 'quote_no') {
+        await fetch('/api/admin/send-quote-no-deposit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ jobId: job.id, channel: currentChannel, body }),
+        })
+      } else if (currentTemplate === 'appt') {
+        if (currentChannel === 'email') {
+          await fetch('/api/admin/confirm-appointment', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ jobId: job.id, confirmedDate: savedDate, timePref: savedArrival }),
+          })
+          await fetch('/api/admin/send-contact', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ jobId: job.id, method: 'email', template: 'appointment_confirmed' }),
+          })
+          setAppointmentConfirmed(true)
+        } else {
+          await fetch('/api/admin/send-contact', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ jobId: job.id, method: 'sms', customBody: body }),
+          })
+        }
+      } else if (currentTemplate === 'reminder') {
+        if (currentChannel === 'sms') {
+          await fetch('/api/admin/send-reminder', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ jobId: job.id }),
+          })
+        } else {
+          await fetch('/api/admin/send-contact', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              jobId: job.id,
+              method: 'email',
+              template: 'custom_formatted',
+              customBody: body,
+              subject: previewSubject,
+            }),
+          })
+        }
+      } else if (currentTemplate === 'invoice') {
+        const svc = getServiceLabel(job.service_type ?? null)
+        const price = savedPrice ?? job.approved_price ?? 0
+        const lineItems = [{ description: `${svc}${savedDate ? ` — ${new Date(savedDate + 'T12:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}` : ''}`, amount: price }]
+        const dueDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+        const res = await fetch('/api/admin/send-invoice', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ jobId: job.id, lineItems, dueDate }),
+        })
+        if (res.ok && currentChannel === 'sms') {
+          const { paymentUrl } = await res.json()
+          const smsBody = body.replace('Payment link below.', `Pay now: ${paymentUrl}`)
+          await fetch('/api/admin/send-contact', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ jobId: job.id, method: 'sms', customBody: smsBody }),
+          })
+        }
+      }
+      setSuccessMsg('Sent ✓')
+      setContactEditMode(false)
+      setTimeout(() => setSuccessMsg(''), 4000)
+    } catch {
+      setErrorMsg('Failed to send. Try again.')
+    }
+    setContactSending(false)
+  }
+
+  const handleManualLog = async (method: 'text' | 'email' | 'verbal') => {
+    const labels = { text: 'Contacted via text (outside app)', email: 'Contacted via email (outside app)', verbal: 'Contacted verbally / by phone' }
+    await fetch('/api/admin/send-contact', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        jobId:         job.id,
-        approvedPrice: quoteTotal,
-        depositAmount: depositAmount,
-        confirmedDate: dateToSend,
-        channel:       'sms',
-        lineItems:     quoteItems.filter(
-          (item) => item.description.trim() && parseFloat(item.amount) > 0
-        ),
-      }),
+      body: JSON.stringify({ jobId: job.id, method: 'external', customBody: labels[method] }),
     })
-    if (res.ok) {
-      setSuccessMsg(`Deposit link texted to ${job.client_phone} ✓`)
-      setActiveComposer(null)
-      setOverrideStatus('approved')
-    } else {
-      const err = await res.json().catch(() => ({}))
-      setErrorMsg((err as any).error ?? 'Failed to send. Please try again.')
-    }
-    setLoadingSmsSend(false)
-  }
-
-  const handleStripeSmsWithBody = async (customBody: string) => {
-    const dateToSend = savedDate ?? quoteDueDate ?? null
-    if (quoteTotal <= 0 || !job.client_phone || !customBody.trim()) return
-    setLoadingSmsSend(true)
-    setErrorMsg('')
-    setSuccessMsg('')
-    const res = await fetch('/api/admin/send-deposit-link', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        jobId:          job.id,
-        approvedPrice:  quoteTotal,
-        depositAmount:  depositAmount,
-        confirmedDate:  dateToSend,
-        channel:        'sms',
-        customSmsBody:  customBody.trim(),
-        lineItems:      quoteItems.filter(
-          (item) => item.description.trim() && parseFloat(item.amount) > 0
-        ),
-      }),
-    })
-    if (res.ok) {
-      setSuccessMsg(`Deposit link texted to ${job.client_phone} ✓`)
-      setActiveComposer(null)
-      setShowSmsEdit(false)
-      setSmsEditBody('')
-      setOverrideStatus('approved')
-    } else {
-      const err = await res.json().catch(() => ({}))
-      setErrorMsg((err as any).error ?? 'Failed to send. Please try again.')
-    }
-    setLoadingSmsSend(false)
-  }
-
-  const handleMarkSentExternally = async () => {
-    setOverrideStatus('approved')
-    setActiveComposer(null)
-    setSuccessMsg('Marked as approved — quote sent externally ✓')
+    setSuccessMsg(`Logged: ${labels[method]}`)
+    setTimeout(() => setSuccessMsg(''), 3000)
   }
 
   const handleMarkScheduled = async () => {
@@ -496,59 +477,6 @@ export function QuoteCard({ job }: { job: any }) {
       body: JSON.stringify({ jobId: job.id, status: 'scheduled' }),
     })
     if (res.ok) setOverrideStatus('scheduled')
-  }
-
-  const handleConfirmAppointment = async () => {
-    if (!appointmentDateInput || confirmingAppointment) return
-    setConfirmingAppointment(true)
-    setErrorMsg('')
-    try {
-      // Step 1 — save date + arrival window to DB, set appointment_confirmed = true
-      const res = await fetch('/api/admin/confirm-appointment', {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({
-          jobId:         job.id,
-          confirmedDate: appointmentDateInput,
-          timePref:      arrivalWindowInput,
-        }),
-      })
-      if (res.ok) {
-        setAppointmentConfirmed(true)
-        setSavedDate(appointmentDateInput)
-        // Step 2 — open ComposeSheet pre-loaded to appointment_confirmed template
-        // with the exact date and window Grace just entered
-        setInitialComposeDate(appointmentDateInput)
-        setInitialComposeTimePref(arrivalWindowInput)
-        setReminderTemplate('appointment_confirmed')
-        setShowCompose(true)
-      } else {
-        setErrorMsg('Failed to save appointment. Try again.')
-      }
-    } catch {
-      setErrorMsg('Something went wrong. Check your connection.')
-    }
-    setConfirmingAppointment(false)
-  }
-
-  const handleComposeSuccess = (_note: string) => {
-    const sentTemplate = reminderTemplate
-    setShowCompose(false)
-    setReminderTemplate(undefined)
-    setInitialComposeDate(undefined)
-    setInitialComposeTimePref(undefined)
-
-    if (sentTemplate === 'appointment_confirmed') {
-      setSuccessMsg('Appointment confirmed — booking message sent ✓')
-      return
-    }
-    if (sentTemplate === 'reminder') {
-      setSuccessMsg('Day-before reminder sent ✓')
-      return
-    }
-
-    setOverrideStatus('contacted')
-    setSuccessMsg('Message sent ✓ — job marked as contacted.')
   }
 
   const handleResendLink = async () => {
@@ -594,185 +522,36 @@ export function QuoteCard({ job }: { job: any }) {
     setLoadingComplete(false)
   }
 
-  const handleOpenReminder = () => {
-    setInitialComposeDate(undefined)
-    setInitialComposeTimePref(undefined)
-    setReminderTemplate('reminder')
-    setShowCompose(true)
-  }
+  const firstName = job.client_name?.split(' ')[0] ?? ''
+  const templateList = currentChannel === 'email' ? EMAIL_TEMPLATE_LIST : SMS_TEMPLATE_LIST
+  const previewBody = contactEditMode
+    ? contactEditBody
+    : getTemplateContent(currentTemplate, currentChannel, job, savedPrice, savedDate, savedArrival)
+  const previewSubject = currentChannel === 'email'
+    ? getEmailSubject(currentTemplate, job, savedPrice, savedDate)
+    : null
+  const isCustomTemplate = currentTemplate === 'custom'
 
-  const openQuoteComposer = () => {
-    // Only pre-populate if the composer hasn't been edited yet
-    const isBlank =
-      quoteItems.length === 1 &&
-      !quoteItems[0].description &&
-      !quoteItems[0].amount
+  const depositDisplay = job.deposit_paid
+    ? `$${job.deposit_amount ?? 100} paid`
+    : job.stripe_payment_link
+    ? 'Awaiting payment'
+    : 'Not required'
+  const depositColor = job.deposit_paid ? '#3B6D11' : job.stripe_payment_link ? '#854F0B' : '#888'
 
-    if (isBlank) {
-      const serviceLabel =
-        job.service_type === 'standard'            ? 'Standard Clean'
-        : job.service_type === 'deep'              ? 'Deep Clean'
-        : job.service_type === 'move_out'          ? 'Move-In / Move-Out'
-        : job.service_type === 'post_construction' ? 'Post-Construction'
-        : 'Cleaning Service'
-
-      const bedroomLine =
-        job.bedrooms
-          ? `${job.bedrooms}BR / ${job.bathrooms ?? 0}BA`
-          : ''
-
-      const mainDesc = [serviceLabel, bedroomLine].filter(Boolean).join(' — ')
-      const mainPrice = savedPrice ?? job.approved_price ?? ''
-
-      const items: Array<{ description: string; amount: string }> = [
-        { description: mainDesc, amount: String(mainPrice || '') },
-      ]
-
-      // Add-ons as separate line items — price left blank for Grace to confirm
-      if (Array.isArray(job.add_ons) && job.add_ons.length > 0) {
-        ADD_ONS
-          .filter((a) => (job.add_ons as string[]).includes(a.id))
-          .forEach((a) => {
-            items.push({ description: a.label, amount: '' })
-          })
-      }
-
-      setQuoteItems(items)
+  const dateDisplay = (() => {
+    if (savedDate) {
+      const d = new Date(savedDate + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
+      const a = ARRIVAL_MAP[savedArrival] ?? savedArrival
+      return `${d} · ${a}`
     }
-
-    setActiveComposer('quote')
-  }
-
-  function fmtPhone(p: string) {
-    const d = p.replace(/\D/g, '').slice(-10)
-    return d.length === 10 ? `(${d.slice(0,3)}) ${d.slice(3,6)}-${d.slice(6)}` : p
-  }
-
-  const handleManualContact = async (method: string) => {
-    if (manualLogging) return
-    setManualLogging(true)
-    setShowManualPicker(false)
-    setErrorMsg('')
-    const labels: Record<string, string> = {
-      text: 'Contacted via text (outside app)',
-      email: 'Contacted via email (outside app)',
-      verbal: 'Contacted verbally / by phone',
+    if (job.availability_start) {
+      const s = new Date(job.availability_start + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+      const e = job.availability_end ? new Date(job.availability_end + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : null
+      return e ? `${s} – ${e}` : s
     }
-    const res = await fetch('/api/admin/send-contact', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        jobId: job.id,
-        method: 'external',
-        customBody: labels[method] ?? 'Contacted outside the app',
-      }),
-    })
-    if (res.ok) {
-      handleComposeSuccess(labels[method] ?? 'Logged ✓')
-    } else {
-      setErrorMsg('Failed to log. Please try again.')
-    }
-    setManualLogging(false)
-  }
-
-  const handleSendInlineSms = async () => {
-    const body = inlineSmsBody.trim()
-    if (!body || smsSending) return
-    setSmsSending(true)
-    setErrorMsg('')
-    const res = await fetch('/api/admin/send-contact', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ jobId: job.id, method: 'sms', customBody: body }),
-    })
-    if (res.ok) {
-      const data = await res.json()
-      setShowInlineSms(false)
-      setInlineSmsBody('')
-      handleComposeSuccess(data.contactNote ?? 'SMS sent')
-    } else {
-      setErrorMsg('Failed to send. Please try again.')
-    }
-    setSmsSending(false)
-  }
-
-
-  const handleQuotePreview = async () => {
-    const dateToSend = savedDate ?? quoteDueDate
-    if (quoteTotal <= 0) return
-    setQuotePreviewLoading(true)
-    setShowQuotePreview(true)
-    setQuotePreviewHtml('')
-    try {
-      const res = await fetch('/api/admin/preview-email', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          type: 'quote',
-          jobId: job.id,
-          approvedPrice: quoteTotal,
-          depositAmount: depositAmount,
-          confirmedDate: dateToSend ?? new Date().toISOString().split('T')[0],
-          lineItems: quoteItems.filter(
-            (item) => item.description.trim() && parseFloat(item.amount) > 0
-          ),
-        }),
-      })
-      const data = await res.json()
-      setQuotePreviewHtml(data.html ?? '')
-    } catch {
-      setQuotePreviewHtml('<p style="padding:32px;font-family:sans-serif;color:#ef4444;">Failed to generate preview. Check your connection and try again.</p>')
-    }
-    setQuotePreviewLoading(false)
-  }
-
-  const openSmsEdit = () => {
-    if (quoteTotal <= 0 || !job.client_phone) return
-    const firstName = job.client_name?.split(' ')[0] ?? 'there'
-    const svcLabel = getServiceLabel(job.service_type ?? null)
-    const total = quoteTotal
-    const deposit = depositAmount > 0 ? depositAmount : 100
-    const remaining = Math.max(total - deposit, 0)
-    const prefilled =
-      `Hi ${firstName}, your RenewShine ${svcLabel} quote is $${total.toLocaleString()}.
-
-` +
-      `To lock in your date, complete your $${deposit} deposit here:
-[deposit link included]
-
-` +
-      `Remaining balance of $${remaining.toLocaleString()} is due after the clean.
-
-` +
-      `— Grace`
-    setSmsEditBody(prefilled)
-    setShowSmsEdit(true)
-  }
-
-  const handleSmsPreview = () => {
-    if (quoteTotal <= 0 || !job.client_phone) return
-    const firstName = job.client_name?.split(' ')[0] ?? 'there'
-    const serviceLabel = getServiceLabel(job.service_type)
-    const total = quoteTotal
-    const deposit = depositAmount > 0 ? depositAmount : 100
-    const remaining = Math.max(total - deposit, 0)
-    const preview =
-      `Hi ${firstName}, your RenewShine ${serviceLabel} quote is $${total.toLocaleString()}.
-
-` +
-      `To lock in your date, complete your $${deposit} deposit here:
-[deposit link]
-
-` +
-      `Remaining balance of $${remaining.toLocaleString()} is due after the clean.
-
-` +
-      `— Grace`
-    setSmsPreviewText(preview)
-    setShowSmsPreview(true)
-  }
-
-  // ── Status bar config ─────────────────────────────────────────────────────
+    return null
+  })()
 
   const statusConfig: Record<string, { dot: string; label: string }> = {
     new:          { dot: 'bg-red-400',     label: 'New' },
@@ -785,11 +564,8 @@ export function QuoteCard({ job }: { job: any }) {
   }
   const { dot, label } = statusConfig[overrideStatus] ?? { dot: 'bg-slate-300', label: overrideStatus }
 
-  // ── JSX ───────────────────────────────────────────────────────────────────
-
   return (
     <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-
       {/* Status bar */}
       <div className="flex items-center gap-2.5 border-b border-slate-100 px-5 py-3.5">
         <span className={`h-2 w-2 rounded-full shrink-0 ${dot}`} />
@@ -797,218 +573,115 @@ export function QuoteCard({ job }: { job: any }) {
       </div>
 
       <div className="p-5 space-y-5">
-
-        {/* ── ZONE 1: BOOKING CARD ── */}
+        {/* ── BOOKING CARD ── */}
         <div>
-          <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-slate-400">
-            Booking
-          </p>
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400 mb-2">Booking</p>
+          <div className="overflow-hidden rounded-xl border border-slate-200">
 
-          {/* Empty state */}
-          {!hasBooking && !lockInOpen && (
-            <div className="rounded-xl border border-dashed border-slate-300 p-4 text-center">
-              <p className="mb-3 text-sm text-slate-400">No confirmed date or price yet</p>
-              <button
-                onClick={() => setLockInOpen(true)}
-                className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-[#1A3F6F] px-4 py-2.5 text-sm font-semibold text-white transition-colors duration-200 hover:opacity-90"
-              >
-                Lock in schedule + price
-              </button>
-            </div>
-          )}
-
-          {/* Confirmed booking card */}
-          {hasBooking && !lockInOpen && (
-            <div className="rounded-xl border border-slate-200 overflow-hidden">
-              <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50 px-4 py-2.5">
-                <p className="text-xs font-semibold text-slate-600">Confirmed booking</p>
-                <button
-                  onClick={() => setLockInOpen(true)}
-                  className="cursor-pointer text-xs text-blue-600 hover:underline"
-                >
-                  Edit
-                </button>
-              </div>
-              <div className="divide-y divide-slate-100 px-4">
-                {savedDate && (
-                  <div className="flex items-center justify-between py-2.5">
-                    <span className="text-xs text-slate-400">Date</span>
-                    <span className="text-sm font-medium text-slate-900">
-                      {new Date(savedDate).toLocaleDateString('en-US', {
-                        month: 'short', day: 'numeric', year: 'numeric',
-                      })}
-                    </span>
-                  </div>
-                )}
-                {savedPrice !== null && (
-                  <div className="flex items-center justify-between py-2.5">
-                    <span className="text-xs text-slate-400">Final price</span>
-                    <span className="text-sm font-semibold font-mono tabular-nums text-slate-900">
-                      ${savedPrice.toFixed(2)}
-                    </span>
-                  </div>
-                )}
-                {savedPrice !== null && (
-                  <div className="flex items-center justify-between py-2.5">
-                    <span className="text-xs text-slate-400">Deposit</span>
-                    <span className={`text-sm font-medium ${
-                      paymentStatus !== 'unpaid' ? 'text-emerald-600' : 'text-amber-600'
-                    }`}>
-                      {paymentStatus === 'fully_paid'
-                        ? 'Fully paid ✓'
-                        : paymentStatus === 'deposit_paid'
-                        ? '$100 paid ✓'
-                        : 'Pending'}
-                    </span>
-                  </div>
-                )}
-                {savedNotes ? (
-                  <div className="py-2.5">
-                    <p className="mb-1 text-xs text-slate-400">Notes</p>
-                    <p className="text-sm text-slate-600">{savedNotes}</p>
-                  </div>
-                ) : null}
-              </div>
-              <div className="flex items-center justify-between border-t border-slate-100 bg-slate-50 px-4 py-2.5">
-                <span className="text-xs text-slate-400">Payment</span>
-                <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
-                  paymentStatus === 'fully_paid'
-                    ? 'bg-emerald-100 text-emerald-700'
-                    : paymentStatus === 'deposit_paid'
-                    ? 'bg-blue-100 text-blue-700'
-                    : 'bg-amber-100 text-amber-700'
-                }`}>
-                  {paymentStatus === 'fully_paid'
-                    ? 'Fully paid'
-                    : paymentStatus === 'deposit_paid'
-                    ? 'Deposit paid · balance due'
-                    : 'Awaiting payment'}
+            {/* Price row */}
+            <div
+              className="flex items-center justify-between px-3 py-2.5 border-b border-slate-100 hover:bg-slate-50 transition-colors duration-150 cursor-pointer"
+              onClick={() => { setPriceEditOpen(p => !p); setDateEditOpen(false) }}
+            >
+              <span className="text-xs text-slate-400">Price</span>
+              <div className="flex items-center gap-2">
+                <span className={`text-sm font-semibold ${savedPrice ? 'text-slate-900' : 'text-slate-400'}`}>
+                  {savedPrice ? `$${savedPrice.toLocaleString()}` : '$0'}
                 </span>
+                <Pencil size={11} className="text-slate-300" />
               </div>
             </div>
-          )}
 
-          {/* Lock-in / edit form */}
-          {lockInOpen && (
-            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 space-y-4">
-              <div className="flex items-center justify-between">
-                <p className="text-sm font-semibold text-slate-900">
-                  {hasBooking ? 'Edit booking' : 'Lock in schedule + price'}
-                </p>
-                <button
-                  onClick={() => setLockInOpen(false)}
-                  className="cursor-pointer text-xs text-slate-400 hover:text-slate-600"
-                >
-                  Cancel
-                </button>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <label className="block space-y-1">
-                  <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                    Date
-                  </span>
-                  <input
-                    type="date"
-                    value={lockInDate}
-                    onChange={(e) => setLockInDate(e.target.value)}
-                    className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600"
-                  />
-                </label>
-                <label className="block space-y-1">
-                  <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                    Final price ($)
-                  </span>
-                  <input
-                    type="number"
-                    value={lockInPrice}
-                    onChange={(e) => setLockInPrice(e.target.value)}
-                    placeholder="0"
-                    min="0"
-                    step="1"
-                    className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-mono text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600"
-                  />
-                </label>
-              </div>
-              <label className="block space-y-1">
-                <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  Internal notes
-                </span>
-                <textarea
-                  value={lockInNotes}
-                  onChange={(e) => setLockInNotes(e.target.value)}
-                  rows={2}
-                  placeholder="Parking spot, access code, scope details…"
-                  className="w-full resize-none rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-600 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600"
+            {/* Price edit row */}
+            {priceEditOpen && (
+              <div className="px-3 py-2.5 border-b border-slate-100 bg-slate-50 space-y-2">
+                <input
+                  type="number"
+                  value={priceInput}
+                  onChange={e => setPriceInput(e.target.value)}
+                  placeholder="e.g. 380"
+                  autoFocus
+                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-900 focus:border-[#4A7C59]/40 focus:outline-none"
                 />
-              </label>
-              <button
-                onClick={handleLockIn}
-                disabled={lockInLoading}
-                className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg bg-[#1A3F6F] px-4 py-2.5 text-sm font-semibold text-white transition-colors duration-200 hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {lockInLoading ? 'Saving…' : hasBooking ? 'Save changes' : 'Lock in booking'}
-              </button>
-            </div>
-          )}
-        </div>
-
-        {/* Divider */}
-        <div className="h-px bg-slate-100" />
-
-        {/* ── ZONE 2: ACTIONS ── */}
-        <div className="space-y-2">
-          <p className="text-xs font-semibold uppercase tracking-widest text-slate-400">Actions</p>
-
-          {/* ── Deposit received — confirm appointment ── */}
-          {job.deposit_paid && !appointmentConfirmed && (
-            <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 space-y-3">
-              <div className="flex items-start gap-2.5">
-                <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-amber-400">
-                  <span className="text-[10px] font-bold text-white">!</span>
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-amber-900">Deposit received — confirm the date</p>
-                  <p className="mt-0.5 text-xs text-amber-700 leading-relaxed">
-                    {job.client_name.split(' ')[0]} paid the deposit. Set the final confirmed date and send them their appointment confirmation.
-                  </p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleSavePrice}
+                    disabled={priceSaving}
+                    className="rounded-lg bg-[#4A7C59] px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-40 cursor-pointer hover:bg-[#3d6b4a] transition-colors"
+                  >
+                    {priceSaving ? 'Saving…' : 'Save'}
+                  </button>
+                  <button
+                    onClick={() => setPriceEditOpen(false)}
+                    className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-500 cursor-pointer hover:bg-slate-50 transition-colors"
+                  >
+                    Cancel
+                  </button>
                 </div>
               </div>
+            )}
 
-              <div className="space-y-2.5">
-                {/* Customer's requested window — reference */}
-                {(job.availability_start || job.availability_end) && (
-                  <p className="text-[10px] text-amber-700 bg-amber-100/60 rounded-lg px-2.5 py-1.5">
-                    Requested: {job.availability_start
-                      ? new Date(job.availability_start + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-                      : '—'} – {job.availability_end
-                      ? new Date(job.availability_end + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-                      : '—'}
-                  </p>
-                )}
+            {/* Pricing reference toggle */}
+            <button
+              onClick={() => setChartOpen(p => !p)}
+              className="flex w-full items-center gap-2 border-b border-slate-100 px-3 py-2 text-[11px] font-medium text-[#4A7C59] hover:bg-slate-50 transition-colors cursor-pointer"
+            >
+              <Table size={11} aria-hidden />
+              Pricing reference
+              <ChevronDown
+                size={11}
+                className="ml-auto transition-transform duration-150"
+                style={{ transform: chartOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}
+              />
+            </button>
+            {chartOpen && (
+              <div className="border-b border-slate-100 bg-slate-50 px-3 py-4">
+                <div className="rounded-lg border border-dashed border-slate-200 p-3 text-center text-[11px] text-slate-400">
+                  Pricing chart — coming soon
+                </div>
+              </div>
+            )}
 
+            {/* Deposit row */}
+            <div className="flex items-center justify-between px-3 py-2.5 border-b border-slate-100">
+              <span className="text-xs text-slate-400">Deposit</span>
+              <span className="text-xs font-medium" style={{ color: depositColor }}>{depositDisplay}</span>
+            </div>
+
+            {/* Date row */}
+            <div
+              className="flex items-center justify-between px-3 py-2.5 border-b border-slate-100 hover:bg-slate-50 transition-colors duration-150 cursor-pointer"
+              onClick={() => { setDateEditOpen(p => !p); setPriceEditOpen(false) }}
+            >
+              <span className="text-xs text-slate-400">Date</span>
+              <div className="flex items-center gap-2">
+                <span className={`text-xs font-medium ${savedDate ? 'text-slate-900' : 'text-slate-400'}`}>
+                  {dateDisplay ?? 'Not set'}
+                </span>
+                <Pencil size={11} className="text-slate-300" />
+              </div>
+            </div>
+
+            {/* Date edit row */}
+            {dateEditOpen && (
+              <div className="px-3 py-2.5 border-b border-slate-100 bg-slate-50 space-y-2">
                 <div className="grid grid-cols-2 gap-2">
-                  {/* Confirmed date */}
-                  <div className="space-y-1">
-                    <label className="block text-[10px] font-semibold uppercase tracking-widest text-amber-800">
-                      Confirmed date
-                    </label>
+                  <div>
+                    <p className="text-[10px] text-slate-400 mb-1">Date</p>
                     <input
                       type="date"
-                      value={appointmentDateInput}
-                      onChange={e => setAppointmentDateInput(e.target.value)}
-                      className="w-full rounded-lg border border-amber-200 bg-white px-2.5 py-1.5 text-xs text-slate-900 focus:border-[#4A7C59]/40 focus:outline-none transition-colors duration-200 cursor-pointer"
+                      value={dateInput}
+                      onChange={e => setDateInput(e.target.value)}
+                      autoFocus
+                      className="w-full rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs text-slate-900 focus:border-[#4A7C59]/40 focus:outline-none"
                     />
                   </div>
-
-                  {/* Arrival window */}
-                  <div className="space-y-1">
-                    <label className="block text-[10px] font-semibold uppercase tracking-widest text-amber-800">
-                      Arrival window
-                    </label>
+                  <div>
+                    <p className="text-[10px] text-slate-400 mb-1">Arrival</p>
                     <select
-                      value={arrivalWindowInput}
-                      onChange={e => setArrivalWindowInput(e.target.value)}
-                      className="w-full rounded-lg border border-amber-200 bg-white px-2.5 py-1.5 text-xs text-slate-900 focus:border-[#4A7C59]/40 focus:outline-none transition-colors duration-200 cursor-pointer"
+                      value={arrivalInput}
+                      onChange={e => setArrivalInput(e.target.value)}
+                      className="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-900 focus:border-[#4A7C59]/40 focus:outline-none cursor-pointer"
                     >
                       <option value="early_morning">8am – 10am</option>
                       <option value="mid_morning">10am – 12pm</option>
@@ -1021,415 +694,231 @@ export function QuoteCard({ job }: { job: any }) {
                     </select>
                   </div>
                 </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleSaveDate}
+                    disabled={dateSaving}
+                    className="rounded-lg bg-[#4A7C59] px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-40 cursor-pointer hover:bg-[#3d6b4a] transition-colors"
+                  >
+                    {dateSaving ? 'Saving…' : 'Save'}
+                  </button>
+                  <button
+                    onClick={() => setDateEditOpen(false)}
+                    className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-500 cursor-pointer hover:bg-slate-50 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
               </div>
+            )}
 
-              <button
-                onClick={handleConfirmAppointment}
-                disabled={!appointmentDateInput || confirmingAppointment}
-                className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#4A7C59] px-4 py-2.5 text-sm font-semibold text-white transition-colors duration-200 hover:bg-[#3d6b4a] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-              >
-                {confirmingAppointment ? 'Saving…' : 'Send booking confirmation to ' + job.client_name.split(' ')[0]}
-              </button>
-              <p className="text-center text-[10px] text-amber-700">
-                Saves the date, then opens a preview so you choose SMS or email before anything sends
-              </p>
+            {/* Service row — read-only from wizard */}
+            <div className="flex items-center justify-between px-3 py-2.5">
+              <span className="text-xs text-slate-400">Service</span>
+              <span className="text-xs text-slate-600">
+                {getServiceLabel(job.service_type ?? null)}
+                {job.bedrooms ? ` · ${job.bedrooms}bd / ${job.bathrooms}ba` : ''}
+              </span>
             </div>
-          )}
 
+          </div>
+        </div>
+
+        {/* ── CONTACT PANEL ── */}
+        <div>
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400 mb-2">
+            Contact {firstName}
+          </p>
+          <div className="overflow-hidden rounded-xl border border-slate-200">
+
+            {/* Email / SMS toggle */}
+            <div className="flex border-b border-slate-100">
+              {(['email', 'sms'] as const).map(ch => (
+                <button
+                  key={ch}
+                  onClick={() => { setCurrentChannel(ch); setContactEditMode(false) }}
+                  className={`flex-1 py-2.5 text-xs font-semibold transition-colors duration-150 cursor-pointer ${
+                    currentChannel === ch
+                      ? 'bg-[#4A7C59] text-white'
+                      : 'bg-white text-slate-500 hover:bg-slate-50'
+                  }`}
+                >
+                  {ch === 'email' ? 'Email' : 'SMS'}
+                </button>
+              ))}
+            </div>
+
+            <div className="p-3 space-y-2">
+              {/* Template dropdown */}
+              <select
+                value={currentTemplate}
+                onChange={e => { setCurrentTemplate(e.target.value); setContactEditMode(false); setContactEditBody('') }}
+                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-900 focus:border-[#4A7C59]/40 focus:outline-none cursor-pointer"
+              >
+                {templateList.map(t => (
+                  <option key={t.id} value={t.id}>{t.label}</option>
+                ))}
+              </select>
+
+              {/* Preview area */}
+              <div className="overflow-hidden rounded-lg border border-slate-200">
+                {/* Preview header */}
+                <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50 px-3 py-2">
+                  <span className="text-[10px] font-semibold uppercase tracking-widest text-slate-400">
+                    Preview
+                  </span>
+                  {!isCustomTemplate && (
+                    <button
+                      onClick={() => {
+                        if (!contactEditMode) {
+                          setContactEditBody(previewBody)
+                          setContactEditMode(true)
+                        } else {
+                          setContactEditMode(false)
+                        }
+                      }}
+                      className="text-[11px] text-[#4A7C59] underline cursor-pointer bg-none border-none"
+                    >
+                      {contactEditMode ? 'Reset' : 'Edit'}
+                    </button>
+                  )}
+                </div>
+
+                {/* Subject line — email only */}
+                {currentChannel === 'email' && previewSubject && (
+                  <div className="border-b border-slate-100 px-3 py-2">
+                    <span className="text-[10px] text-slate-400">Subject: </span>
+                    <span className="text-[11px] text-slate-700">{previewSubject}</span>
+                  </div>
+                )}
+
+                {/* Body — editable or static */}
+                {contactEditMode || isCustomTemplate ? (
+                  <textarea
+                    value={contactEditBody}
+                    onChange={e => setContactEditBody(e.target.value)}
+                    autoFocus={!isCustomTemplate}
+                    rows={6}
+                    maxLength={1000}
+                    placeholder={isCustomTemplate ? 'Type your message…' : undefined}
+                    className="w-full bg-white px-3 py-2.5 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none resize-none leading-relaxed"
+                  />
+                ) : (
+                  <div className="max-h-44 overflow-y-auto px-3 py-2.5 text-xs leading-relaxed text-slate-800 whitespace-pre-wrap">
+                    {previewBody}
+                  </div>
+                )}
+
+                {/* Send row */}
+                <div className="flex items-center justify-between border-t border-slate-100 bg-slate-50 px-3 py-2">
+                  <span className={`text-[10px] ${
+                    (contactEditMode ? contactEditBody : previewBody).length >= 500
+                      ? 'text-amber-500'
+                      : 'text-slate-400'
+                  }`}>
+                    {currentChannel === 'sms'
+                      ? `${(contactEditMode ? contactEditBody : previewBody).length} chars`
+                      : ''}
+                  </span>
+                  <button
+                    onClick={handleSendTemplate}
+                    disabled={contactSending || (!previewBody.trim() && !contactEditBody.trim())}
+                    className="flex items-center gap-1.5 rounded-lg bg-[#4A7C59] px-3.5 py-1.5 text-xs font-semibold text-white transition-colors duration-200 hover:bg-[#3d6b4a] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                  >
+                    {contactSending ? 'Sending…' : currentChannel === 'email' ? 'Send email' : 'Send SMS'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Manual contact log */}
+          <div className="mt-2 flex justify-center">
+            <ManualLogDropdown onLog={handleManualLog} />
+          </div>
+        </div>
+
+        {/* ── JOB ACTIONS ── */}
+        <div className="h-px bg-slate-100" />
+        <div className="space-y-2">
           {/* Appointment confirmed badge */}
           {job.deposit_paid && appointmentConfirmed && (
             <div className="flex items-center gap-2 rounded-xl border border-[#4A7C59]/20 bg-[#e8f3ec] px-3 py-2.5">
               <div className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[#4A7C59]">
                 <span className="text-[8px] font-bold text-white">✓</span>
               </div>
-              <p className="text-xs font-medium text-[#4A7C59]">Appointment confirmed — email sent</p>
+              <p className="text-xs font-medium text-[#4A7C59]">Appointment confirmed</p>
             </div>
           )}
 
-          {/* Contact customer — Manual / Text / Email */}
-          {activeComposer === null && (
-            <div className="space-y-2">
-              {/* Three-button row */}
-              <div className="grid grid-cols-3 gap-2">
-                {/* Manual — replaces Call */}
-                <div className="relative">
+          {/* Resend deposit link */}
+          {overrideStatus === 'approved' && !job.deposit_paid && job.stripe_payment_link && (
+            <div className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
+              <p className="text-xs text-slate-500">Quote sent — waiting on deposit</p>
+              <button
+                onClick={handleResendLink}
+                disabled={loadingResend}
+                className="shrink-0 cursor-pointer text-xs font-medium text-blue-600 hover:underline disabled:opacity-50"
+              >
+                {loadingResend ? 'Resending…' : 'Resend link'}
+              </button>
+            </div>
+          )}
+
+          {/* Mark scheduled manually */}
+          {overrideStatus === 'approved' && !job.deposit_paid && (
+            <button
+              onClick={handleMarkScheduled}
+              className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-xs font-medium text-slate-600 transition-colors duration-200 hover:bg-slate-50"
+            >
+              Mark scheduled (collected manually)
+            </button>
+          )}
+
+          {/* Mark complete */}
+          {overrideStatus !== 'completed' && overrideStatus !== 'cancelled' && (
+            !completedConfirm ? (
+              <button
+                onClick={() => setCompletedConfirm(true)}
+                className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-medium text-emerald-700 transition-colors duration-200 hover:bg-emerald-100"
+              >
+                Mark job as complete
+              </button>
+            ) : (
+              <div className="space-y-2 rounded-lg border border-emerald-200 bg-emerald-50 p-3">
+                <p className="text-xs font-medium text-emerald-800">
+                  Confirm complete? This triggers balance link + rating SMS.
+                </p>
+                <div className="flex gap-2">
                   <button
-                    onClick={() => setShowManualPicker(p => !p)}
-                    disabled={manualLogging}
-                    className={`flex w-full items-center justify-center rounded-lg border py-2.5 text-xs font-medium transition-colors duration-200 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${
-                      showManualPicker
-                        ? 'border-slate-300 bg-slate-100 text-slate-900'
-                        : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
-                    }`}
+                    onClick={handleMarkComplete}
+                    disabled={loadingComplete}
+                    className="flex-1 cursor-pointer rounded-lg bg-emerald-600 px-3 py-2 text-xs font-semibold text-white transition-colors duration-200 hover:bg-emerald-700 disabled:opacity-50"
                   >
-                    {manualLogging ? '…' : 'Manual'}
+                    {loadingComplete ? 'Saving…' : 'Yes, complete'}
                   </button>
-
-                  {showManualPicker && (
-                    <>
-                      <div
-                        className="fixed inset-0 z-10"
-                        onClick={() => setShowManualPicker(false)}
-                      />
-                      <div className="absolute left-0 top-full z-20 mt-1.5 w-36 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg">
-                        <p className="px-3 pt-2.5 pb-1 text-[10px] font-semibold uppercase tracking-widest text-slate-400">
-                          How?
-                        </p>
-                        {[
-                          { key: 'text', label: 'Text' },
-                          { key: 'email', label: 'Email' },
-                          { key: 'verbal', label: 'Verbal' },
-                        ].map(opt => (
-                          <button
-                            key={opt.key}
-                            onClick={() => handleManualContact(opt.key)}
-                            className="flex w-full items-center px-3 py-2.5 text-sm text-slate-700 transition-colors duration-150 hover:bg-[#e8f3ec] hover:text-[#4A7C59] cursor-pointer last:pb-3"
-                          >
-                            {opt.label}
-                          </button>
-                        ))}
-                      </div>
-                    </>
-                  )}
+                  <button
+                    onClick={() => setCompletedConfirm(false)}
+                    className="flex-1 cursor-pointer rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 transition-colors duration-200 hover:bg-slate-50"
+                  >
+                    Cancel
+                  </button>
                 </div>
-
-                {/* Text */}
-                <button
-                  onClick={() => {
-                    setShowManualPicker(false)
-                    setShowInlineSms(p => !p)
-                    setShowCompose(false)
-                    if (!showInlineSms && job.client_phone) {
-                      // Pre-fill based on job status
-                      const firstName = job.client_name?.split(' ')[0] ?? 'there'
-                      const presets: Record<string, string> = {
-                        new: `Hi ${firstName} — this is Grace from RenewShine. I received your booking request. Do you have a moment to discuss?`,
-                        under_review: `Hi ${firstName} — Grace from RenewShine. I'm reviewing your request and have a quick question. Reply when you get a chance!`,
-                        approved: (() => {
-                          // Template 2: quote-ready SMS with real price breakdown
-                          const price = savedPrice ?? job.approved_price
-                          if (price) {
-                            const deposit = job.deposit_amount ?? 100
-                            const remaining = Math.max(price - deposit, 0)
-                            const svcLabel = getServiceLabel(job.service_type ?? null)
-                            return `Hi ${firstName} — thanks for sending the photos.
-
-Your ${svcLabel} quote is $${price.toLocaleString()}.
-
-$${deposit} deposit to reserve your date.
-$${remaining.toLocaleString()} due after the cleaning.
-
-Reply YES and I'll send your deposit link.
-
-— Grace`
-                          }
-                          // Fallback: no price set yet
-                          return `Hi ${firstName}, thanks for reaching out to RenewShine. Your quote is being prepared — I'll follow up shortly with details. — Grace`
-                        })(),
-                        scheduled: (() => {
-                          const date = appointmentDateInput || savedDate
-                          const dateStr = date
-                            ? new Date(date).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
-                            : 'your scheduled date'
-                          const dayName = date
-                            ? new Date(date).toLocaleDateString('en-US', { weekday: 'long' })
-                            : 'that day'
-                          const svcLabel = getServiceLabel(job.service_type ?? null)
-                          return `Hi ${firstName} — your ${svcLabel} is confirmed for ${dateStr}.
-
-A few quick notes before we arrive:
-
-• Please have floors, countertops, and surfaces reasonably clear of personal items.
-• If you have priority areas to focus on, let me know beforehand.
-• For safety, we don't move heavy furniture or appliances.
-• Pets should be secured if they may be uncomfortable around cleaning equipment.
-
-We'll bring all supplies needed. We'll also give you a call 48 hours before your appointment.
-
-If you have any questions before ${dayName}, feel free to reply here.
-
-— Grace, RenewShine`
-                        })(),
-                      }
-                      setInlineSmsBody(presets[job.status] ?? `Hi ${firstName} — Grace from RenewShine. `)
-                    }
-                  }}
-                  disabled={!job.client_phone}
-                  title={!job.client_phone ? 'No phone number on file' : `Text ${fmtPhone(job.client_phone ?? '')}`}
-                  className={`flex items-center justify-center gap-1.5 rounded-lg border px-2 py-2.5 text-xs font-medium transition-colors duration-200 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${
-                    showInlineSms
-                      ? 'border-[#4A7C59]/30 bg-[#e8f3ec] text-[#4A7C59]'
-                      : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
-                  }`}
-                >
-                  <MessageSquare size={13} />
-                  Text
-                </button>
-
-                {/* Email */}
-                <button
-                  onClick={() => {
-                    setShowManualPicker(false)
-                    setShowCompose(true)
-                    setShowInlineSms(false)
-                  }}
-                  className="flex items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2 py-2.5 text-xs font-medium text-slate-700 transition-colors duration-200 hover:bg-slate-50 cursor-pointer"
-                >
-                  <Mail size={13} />
-                  Email
-                </button>
               </div>
-
-              {/* Inline SMS compose — expands below when Text is active */}
-              {showInlineSms && job.client_phone && (
-                <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 space-y-2">
-                  <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400">
-                    To: {fmtPhone(job.client_phone)}
-                  </p>
-                  <textarea
-                    value={inlineSmsBody}
-                    onChange={e => setInlineSmsBody(e.target.value)}
-                    rows={3}
-                    placeholder="Type your message…"
-                    autoFocus
-                    maxLength={1000}
-                    className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-[#4A7C59]/40 focus:outline-none focus:ring-0 resize-none transition-colors duration-200"
-                  />
-                  <div className="flex items-center justify-between">
-                    <p className={`text-[10px] ${
-                      inlineSmsBody.length >= 1000
-                        ? 'text-red-500 font-medium'
-                        : inlineSmsBody.length >= 500
-                        ? 'text-amber-500'
-                        : 'text-slate-400'
-                    }`}>
-                      {inlineSmsBody.length >= 1000
-                        ? '1000 · max reached'
-                        : inlineSmsBody.length >= 500
-                        ? `${inlineSmsBody.length} · long message`
-                        : inlineSmsBody.length >= 300
-                        ? `${inlineSmsBody.length} · may send as 2 texts`
-                        : String(inlineSmsBody.length)}
-                    </p>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => { setShowInlineSms(false); setInlineSmsBody('') }}
-                        className="rounded-lg px-2.5 py-1.5 text-xs text-slate-400 hover:text-slate-600 transition-colors duration-150 cursor-pointer"
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        onClick={handleSendInlineSms}
-                        disabled={!inlineSmsBody.trim() || smsSending}
-                        className="flex items-center gap-1.5 rounded-lg bg-[#4A7C59] px-3 py-1.5 text-xs font-semibold text-white transition-colors duration-200 hover:bg-[#3d6b4a] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-                      >
-                        <Send size={11} />
-                        {smsSending ? 'Sending…' : 'Send'}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Send quote + deposit link */}
-          {activeComposer !== 'invoice' && (
-            activeComposer === 'quote' ? (
-              <>
-                <QuoteComposer
-                  items={quoteItems}
-                  setItems={setQuoteItems}
-                  depositAmount={quoteDepositAmount}
-                  setDepositAmount={setQuoteDepositAmount}
-                  dueDate={quoteDueDate}
-                  setDueDate={setQuoteDueDate}
-                  notes={quoteNotes}
-                  setNotes={setQuoteNotes}
-                  quoteTotal={quoteTotal}
-                  depositAmt={depositAmount}
-                  onSend={handleStripe}
-                  onSendSms={handleStripeSms}
-                  onOpenSmsEdit={openSmsEdit}
-                  onSendExternal={handleMarkSentExternally}
-                  onPreview={handleQuotePreview}
-                  onSmsPreview={handleSmsPreview}
-                  onCancel={() => setActiveComposer(null)}
-                  loading={loadingStripe}
-                  clientEmail={job.client_email}
-                  clientPhone={job.client_phone ?? null}
-                  savedDate={savedDate}
-                />
-
-                {/* Editable SMS compose — opens when "Edit & send via text" is clicked */}
-                {showSmsEdit && job.client_phone && (
-                  <div className="overflow-hidden rounded-xl border border-[#4A7C59]/25 bg-[#f8fbf9] mt-2">
-                    {/* Header */}
-                    <div className="flex items-center justify-between border-b border-[#4A7C59]/12 px-3.5 py-2.5">
-                      <p className="text-xs text-slate-500">
-                        Text to{' '}
-                        <span className="font-semibold text-slate-900">
-                          {job.client_phone}
-                        </span>
-                      </p>
-                      <button
-                        onClick={() => { setShowSmsEdit(false); setSmsEditBody('') }}
-                        className="flex h-5 w-5 items-center justify-center rounded-full bg-slate-200/80 text-slate-400 hover:bg-slate-300 hover:text-slate-600 transition-colors cursor-pointer text-[10px] font-bold"
-                      >
-                        ✕
-                      </button>
-                    </div>
-
-                    {/* Editable message */}
-                    <textarea
-                      value={smsEditBody}
-                      onChange={(e) => setSmsEditBody(e.target.value)}
-                      maxLength={1000}
-                      rows={7}
-                      autoFocus
-                      className="w-full bg-transparent px-3.5 py-3 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none resize-none leading-relaxed"
-                    />
-
-                    {/* Footer */}
-                    <div className="flex items-center justify-between border-t border-[#4A7C59]/12 px-3.5 py-2.5">
-                      <p className={`text-[10px] ${
-                        smsEditBody.length >= 1000
-                          ? 'text-red-500 font-medium'
-                          : smsEditBody.length >= 500
-                          ? 'text-amber-500'
-                          : 'text-slate-400'
-                      }`}>
-                        {smsEditBody.length >= 1000
-                          ? '1000 · max'
-                          : smsEditBody.length >= 500
-                          ? `${smsEditBody.length} · long`
-                          : smsEditBody.length >= 300
-                          ? `${smsEditBody.length} · 2 segments`
-                          : String(smsEditBody.length)}
-                      </p>
-                      <button
-                        onClick={() => handleStripeSmsWithBody(smsEditBody)}
-                        disabled={!smsEditBody.trim() || loadingSmsSend}
-                        className="flex items-center gap-1.5 rounded-lg bg-[#4A7C59] px-3.5 py-1.5 text-xs font-semibold text-white transition-colors duration-200 hover:bg-[#3d6b4a] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-                      >
-                        <Send size={11} />
-                        {loadingSmsSend ? 'Sending…' : 'Send quote + deposit link'}
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </>
-            ) : (
-              <button
-                onClick={openQuoteComposer}
-                className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg bg-[#1A3F6F] px-4 py-2.5 text-sm font-semibold text-white transition-colors duration-200 hover:opacity-90"
-              >
-                Send quote + deposit link
-              </button>
             )
           )}
 
-          {/* Send invoice */}
-          {activeComposer !== 'quote' && (
-            activeComposer === 'invoice' ? (
-              <InvoicePanel job={job} onClose={() => setActiveComposer(null)} />
-            ) : (
-              <button
-                onClick={() => setActiveComposer('invoice')}
-                className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition-colors duration-200 hover:bg-slate-50"
-              >
-                Send invoice
-              </button>
-            )
+          {/* Decline */}
+          {overrideStatus !== 'cancelled' && overrideStatus !== 'completed' && (
+            <button
+              onClick={() => handleStatusOverride('cancelled')}
+              disabled={loadingOverride}
+              className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg border border-red-100 bg-white px-4 py-2 text-xs font-medium text-red-500 transition-colors duration-200 hover:bg-red-50 disabled:opacity-50"
+            >
+              {loadingOverride ? 'Updating…' : 'Decline job'}
+            </button>
           )}
         </div>
-
-        {/* ── JOB ACTIONS ── */}
-        {activeComposer === null && (
-          <>
-            <div className="h-px bg-slate-100" />
-            <div className="space-y-2">
-
-              {/* Resend deposit link */}
-              {overrideStatus === 'approved' && !job.deposit_paid && job.stripe_payment_link && (
-                <div className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
-                  <p className="text-xs text-slate-500">Quote sent — waiting on deposit</p>
-                  <button
-                    onClick={handleResendLink}
-                    disabled={loadingResend}
-                    className="shrink-0 cursor-pointer text-xs font-medium text-blue-600 hover:underline disabled:opacity-50"
-                  >
-                    {loadingResend ? 'Resending…' : 'Resend link'}
-                  </button>
-                </div>
-              )}
-
-              {/* Mark scheduled manually */}
-              {overrideStatus === 'approved' && !job.deposit_paid && (
-                <button
-                  onClick={handleMarkScheduled}
-                  className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-xs font-medium text-slate-600 transition-colors duration-200 hover:bg-slate-50"
-                >
-                  Mark scheduled (collected manually)
-                </button>
-              )}
-
-              {/* Day-before reminder */}
-              {(overrideStatus === 'scheduled' || job.deposit_paid) && (
-                <button
-                  onClick={handleOpenReminder}
-                  className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition-colors duration-200 hover:bg-slate-50"
-                >
-                  Send day-before reminder
-                </button>
-              )}
-
-              {/* Mark complete */}
-              {overrideStatus !== 'completed' && overrideStatus !== 'cancelled' && (
-                !completedConfirm ? (
-                  <button
-                    onClick={() => setCompletedConfirm(true)}
-                    className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-medium text-emerald-700 transition-colors duration-200 hover:bg-emerald-100"
-                  >
-                    Mark job as complete
-                  </button>
-                ) : (
-                  <div className="space-y-2 rounded-lg border border-emerald-200 bg-emerald-50 p-3">
-                    <p className="text-xs font-medium text-emerald-800">
-                      Confirm complete? This triggers balance link + rating SMS.
-                    </p>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={handleMarkComplete}
-                        disabled={loadingComplete}
-                        className="flex-1 cursor-pointer rounded-lg bg-emerald-600 px-3 py-2 text-xs font-semibold text-white transition-colors duration-200 hover:bg-emerald-700 disabled:opacity-50"
-                      >
-                        {loadingComplete ? 'Saving…' : 'Yes, complete'}
-                      </button>
-                      <button
-                        onClick={() => setCompletedConfirm(false)}
-                        className="flex-1 cursor-pointer rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 transition-colors duration-200 hover:bg-slate-50"
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  </div>
-                )
-              )}
-
-              {/* Decline */}
-              {overrideStatus !== 'cancelled' && overrideStatus !== 'completed' && (
-                <button
-                  onClick={() => handleStatusOverride('cancelled')}
-                  disabled={loadingOverride}
-                  className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg border border-red-100 bg-white px-4 py-2 text-xs font-medium text-red-500 transition-colors duration-200 hover:bg-red-50 disabled:opacity-50"
-                >
-                  {loadingOverride ? 'Updating…' : 'Decline job'}
-                </button>
-              )}
-            </div>
-          </>
-        )}
 
         {/* Feedback */}
         {successMsg && (
@@ -1442,147 +931,12 @@ If you have any questions before ${dayName}, feel free to reply here.
             {errorMsg}
           </p>
         )}
-
+        {savedNotes && (
+          <p className="rounded-lg bg-slate-50 px-3 py-2.5 text-xs leading-relaxed text-slate-500">
+            Notes: {savedNotes}
+          </p>
+        )}
       </div>
-
-      {/* ComposeSheet portal */}
-      {showCompose && (
-        <ComposeSheet
-          job={job}
-          mediaCount={job.job_media?.length ?? 0}
-          onClose={() => {
-            setShowCompose(false)
-            setReminderTemplate(undefined)
-            setInitialComposeDate(undefined)
-            setInitialComposeTimePref(undefined)
-          }}
-          onSuccess={handleComposeSuccess}
-          initialTemplate={reminderTemplate}
-          initialDate={initialComposeDate}
-          initialTimePref={initialComposeTimePref}
-        />
-      )}
-
-      {/* Quote email preview modal */}
-      {showQuotePreview && (
-        <div
-          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-0 sm:p-4"
-          onClick={() => setShowQuotePreview(false)}
-        >
-          <div
-            className="relative flex flex-col bg-white w-full sm:max-w-2xl sm:rounded-xl overflow-hidden shadow-2xl"
-            style={{ maxHeight: '92vh' }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="shrink-0 border-b border-slate-100 px-5 py-3.5">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-semibold text-slate-900">Quote email preview</p>
-                  <p className="mt-0.5 text-xs text-slate-400">Exactly what {job.client_name.split(' ')[0]} will see in their inbox</p>
-                </div>
-                <button
-                  onClick={() => setShowQuotePreview(false)}
-                  className="cursor-pointer rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 transition-colors duration-200 hover:bg-slate-50"
-                >
-                  Close
-                </button>
-              </div>
-            </div>
-
-            <div className="flex-1 overflow-auto">
-              {quotePreviewLoading ? (
-                <div className="flex h-64 items-center justify-center">
-                  <p className="text-sm text-slate-400">Generating preview…</p>
-                </div>
-              ) : (
-                <iframe
-                  srcDoc={quotePreviewHtml}
-                  className="w-full border-0"
-                  style={{ height: '560px' }}
-                  title="Quote email preview"
-                  sandbox="allow-same-origin"
-                />
-              )}
-            </div>
-
-            <div className="shrink-0 border-t border-slate-100 bg-slate-50 px-5 py-3.5">
-              <div className="flex items-center justify-between">
-                <p className="text-xs text-slate-400">Looks wrong? Close and edit your line items or date.</p>
-                <button
-                  onClick={() => {
-                    setShowQuotePreview(false)
-                    handleStripe()
-                  }}
-                  disabled={loadingStripe}
-                  className="cursor-pointer rounded-lg bg-[#1A3F6F] px-4 py-2.5 text-sm font-semibold text-white transition-colors duration-200 hover:opacity-90 disabled:opacity-50"
-                >
-                  {loadingStripe ? 'Sending…' : 'Looks good — send it'}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* SMS preview modal */}
-      {showSmsPreview && (
-        <div
-          className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-0 sm:items-center sm:p-4"
-          onClick={() => setShowSmsPreview(false)}
-        >
-          <div
-            className="relative flex w-full flex-col overflow-hidden bg-white shadow-2xl sm:max-w-sm sm:rounded-xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="shrink-0 border-b border-slate-100 px-5 py-3.5">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-semibold text-slate-900">Text preview</p>
-                  <p className="mt-0.5 text-xs text-slate-400">
-                    Exactly what {job.client_name.split(' ')[0]} will receive
-                  </p>
-                </div>
-                <button
-                  onClick={() => setShowSmsPreview(false)}
-                  className="cursor-pointer rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 transition-colors duration-200 hover:bg-slate-50"
-                >
-                  Close
-                </button>
-              </div>
-            </div>
-
-            <div className="flex-1 bg-slate-50 px-5 py-6">
-              <div className="flex justify-end">
-                <div className="max-w-[85%] rounded-2xl rounded-br-sm bg-[#4A7C59] px-4 py-3">
-                  <p className="whitespace-pre-wrap text-sm leading-relaxed text-white">
-                    {smsPreviewText}
-                  </p>
-                </div>
-              </div>
-              <p className="mt-3 text-center text-[10px] text-slate-400">
-                To: {job.client_phone}
-              </p>
-            </div>
-
-            <div className="shrink-0 border-t border-slate-100 bg-white px-5 py-3.5">
-              <div className="flex items-center justify-between">
-                <p className="text-xs text-slate-400">Looks wrong? Close and adjust line items.</p>
-                <button
-                  onClick={() => {
-                    setShowSmsPreview(false)
-                    handleStripeSms()
-                  }}
-                  disabled={loadingSmsSend}
-                  className="cursor-pointer rounded-lg bg-[#4A7C59] px-4 py-2.5 text-sm font-semibold text-white transition-colors duration-200 hover:bg-[#3d6b4a] disabled:opacity-50"
-                >
-                  {loadingSmsSend ? 'Sending…' : 'Looks good — send it'}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
     </div>
   )
 }
