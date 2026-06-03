@@ -55,7 +55,7 @@ export async function POST(req: NextRequest) {
   }
 
   // Send via Twilio (MMS if mediaUrls present, SMS otherwise)
-  await sendSms(to, message.trim(), mediaUrls.length > 0 ? mediaUrls : undefined)
+  const smsSid = await sendSms(to, message.trim(), mediaUrls.length > 0 ? mediaUrls : undefined)
 
   // Store in Supabase
   const preview = message.trim()
@@ -66,6 +66,8 @@ export async function POST(req: NextRequest) {
     conversation_id: conversationId,
     direction: 'outbound',
     body: message.trim(),
+    twilio_sid: smsSid ?? null,
+    twilio_status: smsSid ? 'sent' : null,
     media_url: mediaUrls[0] ?? null,       // backward compat
     media_urls: mediaUrls,                  // new multi-media column
   })
