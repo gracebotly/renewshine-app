@@ -130,7 +130,7 @@ Once we've reviewed the space, we'll send over your confirmed quote.
         ? `Hi ${firstName} — your ${svcLabel} quote is ready.
 
 Total: $${price.toLocaleString()}
-Deposit to confirm: $${deposit}
+Deposit due today: $${deposit}
 Remaining after service: $${remaining?.toLocaleString()}
 
 Reply YES and we'll send your deposit link.
@@ -218,7 +218,7 @@ Based on our review, your quote is ready.
 
 Service: ${svcLabel}
 Total: $${price.toLocaleString()}
-Deposit to confirm: $${deposit}
+Deposit due today: $${deposit}
 Remaining after service: $${remaining?.toLocaleString()}
 
 To move forward, simply reply to this email and we'll send over your deposit link.

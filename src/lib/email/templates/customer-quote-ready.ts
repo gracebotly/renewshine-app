@@ -27,7 +27,7 @@ export function customerQuoteReadyTemplate(job: Job): { subject: string; html: s
       infoRow('Address', job.address ?? '—') +
       (job.bedrooms ? infoRow('Home size', `${job.bedrooms} bed · ${job.bathrooms} bath`) : '') +
       infoRow('Total', `$${price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`) +
-      infoRow('Deposit to confirm', `$${deposit.toFixed(2)}`) +
+      infoRow('Deposit due today', `$${deposit.toFixed(2)}`) +
       infoRow('Remaining after service', `$${remaining.toFixed(2)}`)
     )}
 

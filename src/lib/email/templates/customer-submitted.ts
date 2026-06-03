@@ -146,7 +146,7 @@ export function customerSubmittedTemplate(job: Job): { subject: string; html: st
   const content = `
     ${badge('Request received', 'green')}
     ${heading(`Your request has been confirmed, ${firstName}.`)}
-    ${para(`We've received your cleaning request and will follow up within 24 hours to review your details and confirm next steps.`)}
+    ${para(`Your request has been received. We'll review your details and follow up as soon as possible — typically within a few hours.`)}
 
     ${stepsHtml}
 

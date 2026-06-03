@@ -123,7 +123,7 @@ export function customerBookedTemplate(job: Job): { subject: string; html: strin
 
   const content = `
     ${badge('Booking confirmed', 'green')}
-    ${heading(`Your ${serviceLabel} is confirmed, ${firstName}.`)}
+    ${heading(`Your ${serviceLabel} is officially scheduled, ${firstName}.`)}
     ${para(`We look forward to taking care of your home. Here's everything you need for your appointment.`)}
 
     ${appointmentCard}
