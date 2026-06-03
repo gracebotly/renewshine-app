@@ -328,7 +328,9 @@ export function QuoteCard({ job }: { job: Job }) {
   const [completedConfirm, setCompletedConfirm] = React.useState(false)
   const [successMsg, setSuccessMsg] = React.useState('')
   const [errorMsg, setErrorMsg] = React.useState('')
-  const [savedDate, setSavedDate] = React.useState<string | null>(job.confirmed_date ?? null)
+  const [savedDate, setSavedDate] = React.useState<string | null>(
+    job.confirmed_date ? String(job.confirmed_date).split(/[T ]/)[0] : null
+  )
   const [savedPrice, setSavedPrice] = React.useState<number | null>(job.approved_price ?? null)
   const [savedNotes] = React.useState<string>(job.notes ?? '')
   const [appointmentConfirmed, setAppointmentConfirmed] = React.useState<boolean>(
@@ -343,7 +345,7 @@ export function QuoteCard({ job }: { job: Job }) {
     job.approved_price ? String(job.approved_price) : ''
   )
   const [dateInput, setDateInput] = React.useState(
-    job.confirmed_date ? new Date(job.confirmed_date).toISOString().split('T')[0] : ''
+    job.confirmed_date ? String(job.confirmed_date).split(/[T ]/)[0] : ''
   )
   const [depositInput, setDepositInput] = React.useState(
     String(job.deposit_amount ?? 100)
