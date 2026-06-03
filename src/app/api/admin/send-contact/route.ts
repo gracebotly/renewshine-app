@@ -118,7 +118,7 @@ export async function POST(request: Request) {
     const body = customBody?.trim()
     if (!body) return Response.json({ error: 'customBody required for SMS' }, { status: 400 })
 
-    await sendSms(job.client_phone, body)
+    const smsSid = await sendSms(job.client_phone, body)
     contactNote = `SMS sent: "${body.slice(0, 80)}"`
     await logActivity(supabase, jobId, 'sms', 'SMS sent', customBody)
 
@@ -130,7 +130,13 @@ export async function POST(request: Request) {
       .maybeSingle()
 
     if (existingConv) {
-      await supabase.from('sms_messages').insert({ conversation_id: existingConv.id, direction: 'outbound', body })
+      await supabase.from('sms_messages').insert({
+        conversation_id: existingConv.id,
+        direction: 'outbound',
+        body,
+        twilio_sid: smsSid ?? null,
+        twilio_status: smsSid ? 'sent' : null,
+      })
       await supabase
         .from('sms_conversations')
         .update({
@@ -156,7 +162,13 @@ export async function POST(request: Request) {
         .select('id')
         .single()
 
-      if (newConv) await supabase.from('sms_messages').insert({ conversation_id: newConv.id, direction: 'outbound', body })
+      if (newConv) await supabase.from('sms_messages').insert({
+        conversation_id: newConv.id,
+        direction: 'outbound',
+        body,
+        twilio_sid: smsSid ?? null,
+        twilio_status: smsSid ? 'sent' : null,
+      })
     }
   }
 

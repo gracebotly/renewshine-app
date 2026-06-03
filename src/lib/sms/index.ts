@@ -4,9 +4,9 @@ export async function sendSms(
   to: string | null,
   body: string,
   mediaUrls?: string[]
-): Promise<void> {
-  if (!to) return
-  if (!twilioClient) return
+): Promise<string | null> {
+  if (!to) return null
+  if (!twilioClient) return null
 
   const from = process.env.TWILIO_PHONE_NUMBER!
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? ''
@@ -24,8 +24,10 @@ export async function sendSms(
       params.mediaUrl = mediaUrls
     }
 
-    await twilioClient.messages.create(params)
+    const message = await twilioClient.messages.create(params)
+    return message.sid
   } catch (err) {
     console.error('SMS send failed (non-blocking):', err)
+    return null
   }
 }
