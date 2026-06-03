@@ -503,7 +503,7 @@ export function QuoteCard({ job }: { job: Job }) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ jobId: job.id, status: newStatus }),
     })
-    if (res.ok) setOverrideStatus(newStatus)
+    if (res.ok) setOverrideStatus(newStatus as typeof overrideStatus)
     setLoadingOverride(false)
   }
 
