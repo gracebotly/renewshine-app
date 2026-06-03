@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import { Pencil, Table } from 'lucide-react'
+import { ChevronDown, Pencil, Table } from 'lucide-react'
 import type { Job } from '@/types/database'
 
 function getServiceLabel(serviceType: string | null): string {
@@ -39,6 +39,57 @@ function ManualLogDropdown({ onLog }: { onLog: (m: 'text' | 'email' | 'verbal') 
                 {opt.label}
               </button>
             ))}
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
+function JobActionDropdown({
+  onDecline,
+  onArchive,
+  loading,
+}: {
+  onDecline: () => void
+  onArchive: () => void
+  loading: boolean
+}) {
+  const [open, setOpen] = React.useState(false)
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setOpen(p => !p)}
+        disabled={loading}
+        className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white px-4 py-2 text-xs font-medium text-slate-500 transition-colors duration-200 hover:bg-slate-50 disabled:opacity-50 cursor-pointer"
+      >
+        {loading ? 'Updating…' : 'More actions'}
+        <ChevronDown size={11} className="ml-auto" />
+      </button>
+
+      {open && (
+        <>
+          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
+          <div className="absolute bottom-full left-0 right-0 z-20 mb-1 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg">
+            <button
+              onClick={() => { onArchive(); setOpen(false) }}
+              className="flex w-full items-center gap-2.5 px-4 py-3 text-xs text-slate-600 hover:bg-slate-50 transition-colors cursor-pointer border-b border-slate-100"
+            >
+              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-slate-100 text-slate-500 text-[10px]">
+                ↓
+              </span>
+              Archive — remove from dashboard
+            </button>
+            <button
+              onClick={() => { onDecline(); setOpen(false) }}
+              className="flex w-full items-center gap-2.5 px-4 py-3 text-xs text-red-500 hover:bg-red-50 transition-colors cursor-pointer"
+            >
+              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-red-50 text-red-400 text-[10px]">
+                ✕
+              </span>
+              Decline job
+            </button>
           </div>
         </>
       )}
@@ -503,6 +554,34 @@ export function QuoteCard({ job }: { job: Job }) {
     if (res.ok) setOverrideStatus('scheduled')
   }
 
+  const handleArchive = async () => {
+    setLoadingOverride(true)
+    const res = await fetch('/api/admin/archive-job', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ jobId: job.id, action: 'archive' }),
+    })
+    if (res.ok) {
+      setOverrideStatus('archived' as typeof overrideStatus)
+      setSuccessMsg('Job archived — removed from dashboard.')
+    }
+    setLoadingOverride(false)
+  }
+
+  const handleDecline = async () => {
+    setLoadingOverride(true)
+    const res = await fetch('/api/admin/archive-job', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ jobId: job.id, action: 'decline' }),
+    })
+    if (res.ok) {
+      setOverrideStatus('cancelled')
+      setSuccessMsg('Job declined.')
+    }
+    setLoadingOverride(false)
+  }
+
   const handleResendLink = async () => {
     setLoadingResend(true)
     await fetch('/api/admin/send-deposit-link', {
@@ -518,17 +597,6 @@ export function QuoteCard({ job }: { job: Job }) {
     })
     setLoadingResend(false)
     setSuccessMsg('Deposit link resent ✓')
-  }
-
-  const handleStatusOverride = async (newStatus: string) => {
-    setLoadingOverride(true)
-    const res = await fetch('/api/admin/update-job-status', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ jobId: job.id, status: newStatus }),
-    })
-    if (res.ok) setOverrideStatus(newStatus as typeof overrideStatus)
-    setLoadingOverride(false)
   }
 
   const handleMarkComplete = async () => {
@@ -577,6 +645,7 @@ export function QuoteCard({ job }: { job: Job }) {
     scheduled:    { dot: 'bg-emerald-500', label: job.deposit_paid ? 'Deposit paid — scheduled' : 'Scheduled' },
     completed:    { dot: 'bg-slate-400',   label: 'Complete' },
     cancelled:    { dot: 'bg-red-300',     label: 'Declined' },
+    archived:     { dot: 'bg-slate-400',   label: 'Archived' },
   }
   const { dot, label } = statusConfig[overrideStatus] ?? { dot: 'bg-slate-300', label: overrideStatus }
 
@@ -981,15 +1050,13 @@ export function QuoteCard({ job }: { job: Job }) {
             )
           )}
 
-          {/* Decline */}
-          {overrideStatus !== 'cancelled' && overrideStatus !== 'completed' && (
-            <button
-              onClick={() => handleStatusOverride('cancelled')}
-              disabled={loadingOverride}
-              className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg border border-red-100 bg-white px-4 py-2 text-xs font-medium text-red-500 transition-colors duration-200 hover:bg-red-50 disabled:opacity-50"
-            >
-              {loadingOverride ? 'Updating…' : 'Decline job'}
-            </button>
+          {/* Archive / Decline dropdown */}
+          {overrideStatus !== 'cancelled' && overrideStatus !== 'completed' && String(overrideStatus) !== 'archived' && (
+            <JobActionDropdown
+              onDecline={handleDecline}
+              onArchive={handleArchive}
+              loading={loadingOverride}
+            />
           )}
         </div>
 

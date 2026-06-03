@@ -356,6 +356,15 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
 
   if (!job) notFound()
 
+  // Fetch activity log — non-blocking, empty array on failure
+  const { data: activityRows } = await supabase
+    .from('job_activity')
+    .select('id, type, label, created_at')
+    .eq('job_id', job.id)
+    .order('created_at', { ascending: true })
+
+  const activityLog = activityRows ?? []
+
   const rawMedia: Array<{ id: string; file_url: string; file_type: string | null }> =
     job.job_media ?? []
 
@@ -487,52 +496,89 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
                 Activity Timeline
               </h3>
               <div className="space-y-3">
-                {[
-                  {
-                    label: 'Request submitted',
-                    timestamp: job.created_at,
-                    color: 'bg-slate-300',
+                {(() => {
+                  // Static status stages — always shown based on job state
+                  type TimelineItem = {
+                    label: string
+                    timestamp: string | null
+                    color: string
+                    show: boolean
+                    isActivity?: boolean
+                  }
+
+                  const stages: TimelineItem[] = [
+                    {
+                      label: 'Request submitted',
+                      timestamp: job.created_at,
+                      color: 'bg-slate-300',
+                      show: true,
+                    },
+                    {
+                      label: 'Marked under review',
+                      timestamp: ['under_review', 'approved', 'scheduled', 'completed'].includes(job.status)
+                        ? job.created_at : null,
+                      color: 'bg-amber-400',
+                      show: !['new', 'cancelled'].includes(job.status),
+                    },
+                    {
+                      label: 'Quote sent',
+                      timestamp: job.confirmed_date,
+                      color: 'bg-blue-400',
+                      show: !!job.stripe_payment_link || ['approved', 'scheduled', 'completed'].includes(job.status),
+                    },
+                    {
+                      label: 'Deposit paid — scheduled',
+                      timestamp: job.deposit_paid ? job.confirmed_date : null,
+                      color: 'bg-emerald-500',
+                      show: job.deposit_paid,
+                    },
+                    {
+                      label: 'Job completed',
+                      timestamp: job.status === 'completed' ? job.confirmed_date : null,
+                      color: 'bg-emerald-700',
+                      show: job.status === 'completed',
+                    },
+                    {
+                      label: 'Declined',
+                      timestamp: job.status === 'cancelled' ? job.created_at : null,
+                      color: 'bg-red-400',
+                      show: job.status === 'cancelled',
+                    },
+                    {
+                      label: 'Archived',
+                      timestamp: job.status === 'cancelled' ? job.created_at : null,
+                      color: 'bg-slate-400',
+                      show: !!(job as typeof job & { is_archived?: boolean }).is_archived,
+                    },
+                  ]
+
+                  // Dynamic activity entries from job_activity table
+                  const activityItems: TimelineItem[] = activityLog.map(a => ({
+                    label: a.label,
+                    timestamp: a.created_at,
+                    color: a.type === 'email'
+                      ? 'bg-blue-300'
+                      : a.type === 'sms'
+                      ? 'bg-[#4A7C59]'
+                      : a.type === 'status_change'
+                      ? 'bg-slate-400'
+                      : 'bg-amber-300',
                     show: true,
-                  },
-                  {
-                    label: 'Marked under review',
-                    timestamp:
-                      ['under_review', 'approved', 'scheduled', 'completed'].includes(job.status)
-                        ? job.created_at
-                        : null,
-                    color: 'bg-amber-400',
-                    show: !['new', 'cancelled'].includes(job.status),
-                  },
-                  {
-                    label: 'Quote sent',
-                    timestamp: job.confirmed_date,
-                    color: 'bg-(--color-brand)',
-                    show:
-                      !!job.stripe_payment_link ||
-                      ['approved', 'scheduled', 'completed'].includes(job.status),
-                  },
-                  {
-                    label: 'Deposit paid — scheduled',
-                    timestamp: job.deposit_paid ? job.confirmed_date : null,
-                    color: 'bg-emerald-500',
-                    show: job.deposit_paid,
-                  },
-                  {
-                    label: 'Job completed',
-                    timestamp: job.status === 'completed' ? job.confirmed_date : null,
-                    color: 'bg-emerald-700',
-                    show: job.status === 'completed',
-                  },
-                  {
-                    label: 'Declined',
-                    timestamp: job.status === 'cancelled' ? job.created_at : null,
-                    color: 'bg-red-400',
-                    show: job.status === 'cancelled',
-                  },
-                ]
-                  .filter((item) => item.show)
-                  .map((item, i, arr) => (
-                    <div key={item.label} className="flex gap-3">
+                    isActivity: true,
+                  }))
+
+                  // Merge: status stages first, then activity entries interspersed by timestamp
+                  const allItems = [
+                    ...stages.filter(s => s.show),
+                    ...activityItems,
+                  ].sort((a, b) => {
+                    if (!a.timestamp) return -1
+                    if (!b.timestamp) return 1
+                    return new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+                  })
+
+                  return allItems.map((item, i, arr) => (
+                    <div key={`${item.label}-${i}`} className="flex gap-3">
                       <div className="flex flex-col items-center">
                         <div className={`mt-1 h-2.5 w-2.5 shrink-0 rounded-full ${item.color}`} />
                         {i < arr.length - 1 && (
@@ -554,7 +600,8 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
                         )}
                       </div>
                     </div>
-                  ))}
+                  ))
+                })()}
               </div>
             </div>
 
