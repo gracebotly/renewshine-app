@@ -94,6 +94,7 @@ export interface Database {
           last_completed_step: number | null
           dropped_at_label: string | null
           quote_line_items: Json | null
+          is_archived?: boolean | null
         }
         Insert: {
           type?: JobType | null
@@ -139,9 +140,38 @@ export interface Database {
           last_completed_step?: number | null
           dropped_at_label?: string | null
           quote_line_items?: Json | null
+          is_archived?: boolean | null
         }
         Update: Partial<Database['public']['Tables']['jobs']['Row']>
         Relationships: []
+      }
+      job_activity: {
+        Row: {
+          id: string
+          job_id: string
+          type: 'email' | 'sms' | 'note' | 'status_change' | 'external'
+          label: string
+          body: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          job_id: string
+          type: 'email' | 'sms' | 'note' | 'status_change' | 'external'
+          label: string
+          body?: string | null
+          created_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['job_activity']['Insert']>
+        Relationships: [
+          {
+            foreignKeyName: 'job_activity_job_id_fkey'
+            columns: ['job_id']
+            isOneToOne: false
+            referencedRelation: 'jobs'
+            referencedColumns: ['id']
+          },
+        ]
       }
       job_media: {
         Row: {
@@ -328,6 +358,14 @@ export interface Database {
 }
 
 export type Job         = Database['public']['Tables']['jobs']['Row']
+export interface JobActivity {
+  id: string
+  job_id: string
+  type: 'email' | 'sms' | 'note' | 'status_change' | 'external'
+  label: string
+  body?: string | null
+  created_at: string
+}
 export type JobMedia    = Database['public']['Tables']['job_media']['Row']
 export type JobWithMedia = Job & { job_media: JobMedia[] }
 export type MissedCall      = Database['public']['Tables']['missed_calls']['Row']

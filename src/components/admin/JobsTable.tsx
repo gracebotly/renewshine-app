@@ -3,7 +3,7 @@
 import * as React from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { AlertTriangle, Search, X, ChevronRight } from 'lucide-react'
+import { AlertTriangle, Search, X, ChevronRight, Archive, Trash2 } from 'lucide-react'
 import type { Database } from '@/types/database'
 
 type JobRecord = Database['public']['Tables']['jobs']['Row']
@@ -87,6 +87,18 @@ function SmsOptInBadge({ optedIn }: { optedIn: boolean }) {
   )
 }
 
+function TypeBadge({ type }: { type: string | null }) {
+  if (!type || type === 'residential') return null
+  return (
+    <span
+      title="Commercial booking"
+      className="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-700"
+    >
+      COM
+    </span>
+  )
+}
+
 function UrgencyBadge({ createdAt, stage }: { createdAt: string; stage: Stage }) {
   const diffMs = Date.now() - new Date(createdAt).getTime()
   const diffHours = diffMs / (1000 * 60 * 60)
@@ -130,152 +142,406 @@ export function JobsTable({ jobs }: { jobs: JobRecord[] }) {
   const [query, setQuery] = React.useState('')
   const router = useRouter()
 
+  // Archive mode
+  const [archiveMode, setArchiveMode] = React.useState(false)
+  const [archivedJobs, setArchivedJobs] = React.useState<JobRecord[]>([])
+  const [loadingArchive, setLoadingArchive] = React.useState(false)
+  const [deletingId, setDeletingId] = React.useState<string | null>(null)
+
+  // Type filter
+  type TypeFilter = 'all' | 'residential' | 'commercial'
+  const [typeFilter, setTypeFilter] = React.useState<TypeFilter>('all')
+
   React.useEffect(() => {
     const interval = setInterval(() => router.refresh(), 30_000)
     return () => clearInterval(interval)
   }, [router])
 
+  const toggleArchiveMode = async () => {
+    if (!archiveMode && archivedJobs.length === 0) {
+      setLoadingArchive(true)
+      try {
+        const res = await fetch('/api/admin/archived-jobs')
+        const data = await res.json()
+        setArchivedJobs(data.jobs ?? [])
+      } catch {
+        // fail silently — archive list stays empty
+      }
+      setLoadingArchive(false)
+    }
+    setArchiveMode(p => !p)
+  }
+
+  const handleDeleteJob = async (jobId: string, clientName: string) => {
+    if (!window.confirm(`Permanently delete ${clientName}'s record? This cannot be undone.`)) return
+    setDeletingId(jobId)
+    try {
+      const res = await fetch('/api/admin/delete-job', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ jobId }),
+      })
+      if (res.ok) setArchivedJobs(prev => prev.filter(j => j.id !== jobId))
+    } catch {
+      // fail silently — job stays in list if delete fails
+    }
+    setDeletingId(null)
+  }
+
   const filteredJobs = React.useMemo(() => {
     return jobs
       .filter((j) => {
-        // Incomplete tab: show only partial jobs
         if (activeTab === 'incomplete') return j.status === 'partial'
-        // All other tabs: hide partial jobs
         if (j.status === 'partial') return false
         if (j.status === 'cancelled' && activeTab !== 'all') return false
         if (activeTab === 'all') return true
         return mapStatusToStage(j.status) === activeTab
       })
       .filter((j) => {
+        if (typeFilter === 'all') return true
+        if (typeFilter === 'residential') return j.type === 'residential' || j.type === null
+        if (typeFilter === 'commercial') return j.type === 'commercial'
+        return true
+      })
+      .filter((j) => {
         if (!query.trim()) return true
         const q = query.toLowerCase()
         return j.client_name?.toLowerCase().includes(q) || j.client_email?.toLowerCase().includes(q)
       })
-  }, [activeTab, jobs, query])
+  }, [activeTab, typeFilter, jobs, query])
+
+  // Archived jobs filtered by search query only
+  const filteredArchivedJobs = React.useMemo(() => {
+    if (!query.trim()) return archivedJobs
+    const q = query.toLowerCase()
+    return archivedJobs.filter(
+      j => j.client_name?.toLowerCase().includes(q) || j.client_email?.toLowerCase().includes(q)
+    )
+  }, [archivedJobs, query])
 
   return (
     <div>
-      <div className="mb-4">
-        <div className="relative">
+      {/* Search row + archive toggle */}
+      <div className="mb-3 flex items-center gap-2">
+        <div className="relative flex-1 sm:max-w-sm">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input type="text" placeholder="Search by name or email…" value={query} onChange={(e) => setQuery(e.target.value)} className="w-full rounded-lg border border-slate-200 bg-white py-2.5 pl-9 pr-3 text-sm text-slate-900 placeholder:text-slate-400 transition-colors duration-200 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-(--color-brand) sm:max-w-sm sm:py-2" />
+          <input
+            type="text"
+            placeholder="Search by name or email…"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            className="w-full rounded-lg border border-slate-200 bg-white py-2.5 pl-9 pr-3 text-sm text-slate-900 placeholder:text-slate-400 transition-colors duration-200 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-(--color-brand) sm:py-2"
+          />
         </div>
+        <button
+          onClick={toggleArchiveMode}
+          disabled={loadingArchive}
+          title={archiveMode ? 'Exit archive view' : 'View archived jobs'}
+          className={`flex shrink-0 items-center gap-1.5 rounded-lg border px-3 py-2.5 text-xs font-medium transition-colors duration-150 cursor-pointer disabled:opacity-50 sm:py-2 ${
+            archiveMode
+              ? 'border-slate-400 bg-slate-700 text-white hover:bg-slate-800'
+              : 'border-slate-200 bg-white text-slate-500 hover:bg-slate-50 hover:text-slate-700'
+          }`}
+        >
+          <Archive size={13} />
+          <span className="hidden sm:inline">{loadingArchive ? 'Loading…' : archiveMode ? 'Exit archive' : 'Archived'}</span>
+        </button>
       </div>
 
-      <div className="mb-4 -mx-4 sm:mx-0">
-        <div className="flex gap-0 overflow-x-auto border-b border-slate-200 px-4 sm:gap-6 sm:px-0 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-          {TABS.map((tab) => {
-            const isActive = activeTab === tab.id
-            return (
-              <button key={tab.id} type="button" onClick={() => setActiveTab(tab.id)} className={`cursor-pointer shrink-0 pb-3 pr-4 text-sm whitespace-nowrap sm:pr-0 ${
-                isActive ? 'border-b-2 border-(--color-brand) font-semibold text-(--color-brand)' : 'text-slate-500 transition-colors duration-200 hover:text-slate-900'
-              }`}>
-                {tab.id === 'incomplete' ? (
-                  <span className="flex items-center gap-1.5">
-                    Incomplete
-                    {jobs.filter((j) => j.status === 'partial').length > 0 && (
-                      <span className="inline-flex items-center rounded-full bg-amber-100 px-1.5 py-0.5 text-xs font-semibold text-amber-700">
-                        {jobs.filter((j) => j.status === 'partial').length}
-                      </span>
-                    )}
-                  </span>
-                ) : (
-                  tab.label
-                )}
-              </button>
-            )
-          })}
+      {/* Type filter chips — hidden in archive mode */}
+      {!archiveMode && (
+        <div className="mb-3 flex items-center gap-1.5">
+          {(['all', 'residential', 'commercial'] as const).map(t => (
+            <button
+              key={t}
+              onClick={() => setTypeFilter(t)}
+              className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors duration-150 cursor-pointer ${
+                typeFilter === t
+                  ? 'border-[#4A7C59]/30 bg-[#e8f3ec] text-[#4A7C59]'
+                  : 'border-slate-200 bg-white text-slate-500 hover:bg-slate-50'
+              }`}
+            >
+              {t === 'all' ? 'All' : t === 'residential' ? 'Residential' : 'Commercial'}
+            </button>
+          ))}
         </div>
-      </div>
+      )}
 
-      <div className="block sm:hidden space-y-2">
-        {filteredJobs.length === 0 ? (
-          <div className="rounded-xl border border-slate-200 bg-white px-4 py-10 text-center">
-            <p className="text-sm text-slate-400">
-              {activeTab === 'incomplete' ? 'No incomplete bookings right now.' : 'No jobs found.'}
+      {archiveMode ? (
+        /* Archive mode banner — replaces the stage tabs */
+        <div className="mb-4 flex items-center justify-between rounded-xl border border-slate-300 bg-slate-100 px-4 py-3">
+          <div className="flex items-center gap-2">
+            <Archive size={14} className="text-slate-500" />
+            <p className="text-sm font-medium text-slate-700">
+              Archived jobs
+              {filteredArchivedJobs.length > 0 && (
+                <span className="ml-2 text-xs font-normal text-slate-500">
+                  {filteredArchivedJobs.length} record{filteredArchivedJobs.length !== 1 ? 's' : ''}
+                </span>
+              )}
             </p>
           </div>
-        ) : filteredJobs.map((job) => {
-          // ── Incomplete mobile card ─────────────────────────────────────────────────
-          if (job.status === 'partial') {
-            const droppedLabel = job.dropped_at_label
+          <button
+            onClick={toggleArchiveMode}
+            className="flex items-center gap-1 text-xs text-slate-500 hover:text-slate-700 transition-colors cursor-pointer"
+          >
+            <X size={13} /> Exit
+          </button>
+        </div>
+      ) : (
+        /* Normal stage tabs */
+        <div className="mb-4 -mx-4 sm:mx-0">
+          <div className="flex gap-0 overflow-x-auto border-b border-slate-200 px-4 sm:gap-6 sm:px-0 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+            {TABS.map((tab) => {
+              const isActive = activeTab === tab.id
+              return (
+                <button key={tab.id} type="button" onClick={() => setActiveTab(tab.id)} className={`cursor-pointer shrink-0 pb-3 pr-4 text-sm whitespace-nowrap sm:pr-0 ${
+                  isActive ? 'border-b-2 border-(--color-brand) font-semibold text-(--color-brand)' : 'text-slate-500 transition-colors duration-200 hover:text-slate-900'
+                }`}>
+                  {tab.id === 'incomplete' ? (
+                    <span className="flex items-center gap-1.5">
+                      Incomplete
+                      {jobs.filter((j) => j.status === 'partial').length > 0 && (
+                        <span className="inline-flex items-center rounded-full bg-amber-100 px-1.5 py-0.5 text-xs font-semibold text-amber-700">
+                          {jobs.filter((j) => j.status === 'partial').length}
+                        </span>
+                      )}
+                    </span>
+                  ) : (
+                    tab.label
+                  )}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
+      <div className="block sm:hidden space-y-2">
+        {archiveMode ? (
+          /* Archive mobile cards */
+          filteredArchivedJobs.length === 0 ? (
+            <div className="rounded-xl border border-slate-200 bg-white px-4 py-10 text-center">
+              <p className="text-sm text-slate-400">No archived jobs.</p>
+            </div>
+          ) : filteredArchivedJobs.map(job => (
+            <div key={job.id} className="flex items-start justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3.5">
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <p className="font-semibold text-slate-900 text-sm truncate">{job.client_name}</p>
+                  <TypeBadge type={job.type} />
+                  <SmsOptInBadge optedIn={job.sms_opt_in} />
+                </div>
+                <p className="mt-0.5 text-xs text-slate-500">{job.client_email}</p>
+                <p className="mt-0.5 text-xs text-slate-400">{formatService(job.service_type)}</p>
+                <div className="mt-1.5 flex items-center gap-2">
+                  <span className="inline-flex items-center gap-1 text-xs text-slate-400">
+                    <span className="h-1.5 w-1.5 rounded-full bg-red-300" />
+                    {job.status === 'cancelled' ? 'Declined' : 'Archived'}
+                  </span>
+                  <span className="text-xs text-slate-400">· {timeAgo(job.created_at)}</span>
+                </div>
+              </div>
+              <div className="flex flex-col items-end gap-2">
+                <Link href={`/admin/jobs/${job.id}`} className="text-xs font-medium text-(--color-brand) hover:underline cursor-pointer">
+                  View →
+                </Link>
+                <button
+                  onClick={() => handleDeleteJob(job.id, job.client_name)}
+                  disabled={deletingId === job.id}
+                  title="Delete permanently"
+                  className="flex items-center justify-center rounded-lg border border-red-100 bg-white p-1.5 text-red-400 hover:bg-red-50 transition-colors cursor-pointer disabled:opacity-40"
+                >
+                  {deletingId === job.id ? (
+                    <span className="text-[10px]">…</span>
+                  ) : (
+                    <Trash2 size={12} />
+                  )}
+                </button>
+              </div>
+            </div>
+          ))
+        ) : (
+          /* Normal mobile cards */
+          filteredJobs.length === 0 ? (
+            <div className="rounded-xl border border-slate-200 bg-white px-4 py-10 text-center">
+              <p className="text-sm text-slate-400">
+                {activeTab === 'incomplete' ? 'No incomplete bookings right now.' : 'No jobs found.'}
+              </p>
+            </div>
+          ) : filteredJobs.map((job) => {
+            if (job.status === 'partial') {
+              const droppedLabel = job.dropped_at_label
+              return (
+                <Link key={job.id} href={`/admin/jobs/${job.id}`} className="flex items-start justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3.5 transition-colors duration-150 active:bg-slate-50">
+                  <div className="min-w-0 flex-1">
+                    <p className="font-semibold text-slate-900 text-sm truncate">
+                      {job.client_name === 'Unknown' ? <span className="italic text-slate-400">Name not provided</span> : job.client_name}
+                    </p>
+                    <p className="mt-0.5 text-xs text-slate-500">{job.client_email}</p>
+                    {job.client_phone && <p className="mt-0.5 text-xs text-slate-500 font-mono tabular-nums">{job.client_phone}</p>}
+                    {job.sms_opt_in && <div className="mt-2"><SmsOptInBadge optedIn /></div>}
+                    <div className="mt-2 flex items-center gap-2 flex-wrap">
+                      <span className="inline-flex items-center gap-1.5 text-xs font-medium text-amber-700">
+                        <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-amber-400" />
+                        {droppedLabel ? `Left at · ${droppedLabel}` : 'Started booking'}
+                      </span>
+                      <span className="text-xs text-slate-400">· {timeAgo(job.created_at)}</span>
+                    </div>
+                  </div>
+                  <ChevronRight size={16} className="mt-1 shrink-0 text-slate-300" />
+                </Link>
+              )
+            }
+            const stage = mapStatusToStage(job.status)
+            const stageConf = STAGE_CONFIG[stage]
+            const badge = <UrgencyBadge createdAt={job.created_at} stage={stage} />
             return (
               <Link key={job.id} href={`/admin/jobs/${job.id}`} className="flex items-start justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3.5 transition-colors duration-150 active:bg-slate-50">
                 <div className="min-w-0 flex-1">
-                  <p className="font-semibold text-slate-900 text-sm truncate">
-                    {job.client_name === 'Unknown' ? <span className="italic text-slate-400">Name not provided</span> : job.client_name}
-                  </p>
-                  <p className="mt-0.5 text-xs text-slate-500">{job.client_email}</p>
-                  {job.client_phone && <p className="mt-0.5 text-xs text-slate-500 font-mono tabular-nums">{job.client_phone}</p>}
-                  {job.sms_opt_in && <div className="mt-2"><SmsOptInBadge optedIn /></div>}
-                  <div className="mt-2 flex items-center gap-2 flex-wrap">
-                    <span className="inline-flex items-center gap-1.5 text-xs font-medium text-amber-700">
-                      <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-amber-400" />
-                      {droppedLabel ? `Left at · ${droppedLabel}` : 'Started booking'}
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="font-semibold text-slate-900 text-sm truncate">{job.client_name}</p>
+                    {badge}
+                    <TypeBadge type={job.type} />
+                    <SmsOptInBadge optedIn={job.sms_opt_in} />
+                  </div>
+                  <p className="mt-0.5 text-sm text-slate-600">{formatService(job.service_type)}</p>
+                  <p className="mt-0.5 text-xs text-slate-400">{formatAvailability(job.availability_start, job.availability_end, job.availability_time_pref)}</p>
+                  <div className="mt-2 flex items-center gap-2">
+                    <span className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs font-medium ${stageConf.bg} ${stageConf.text}`}>
+                      <span className={`h-1.5 w-1.5 rounded-full ${stageConf.dot}`} />
+                      {stageConf.label}
                     </span>
-                    <span className="text-xs text-slate-400">· {timeAgo(job.created_at)}</span>
+                    <span className="text-xs text-slate-400">{timeAgo(job.created_at)}</span>
                   </div>
                 </div>
                 <ChevronRight size={16} className="mt-1 shrink-0 text-slate-300" />
               </Link>
             )
-          }
-
-          // ── Regular job mobile card ────────────────────────────────────────────────
-          const stage = mapStatusToStage(job.status)
-          const stageConf = STAGE_CONFIG[stage]
-          const badge = <UrgencyBadge createdAt={job.created_at} stage={stage} />
-          return (
-            <Link key={job.id} href={`/admin/jobs/${job.id}`} className="flex items-start justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3.5 transition-colors duration-150 active:bg-slate-50">
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2 flex-wrap"><p className="font-semibold text-slate-900 text-sm truncate">{job.client_name}</p>{badge}<SmsOptInBadge optedIn={job.sms_opt_in} /></div>
-                <p className="mt-0.5 text-sm text-slate-600">{formatService(job.service_type)}</p>
-                <p className="mt-0.5 text-xs text-slate-400">{formatAvailability(job.availability_start, job.availability_end, job.availability_time_pref)}</p>
-                <div className="mt-2 flex items-center gap-2"><span className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs font-medium ${stageConf.bg} ${stageConf.text}`}><span className={`h-1.5 w-1.5 rounded-full ${stageConf.dot}`} />{stageConf.label}</span><span className="text-xs text-slate-400">{timeAgo(job.created_at)}</span></div>
-              </div>
-              <ChevronRight size={16} className="mt-1 shrink-0 text-slate-300" />
-            </Link>
-          )
-        })}
+          })
+        )}
       </div>
 
       <div className="hidden sm:block overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
         <table className="w-full text-sm">
-          <thead><tr className="border-b border-slate-200 bg-slate-50">{['Submitted', 'Client', 'Service', 'Availability', 'Stage', 'Action'].map((header) => <th key={header} className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">{header}</th>)}</tr></thead>
+          <thead>
+            <tr className="border-b border-slate-200 bg-slate-50">
+              {(archiveMode
+                ? ['Submitted', 'Client', 'Service', 'Status', 'Action', '']
+                : ['Submitted', 'Client', 'Service', 'Availability', 'Stage', 'Action']
+              ).map((header) => (
+                <th key={header} className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  {header}
+                </th>
+              ))}
+            </tr>
+          </thead>
           <tbody>
-            {filteredJobs.length === 0 ? (
-              <tr>
-                <td colSpan={6}>
-                  <p className="px-4 py-10 text-center text-sm text-slate-400">
-                    {activeTab === 'incomplete' ? 'No incomplete bookings right now.' : 'No jobs found.'}
-                  </p>
-                </td>
-              </tr>
-            ) : filteredJobs.map((job) => {
-              // ── Incomplete (partial) row ───────────────────────────────────────────────
-              if (job.status === 'partial') {
-                const droppedLabel = job.dropped_at_label
+            {archiveMode ? (
+              /* Archive rows */
+              filteredArchivedJobs.length === 0 ? (
+                <tr>
+                  <td colSpan={6}>
+                    <p className="px-4 py-10 text-center text-sm text-slate-400">No archived jobs.</p>
+                  </td>
+                </tr>
+              ) : filteredArchivedJobs.map(job => {
                 const created = new Date(job.created_at)
                 return (
-                  <tr key={job.id} className="border-b border-slate-100">
-                    <td className="px-4 py-3"><p className="text-xs text-slate-400">{created.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} · {timeAgo(job.created_at)}</p></td>
-                    <td className="px-4 py-3"><p className="font-medium text-slate-900">{job.client_name === 'Unknown' ? <span className="italic text-slate-400">Name not provided</span> : job.client_name}</p><p className="text-xs text-slate-500">{job.client_email}</p>{job.client_phone && <p className="text-xs text-slate-500 font-mono tabular-nums mt-0.5">{job.client_phone}</p>}{job.sms_opt_in && <div className="mt-1.5"><SmsOptInBadge optedIn /></div>}</td>
-                    <td className="px-4 py-3 text-slate-500">{job.service_type ? formatService(job.service_type) : <span className="text-slate-300">—</span>}</td>
-                    <td className="px-4 py-3 text-slate-500">{job.availability_start ? formatAvailability(job.availability_start, job.availability_end, job.availability_time_pref) : <span className="text-slate-300">—</span>}</td>
-                    <td className="px-4 py-3"><span className="inline-flex items-center gap-1.5 text-xs font-medium text-amber-700"><span className="h-1.5 w-1.5 shrink-0 rounded-full bg-amber-400" />{droppedLabel ? `Left at · ${droppedLabel}` : 'Started booking'}</span></td>
+                  <tr key={job.id} className="border-b border-slate-100 transition-colors duration-200 hover:bg-slate-50">
                     <td className="px-4 py-3">
-                      <Link href={`/admin/jobs/${job.id}`} className="cursor-pointer text-sm font-medium text-(--color-brand) hover:underline">View →</Link>
+                      <p className="text-xs text-slate-400">
+                        {created.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} · {timeAgo(job.created_at)}
+                      </p>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="font-medium text-slate-900">{job.client_name}</p>
+                        <TypeBadge type={job.type} />
+                        <SmsOptInBadge optedIn={job.sms_opt_in} />
+                      </div>
+                      <p className="text-xs text-slate-500">{job.client_email}</p>
+                    </td>
+                    <td className="px-4 py-3 text-slate-700">{formatService(job.service_type)}</td>
+                    <td className="px-4 py-3">
+                      <span className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-500">
+                        <span className={`h-1.5 w-1.5 rounded-full ${job.status === 'cancelled' ? 'bg-red-300' : 'bg-slate-300'}`} />
+                        {job.status === 'cancelled' ? 'Declined' : 'Archived'}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <Link href={`/admin/jobs/${job.id}`} className="cursor-pointer text-sm font-medium text-(--color-brand) hover:underline">
+                        View →
+                      </Link>
+                    </td>
+                    <td className="px-4 py-3">
+                      <button
+                        onClick={() => handleDeleteJob(job.id, job.client_name)}
+                        disabled={deletingId === job.id}
+                        title="Delete permanently"
+                        className="flex items-center justify-center rounded-lg border border-red-100 bg-white px-2.5 py-1.5 text-xs text-red-400 hover:bg-red-50 transition-colors cursor-pointer disabled:opacity-40 gap-1"
+                      >
+                        <Trash2 size={11} />
+                        {deletingId === job.id ? 'Deleting…' : 'Delete'}
+                      </button>
                     </td>
                   </tr>
                 )
-              }
-
-              // ── Regular job row ────────────────────────────────────────────────────────
-              const stage = mapStatusToStage(job.status)
-              const stageConf = STAGE_CONFIG[stage]
-              const created = new Date(job.created_at)
-              return <tr key={job.id} className="border-b border-slate-100 transition-colors duration-200 hover:bg-slate-50"><td className="px-4 py-3"><div><UrgencyBadge createdAt={job.created_at} stage={stage} /><p className="mt-1 text-xs text-slate-400">{created.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} · {timeAgo(job.created_at)}</p></div></td><td className="px-4 py-3"><div className="flex items-center gap-2"><p className="font-medium text-slate-900">{job.client_name}</p><SmsOptInBadge optedIn={job.sms_opt_in} /></div><p className="text-xs text-slate-500">{job.client_email}</p></td><td className="px-4 py-3 text-slate-700">{formatService(job.service_type)}</td><td className="px-4 py-3 text-slate-600">{formatAvailability(job.availability_start, job.availability_end, job.availability_time_pref)}</td><td className="px-4 py-3"><div className="flex items-center gap-2"><span className={`h-2 w-2 shrink-0 rounded-full ${stageConf.dot}`} /><span className={`text-xs font-medium ${stageConf.text}`}>{stageConf.label}</span></div></td><td className="px-4 py-3"><Link href={`/admin/jobs/${job.id}`} className="cursor-pointer text-sm font-medium text-(--color-brand) hover:underline">View →</Link></td></tr>
-            })}
+              })
+            ) : (
+              /* Normal rows */
+              filteredJobs.length === 0 ? (
+                <tr>
+                  <td colSpan={6}>
+                    <p className="px-4 py-10 text-center text-sm text-slate-400">
+                      {activeTab === 'incomplete' ? 'No incomplete bookings right now.' : 'No jobs found.'}
+                    </p>
+                  </td>
+                </tr>
+              ) : filteredJobs.map((job) => {
+                if (job.status === 'partial') {
+                  const droppedLabel = job.dropped_at_label
+                  const created = new Date(job.created_at)
+                  return (
+                    <tr key={job.id} className="border-b border-slate-100">
+                      <td className="px-4 py-3"><p className="text-xs text-slate-400">{created.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} · {timeAgo(job.created_at)}</p></td>
+                      <td className="px-4 py-3">
+                        <p className="font-medium text-slate-900">{job.client_name === 'Unknown' ? <span className="italic text-slate-400">Name not provided</span> : job.client_name}</p>
+                        <p className="text-xs text-slate-500">{job.client_email}</p>
+                        {job.client_phone && <p className="text-xs text-slate-500 font-mono tabular-nums mt-0.5">{job.client_phone}</p>}
+                        {job.sms_opt_in && <div className="mt-1.5"><SmsOptInBadge optedIn /></div>}
+                      </td>
+                      <td className="px-4 py-3 text-slate-500">{job.service_type ? formatService(job.service_type) : <span className="text-slate-300">—</span>}</td>
+                      <td className="px-4 py-3 text-slate-500">{job.availability_start ? formatAvailability(job.availability_start, job.availability_end, job.availability_time_pref) : <span className="text-slate-300">—</span>}</td>
+                      <td className="px-4 py-3"><span className="inline-flex items-center gap-1.5 text-xs font-medium text-amber-700"><span className="h-1.5 w-1.5 shrink-0 rounded-full bg-amber-400" />{droppedLabel ? `Left at · ${droppedLabel}` : 'Started booking'}</span></td>
+                      <td className="px-4 py-3"><Link href={`/admin/jobs/${job.id}`} className="cursor-pointer text-sm font-medium text-(--color-brand) hover:underline">View →</Link></td>
+                    </tr>
+                  )
+                }
+                const stage = mapStatusToStage(job.status)
+                const stageConf = STAGE_CONFIG[stage]
+                const created = new Date(job.created_at)
+                return (
+                  <tr key={job.id} className="border-b border-slate-100 transition-colors duration-200 hover:bg-slate-50">
+                    <td className="px-4 py-3">
+                      <div><UrgencyBadge createdAt={job.created_at} stage={stage} /><p className="mt-1 text-xs text-slate-400">{created.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} · {timeAgo(job.created_at)}</p></div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="font-medium text-slate-900">{job.client_name}</p>
+                        <TypeBadge type={job.type} />
+                        <SmsOptInBadge optedIn={job.sms_opt_in} />
+                      </div>
+                      <p className="text-xs text-slate-500">{job.client_email}</p>
+                    </td>
+                    <td className="px-4 py-3 text-slate-700">{formatService(job.service_type)}</td>
+                    <td className="px-4 py-3 text-slate-600">{formatAvailability(job.availability_start, job.availability_end, job.availability_time_pref)}</td>
+                    <td className="px-4 py-3"><div className="flex items-center gap-2"><span className={`h-2 w-2 shrink-0 rounded-full ${stageConf.dot}`} /><span className={`text-xs font-medium ${stageConf.text}`}>{stageConf.label}</span></div></td>
+                    <td className="px-4 py-3"><Link href={`/admin/jobs/${job.id}`} className="cursor-pointer text-sm font-medium text-(--color-brand) hover:underline">View →</Link></td>
+                  </tr>
+                )
+              })
+            )}
           </tbody>
         </table>
       </div>

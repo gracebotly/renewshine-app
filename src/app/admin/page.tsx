@@ -27,6 +27,7 @@ export default async function AdminPage({
       .from('jobs')
       .select('id, created_at')
       .in('status', ['new', 'under_review'])
+      .eq('is_archived', false)
       .lt('created_at', fourHoursAgo.toISOString()),
 
     // Outstanding invoices — jobs with an unpaid remaining balance
@@ -36,6 +37,7 @@ export default async function AdminPage({
         'id, client_name, type, service_type, approved_price, remaining_amount, deposit_paid, status, created_at'
       )
       .not('status', 'in', '(partial,cancelled,completed)')
+      .eq('is_archived', false)
       .gt('remaining_amount', 0)
       .order('created_at', { ascending: true }),
 
@@ -43,6 +45,7 @@ export default async function AdminPage({
     supabase
       .from('jobs')
       .select('*', { count: 'exact' })
+      .eq('is_archived', false)
       .order('created_at', { ascending: false })
       .range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1),
   ])
