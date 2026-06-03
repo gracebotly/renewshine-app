@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import { Pencil, ChevronDown, Table } from 'lucide-react'
+import { Pencil, Table } from 'lucide-react'
 import type { Job } from '@/types/database'
 
 function getServiceLabel(serviceType: string | null): string {
@@ -287,11 +287,15 @@ export function QuoteCard({ job }: { job: Job }) {
   // Booking card edit state
   const [priceEditOpen, setPriceEditOpen] = React.useState(false)
   const [dateEditOpen, setDateEditOpen] = React.useState(false)
+  const [depositEditOpen, setDepositEditOpen] = React.useState(false)
   const [priceInput, setPriceInput] = React.useState(
     job.approved_price ? String(job.approved_price) : ''
   )
   const [dateInput, setDateInput] = React.useState(
     job.confirmed_date ? new Date(job.confirmed_date).toISOString().split('T')[0] : ''
+  )
+  const [depositInput, setDepositInput] = React.useState(
+    String(job.deposit_amount ?? 100)
   )
   const [arrivalInput, setArrivalInput] = React.useState(
     job.availability_time_pref ?? 'morning'
@@ -301,6 +305,7 @@ export function QuoteCard({ job }: { job: Job }) {
   )
   const [priceSaving, setPriceSaving] = React.useState(false)
   const [dateSaving, setDateSaving] = React.useState(false)
+  const [depositSaving, setDepositSaving] = React.useState(false)
   const [chartOpen, setChartOpen] = React.useState(false)
 
   // Contact panel state
@@ -308,7 +313,6 @@ export function QuoteCard({ job }: { job: Job }) {
     job.preferred_contact === 'text' ? 'sms' : 'email'
   )
   const [currentTemplate, setCurrentTemplate] = React.useState<string>('photos')
-  const [contactEditMode, setContactEditMode] = React.useState(false)
   const [contactEditBody, setContactEditBody] = React.useState('')
   const [contactSending, setContactSending] = React.useState(false)
 
@@ -352,11 +356,32 @@ export function QuoteCard({ job }: { job: Job }) {
     setDateSaving(false)
   }
 
+  const handleSaveDeposit = async () => {
+    const val = parseFloat(depositInput)
+    if (!depositInput || isNaN(val) || val < 0) return
+    setDepositSaving(true)
+    const res = await fetch('/api/admin/lock-in-booking', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ jobId: job.id, depositAmount: val }),
+    })
+    if (res.ok) {
+      setDepositEditOpen(false)
+      setSuccessMsg('Deposit amount saved.')
+      setTimeout(() => setSuccessMsg(''), 3000)
+    } else {
+      setErrorMsg('Failed to save deposit amount.')
+    }
+    setDepositSaving(false)
+  }
+
   const handleSendTemplate = async () => {
     if (contactSending) return
     setContactSending(true)
     setErrorMsg('')
-    const body = contactEditMode ? contactEditBody : getTemplateContent(currentTemplate, currentChannel, job, savedPrice, savedDate, savedArrival)
+    const body = contactEditBody.trim()
+      ? contactEditBody
+      : getTemplateContent(currentTemplate, currentChannel, job, savedPrice, savedDate, savedArrival)
     try {
       if (currentTemplate === 'photos' || currentTemplate === 'custom') {
         await fetch('/api/admin/send-contact', {
@@ -451,7 +476,6 @@ export function QuoteCard({ job }: { job: Job }) {
         }
       }
       setSuccessMsg('Sent ✓')
-      setContactEditMode(false)
       setTimeout(() => setSuccessMsg(''), 4000)
     } catch {
       setErrorMsg('Failed to send. Try again.')
@@ -524,20 +548,12 @@ export function QuoteCard({ job }: { job: Job }) {
 
   const firstName = job.client_name?.split(' ')[0] ?? ''
   const templateList = currentChannel === 'email' ? EMAIL_TEMPLATE_LIST : SMS_TEMPLATE_LIST
-  const previewBody = contactEditMode
-    ? contactEditBody
-    : getTemplateContent(currentTemplate, currentChannel, job, savedPrice, savedDate, savedArrival)
+  const previewBody = getTemplateContent(currentTemplate, currentChannel, job, savedPrice, savedDate, savedArrival)
   const previewSubject = currentChannel === 'email'
     ? getEmailSubject(currentTemplate, job, savedPrice, savedDate)
     : null
   const isCustomTemplate = currentTemplate === 'custom'
 
-  const depositDisplay = job.deposit_paid
-    ? `$${job.deposit_amount ?? 100} paid`
-    : job.stripe_payment_link
-    ? 'Awaiting payment'
-    : 'Not required'
-  const depositColor = job.deposit_paid ? '#3B6D11' : job.stripe_payment_link ? '#854F0B' : '#888'
 
   const dateDisplay = (() => {
     if (savedDate) {
@@ -621,32 +637,67 @@ export function QuoteCard({ job }: { job: Job }) {
               </div>
             )}
 
-            {/* Pricing reference toggle */}
-            <button
-              onClick={() => setChartOpen(p => !p)}
-              className="flex w-full items-center gap-2 border-b border-slate-100 px-3 py-2 text-[11px] font-medium text-[#4A7C59] hover:bg-slate-50 transition-colors cursor-pointer"
+            {/* Deposit row — editable amount + journey status */}
+            <div
+              className="flex items-center justify-between px-3 py-2.5 border-b border-slate-100 hover:bg-slate-50 transition-colors duration-150 cursor-pointer"
+              onClick={() => { setDepositEditOpen(p => !p); setPriceEditOpen(false); setDateEditOpen(false) }}
             >
-              <Table size={11} aria-hidden />
-              Pricing reference
-              <ChevronDown
-                size={11}
-                className="ml-auto transition-transform duration-150"
-                style={{ transform: chartOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}
-              />
-            </button>
-            {chartOpen && (
-              <div className="border-b border-slate-100 bg-slate-50 px-3 py-4">
-                <div className="rounded-lg border border-dashed border-slate-200 p-3 text-center text-[11px] text-slate-400">
-                  Pricing chart — coming soon
+              <span className="text-xs text-slate-400">Deposit</span>
+              <div className="flex items-center gap-2">
+                {/* Journey-aware status */}
+                {job.deposit_paid ? (
+                  <span className="text-xs font-medium text-emerald-600">
+                    ${job.deposit_amount ?? 100} paid ✓
+                  </span>
+                ) : job.stripe_payment_link ? (
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-medium text-amber-600">Link sent — awaiting</span>
+                    <button
+                      onClick={e => { e.stopPropagation(); handleResendLink() }}
+                      disabled={loadingResend}
+                      className="text-[10px] font-semibold text-blue-500 hover:underline disabled:opacity-50 cursor-pointer"
+                    >
+                      {loadingResend ? 'Resending…' : 'Resend'}
+                    </button>
+                  </div>
+                ) : (
+                  <span className="text-xs text-slate-400">
+                    ${job.deposit_amount ?? 100}
+                  </span>
+                )}
+                <Pencil size={11} className="text-slate-300" />
+              </div>
+            </div>
+
+            {/* Deposit edit row */}
+            {depositEditOpen && (
+              <div className="px-3 py-2.5 border-b border-slate-100 bg-slate-50 space-y-2">
+                <p className="text-[10px] text-slate-400">Change deposit amount</p>
+                <input
+                  type="number"
+                  value={depositInput}
+                  onChange={e => setDepositInput(e.target.value)}
+                  placeholder="e.g. 150"
+                  autoFocus
+                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-900 focus:border-[#4A7C59]/40 focus:outline-none"
+                />
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleSaveDeposit}
+                    disabled={depositSaving}
+                    className="rounded-lg bg-[#4A7C59] px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-40 cursor-pointer hover:bg-[#3d6b4a] transition-colors"
+                  >
+                    {depositSaving ? 'Saving…' : 'Save'}
+                  </button>
+                  <button
+                    onClick={() => setDepositEditOpen(false)}
+                    className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-500 cursor-pointer hover:bg-slate-50 transition-colors"
+                  >
+                    Cancel
+                  </button>
                 </div>
               </div>
             )}
-
-            {/* Deposit row */}
-            <div className="flex items-center justify-between px-3 py-2.5 border-b border-slate-100">
-              <span className="text-xs text-slate-400">Deposit</span>
-              <span className="text-xs font-medium" style={{ color: depositColor }}>{depositDisplay}</span>
-            </div>
 
             {/* Date row */}
             <div
@@ -726,9 +777,59 @@ export function QuoteCard({ job }: { job: Job }) {
 
         {/* ── CONTACT PANEL ── */}
         <div>
-          <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400 mb-2">
-            Contact {firstName}
-          </p>
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400">
+              Contact {firstName}
+            </p>
+            <button
+              onClick={() => setChartOpen(p => !p)}
+              title="Pricing reference"
+              className={`flex h-6 w-6 items-center justify-center rounded-md transition-colors duration-150 cursor-pointer ${
+                chartOpen
+                  ? 'bg-[#4A7C59] text-white'
+                  : 'bg-slate-100 text-slate-400 hover:bg-[#e8f3ec] hover:text-[#4A7C59]'
+              }`}
+            >
+              <Table size={11} aria-hidden />
+            </button>
+          </div>
+
+          {/* Pricing reference panel — shown inline below the header */}
+          {chartOpen && (
+            <div className="mb-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-3">
+              <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-slate-400">
+                Pricing reference
+              </p>
+              <div className="overflow-x-auto">
+                <table className="w-full text-[11px]">
+                  <thead>
+                    <tr className="border-b border-slate-200">
+                      <th className="pb-1.5 pr-3 text-left font-semibold text-slate-500">Bed / Bath</th>
+                      <th className="pb-1.5 pr-3 text-right font-semibold text-slate-500">Standard</th>
+                      <th className="pb-1.5 text-right font-semibold text-slate-500">Deep</th>
+                    </tr>
+                  </thead>
+                  <tbody className="text-slate-700">
+                    {[
+                      { label: '1 / 1', std: 200, deep: 400 },
+                      { label: '2 / 1', std: 260, deep: 400 },
+                      { label: '2 / 2', std: 300, deep: 400 },
+                      { label: '3 / 2', std: 380, deep: 505 },
+                      { label: '4 / 2', std: 440, deep: 580 },
+                      { label: '4 / 3', std: 480, deep: 635 },
+                    ].map(row => (
+                      <tr key={row.label} className="border-b border-slate-100 last:border-0">
+                        <td className="py-1.5 pr-3 text-slate-500">{row.label}</td>
+                        <td className="py-1.5 pr-3 text-right">${row.std}</td>
+                        <td className="py-1.5 text-right">${row.deep}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <p className="mt-2 text-[10px] text-slate-400">Move-In / Move-Out — always custom quoted. Add-ons extra.</p>
+            </div>
+          )}
           <div className="overflow-hidden rounded-xl border border-slate-200">
 
             {/* Email / SMS toggle */}
@@ -736,7 +837,7 @@ export function QuoteCard({ job }: { job: Job }) {
               {(['email', 'sms'] as const).map(ch => (
                 <button
                   key={ch}
-                  onClick={() => { setCurrentChannel(ch); setContactEditMode(false) }}
+                  onClick={() => { setCurrentChannel(ch); setContactEditBody('') }}
                   className={`flex-1 py-2.5 text-xs font-semibold transition-colors duration-150 cursor-pointer ${
                     currentChannel === ch
                       ? 'bg-[#4A7C59] text-white'
@@ -752,7 +853,7 @@ export function QuoteCard({ job }: { job: Job }) {
               {/* Template dropdown */}
               <select
                 value={currentTemplate}
-                onChange={e => { setCurrentTemplate(e.target.value); setContactEditMode(false); setContactEditBody('') }}
+                onChange={e => { setCurrentTemplate(e.target.value); setContactEditBody('') }}
                 className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-900 focus:border-[#4A7C59]/40 focus:outline-none cursor-pointer"
               >
                 {templateList.map(t => (
@@ -767,19 +868,12 @@ export function QuoteCard({ job }: { job: Job }) {
                   <span className="text-[10px] font-semibold uppercase tracking-widest text-slate-400">
                     Preview
                   </span>
-                  {!isCustomTemplate && (
+                  {!isCustomTemplate && contactEditBody && (
                     <button
-                      onClick={() => {
-                        if (!contactEditMode) {
-                          setContactEditBody(previewBody)
-                          setContactEditMode(true)
-                        } else {
-                          setContactEditMode(false)
-                        }
-                      }}
-                      className="text-[11px] text-[#4A7C59] underline cursor-pointer bg-none border-none"
+                      onClick={() => setContactEditBody('')}
+                      className="text-[11px] text-slate-400 hover:text-slate-600 cursor-pointer transition-colors"
                     >
-                      {contactEditMode ? 'Reset' : 'Edit'}
+                      Reset
                     </button>
                   )}
                 </div>
@@ -792,32 +886,25 @@ export function QuoteCard({ job }: { job: Job }) {
                   </div>
                 )}
 
-                {/* Body — editable or static */}
-                {contactEditMode || isCustomTemplate ? (
-                  <textarea
-                    value={contactEditBody}
-                    onChange={e => setContactEditBody(e.target.value)}
-                    autoFocus={!isCustomTemplate}
-                    rows={6}
-                    maxLength={1000}
-                    placeholder={isCustomTemplate ? 'Type your message…' : undefined}
-                    className="w-full bg-white px-3 py-2.5 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none resize-none leading-relaxed"
-                  />
-                ) : (
-                  <div className="max-h-44 overflow-y-auto px-3 py-2.5 text-xs leading-relaxed text-slate-800 whitespace-pre-wrap">
-                    {previewBody}
-                  </div>
-                )}
+                {/* Body — always editable */}
+                <textarea
+                  value={contactEditBody || previewBody}
+                  onChange={e => setContactEditBody(e.target.value)}
+                  rows={7}
+                  maxLength={1000}
+                  placeholder={isCustomTemplate ? 'Type your message…' : undefined}
+                  className="w-full bg-white px-3 py-2.5 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none resize-none leading-relaxed"
+                />
 
                 {/* Send row */}
                 <div className="flex items-center justify-between border-t border-slate-100 bg-slate-50 px-3 py-2">
                   <span className={`text-[10px] ${
-                    (contactEditMode ? contactEditBody : previewBody).length >= 500
+                    (contactEditBody || previewBody).length >= 500
                       ? 'text-amber-500'
                       : 'text-slate-400'
                   }`}>
                     {currentChannel === 'sms'
-                      ? `${(contactEditMode ? contactEditBody : previewBody).length} chars`
+                      ? `${(contactEditBody || previewBody).length} chars`
                       : ''}
                   </span>
                   <button
@@ -848,20 +935,6 @@ export function QuoteCard({ job }: { job: Job }) {
                 <span className="text-[8px] font-bold text-white">✓</span>
               </div>
               <p className="text-xs font-medium text-[#4A7C59]">Appointment confirmed</p>
-            </div>
-          )}
-
-          {/* Resend deposit link */}
-          {overrideStatus === 'approved' && !job.deposit_paid && job.stripe_payment_link && (
-            <div className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
-              <p className="text-xs text-slate-500">Quote sent — waiting on deposit</p>
-              <button
-                onClick={handleResendLink}
-                disabled={loadingResend}
-                className="shrink-0 cursor-pointer text-xs font-medium text-blue-600 hover:underline disabled:opacity-50"
-              >
-                {loadingResend ? 'Resending…' : 'Resend link'}
-              </button>
             </div>
           )}
 
