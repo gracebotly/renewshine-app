@@ -140,7 +140,7 @@ export function customerBookedTemplate(job: Job): { subject: string; html: strin
 
     ${para(`We'll reach out 48 hours before your appointment to confirm access and go over any final details.`)}
     <p style="margin:0;font-size:13px;color:#64748b;line-height:1.6;">
-      Questions before ${dayName}? Reply to this email or text us at
+      Questions before ${dayName}? Email us at <a href="mailto:hello@renewshine.co" style="color:#4A7C59;text-decoration:none;">hello@renewshine.co</a> or text us at
       <a href="sms:+17712539204" style="color:#4A7C59;text-decoration:none;">(771) 253-9204</a>.
     </p>
   `

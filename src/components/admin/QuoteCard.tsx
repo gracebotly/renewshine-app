@@ -165,7 +165,7 @@ function getTemplateContent(
 
 Thank you for contacting RenewShine. Before we can provide an accurate quote, our team reviews photos of every space.
 
-Please reply with a few photos or a short walkthrough video${getRoomCallout(j.service_type)}. FaceTime works too.
+Please send a few photos or a short walkthrough video${getRoomCallout(j.service_type)} to hello@renewshine.co or text them to (771) 253-9204. FaceTime works too.
 
 Once we've reviewed everything, we'll send over your confirmed quote and available appointment options.
 
@@ -189,7 +189,7 @@ Total: ${priceFmt}
 Deposit due today: $${dep}
 Balance after service: ${remainFmt}
 
-Once the deposit is received, your date is confirmed. Reply to this email or text (771) 253-9204 with any questions.
+Once the deposit is received, your date is confirmed. Email us at hello@renewshine.co or text (771) 253-9204 with any questions.
 
 — RenewShine`,
       sms: `Hi ${first} — thanks for sending the photos.
@@ -212,7 +212,7 @@ Thank you for sending the details.
 Service: ${svc}${beds}
 Total: ${priceFmt}
 
-No deposit required. Reply to this email or call (771) 253-9204 to confirm and we'll get you scheduled.
+No deposit required. Email us at hello@renewshine.co or call (771) 253-9204 to confirm and we'll get you scheduled.
 
 — RenewShine`,
       sms: `Hi ${first} — your ${svc} quote is ${priceFmt}.
@@ -236,7 +236,7 @@ A few notes before we arrive:
 
 We'll bring all supplies. We'll also call you 48 hours before your appointment.
 
-Questions? Feel free to reply here or text (771) 253-9204.
+Questions? Email us at hello@renewshine.co or text (771) 253-9204.
 
 — RenewShine`
         : noDate,
@@ -263,7 +263,7 @@ Just a reminder — your ${svc} is scheduled for ${dateFmt}, ${arrFmt}.
 
 Address on file: ${j.address ?? '—'}
 
-If anything has changed or you have questions, feel free to reply here or call (771) 253-9204.
+If anything has changed or you have questions, email us at hello@renewshine.co or call (771) 253-9204.
 
 See you then.
 
@@ -290,16 +290,19 @@ Total: ${priceFmt}${j.deposit_paid ? `
 Deposit paid: −$${dep}` : ''}
 Balance due: ${remainFmt}
 
-Payment is due within 7 days of the service date. A secure payment link is included in the invoice email.
+Payment is due within 7 days. A secure payment link is included in the invoice email.
 
 — RenewShine`,
       sms: `Hi ${first} — your ${svc} is complete.
 
-We've sent your invoice to your email on file.
-
+${dateFmt ? `Service date: ${dateFmt}
+` : ''}Total: ${priceFmt}
+Deposit paid: $${dep}
 Balance due: ${remainFmt}
 
-Questions? Reply here anytime.
+Payment link below.
+
+Questions? Text us at (771) 253-9204.
 
 — RenewShine`,
     },

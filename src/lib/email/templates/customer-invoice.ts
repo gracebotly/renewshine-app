@@ -123,7 +123,7 @@ export function customerInvoiceTemplate(data: InvoiceEmailData): { subject: stri
   </table>
 
   <p style="margin:0 0 8px;font-size:13px;font-weight:600;color:#0f172a;text-align:center;">Questions before paying?</p>
-  <p style="margin:0 0 16px;font-size:13px;color:#64748b;text-align:center;">Reply to this email or text us at <a href="sms:+17712539204" style="color:#4A7C59;text-decoration:none;">(771) 253-9204</a></p>
+  <p style="margin:0 0 16px;font-size:13px;color:#64748b;text-align:center;">Email us at <a href="mailto:hello@renewshine.co" style="color:#4A7C59;text-decoration:none;">hello@renewshine.co</a> or text <a href="sms:+17712539204" style="color:#4A7C59;text-decoration:none;">(771) 253-9204</a></p>
   ${ctaButton(`Submit Payment — $${data.amountDue.toFixed(2)}`, data.paymentUrl)}
 
   ${notesBlock}
@@ -135,7 +135,7 @@ export function customerInvoiceTemplate(data: InvoiceEmailData): { subject: stri
         <p style="margin:0 0 4px;font-size:13px;font-weight:600;color:#0f172a;">Next Steps</p>
         <p style="margin:0;font-size:13px;color:#334155;line-height:1.65;">
           Pay securely online using the button above. Once received, you will get a confirmation email.
-          Questions? Reply to this email or text us at (771) 253-9204.
+          Questions? Email us at hello@renewshine.co or text (771) 253-9204.
         </p>
       </td>
     </tr>

@@ -195,7 +195,7 @@ export function customerQuoteTemplate(job: Job, stripeUrl: string, depositAmount
     </table>
 
     <p style="margin:0 0 8px;font-size:13px;font-weight:600;color:#0f172a;text-align:center;">Questions before booking?</p>
-    <p style="margin:0 0 20px;font-size:13px;color:#64748b;text-align:center;line-height:1.6;">Reply to this email or text us at <a href="sms:+17712539204" style="color:#4A7C59;text-decoration:none;">(771) 253-9204</a> and we'll be happy to help.</p>
+    <p style="margin:0 0 20px;font-size:13px;color:#64748b;text-align:center;line-height:1.6;">Email us at <a href="mailto:hello@renewshine.co" style="color:#4A7C59;text-decoration:none;">hello@renewshine.co</a> or text <a href="sms:+17712539204" style="color:#4A7C59;text-decoration:none;">(771) 253-9204</a> and we'll be happy to help.</p>
 
     ${ctaButton('Confirm Booking', stripeUrl)}
 
