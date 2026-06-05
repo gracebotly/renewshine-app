@@ -163,21 +163,22 @@ function getTemplateContent(
     photos: {
       email: `Hi ${first},
 
-Thank you for contacting RenewShine. Before I can provide an accurate quote, I'd like to take a look at the space.
+Thank you for contacting RenewShine. Before we can provide an accurate quote, our team reviews photos of every space.
 
-You can reply with a few photos or a short walkthrough video${getRoomCallout(j.service_type)}. FaceTime works too.
+Please reply with a few photos or a short walkthrough video${getRoomCallout(j.service_type)}. FaceTime works too.
 
-Once I review everything, I'll send over your quote.
+Once we've reviewed everything, we'll send over your confirmed quote and available appointment options.
 
-— Grace, RenewShine`,
-      sms:   `Hi ${first}, thanks for reaching out to RenewShine.
+— RenewShine`,
+      sms: `Hi ${first}, thanks for reaching out to RenewShine.
 
 To provide an accurate quote, please send a few photos or a short walkthrough video${getRoomCallout(j.service_type)}.
 
-FaceTime works too. Once I review it, I'll send over your quote.
+FaceTime works too. Once we review it, we'll send over your quote.
 
-— Grace`,
+— RenewShine`,
     },
+
     quote_dep: {
       email: `Hi ${first},
 
@@ -185,23 +186,24 @@ Thank you for sending the photos.
 
 Service: ${svc}${beds}
 Total: ${priceFmt}
-Deposit to reserve: $${dep}
+Deposit due today: $${dep}
 Balance after service: ${remainFmt}
 
-Once you pay the deposit, your date is locked in.
+Once the deposit is received, your date is confirmed. Reply to this email or text (771) 253-9204 with any questions.
 
-— Grace, RenewShine`,
-      sms:   `Hi ${first} — thanks for sending the photos.
+— RenewShine`,
+      sms: `Hi ${first} — thanks for sending the photos.
 
 Your ${svc} quote is ${priceFmt}.
 
-$${dep} deposit to reserve your date.
+$${dep} deposit due today.
 ${remainFmt} due after the cleaning.
 
-Reply YES and I'll send your deposit link.
+Reply YES and we'll send your deposit link.
 
-— Grace`,
+— RenewShine`,
     },
+
     quote_no: {
       email: `Hi ${first},
 
@@ -210,47 +212,49 @@ Thank you for sending the details.
 Service: ${svc}${beds}
 Total: ${priceFmt}
 
-No deposit required. Reply to this email or call (771) 253-9204 to confirm and I'll get you scheduled.
+No deposit required. Reply to this email or call (771) 253-9204 to confirm and we'll get you scheduled.
 
-— Grace, RenewShine`,
-      sms:   `Hi ${first} — your ${svc} quote is ${priceFmt}.
+— RenewShine`,
+      sms: `Hi ${first} — your ${svc} quote is ${priceFmt}.
 
-No deposit required. Reply YES to confirm and I'll get you scheduled.
+No deposit required. Reply YES to confirm and we'll get you scheduled.
 
-— Grace, RenewShine`,
+— RenewShine`,
     },
+
     appt: {
       email: dateFmt
         ? `Hi ${first},
 
 Your ${svc} is confirmed for ${dateFmt} · ${arrFmt}.
 
-A few quick notes before we arrive:
+A few notes before we arrive:
 • Please have floors, countertops, and surfaces reasonably clear.
-• Let me know any priority areas beforehand.
+• Let us know any priority areas beforehand.
 • For safety, we don't move heavy furniture or appliances.
 • Pets should be secured if they may be uncomfortable.
 
-We'll bring all supplies. We'll also call you 48 hours before.
+We'll bring all supplies. We'll also call you 48 hours before your appointment.
 
-Questions? Feel free to reply here.
+Questions? Feel free to reply here or text (771) 253-9204.
 
-— Grace, RenewShine`
+— RenewShine`
         : noDate,
       sms: dateFmt
         ? `Hi ${first} — your ${svc} is confirmed for ${dateFmt} · ${arrFmt}.
 
 Before we arrive:
-• Clear surfaces of personal items.
-• Let me know priority areas.
-• We don't move heavy furniture.
-• Pets should be secured.
+• Please have floors and surfaces reasonably clear.
+• Let us know priority areas in advance.
+• We don't move heavy furniture or appliances.
+• Pets should be secured if they may be uncomfortable.
 
-We'll bring all supplies. We'll call you 48 hours before.
+We'll bring all supplies and call you 48 hours before.
 
-— Grace, RenewShine`
+— RenewShine`
         : noDate,
     },
+
     reminder: {
       email: dateFmt
         ? `Hi ${first},
@@ -261,38 +265,45 @@ Address on file: ${j.address ?? '—'}
 
 If anything has changed or you have questions, feel free to reply here or call (771) 253-9204.
 
-See you then!
-— Grace, RenewShine`
+See you then.
+
+— RenewShine`
         : noDate,
       sms: dateFmt
-        ? `Hi ${first} — reminder that your ${svc} is tomorrow, ${dateFmt}, ${arrFmt}.
+        ? `Hi ${first} — your ${svc} is tomorrow, ${dateFmt}, ${arrFmt}.
 
-Address: ${j.address ?? 'on file'}. Questions? Reply here.
+Address: ${j.address ?? 'on file'}.
 
-— Grace, RenewShine`
+Reply YES to confirm or let us know if anything has changed.
+
+— RenewShine`
         : noDate,
     },
+
     invoice: {
       email: `Hi ${first},
 
-Thank you for choosing RenewShine.
+Your ${svc}${dateFmt ? ` on ${dateFmt}` : ''} is complete. Your invoice has been sent to your email on file.
 
-Service: ${svc}${dateFmt ? ` · ${dateFmt}` : ''}
+Service: ${svc}${beds}
 Total: ${priceFmt}${j.deposit_paid ? `
-Deposit paid: $${dep}` : ''}
+Deposit paid: −$${dep}` : ''}
 Balance due: ${remainFmt}
 
-A payment link will be included when you send this.
+Payment is due within 7 days of the service date. A secure payment link is included in the invoice email.
 
-— Grace, RenewShine`,
-      sms:   `Hi ${first} — your ${svc} is complete. Thank you!
+— RenewShine`,
+      sms: `Hi ${first} — your ${svc} is complete.
+
+We've sent your invoice to your email on file.
 
 Balance due: ${remainFmt}
 
-Payment link below.
+Questions? Reply here anytime.
 
-— Grace, RenewShine`,
+— RenewShine`,
     },
+
     custom: { email: '', sms: '' },
   }
 

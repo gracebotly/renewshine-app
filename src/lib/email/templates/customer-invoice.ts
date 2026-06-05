@@ -22,8 +22,7 @@ export interface InvoiceEmailData {
 }
 
 export function customerInvoiceTemplate(data: InvoiceEmailData): { subject: string; html: string } {
-  const firstName = data.clientName.split(' ')[0]
-  const subject = `Invoice ${data.invoiceNumber} from RenewShine — $${data.amountDue.toFixed(2)} due`
+  const subject = `Invoice ${data.invoiceNumber} — $${data.amountDue.toFixed(2)} due ${data.dueDate}`
 
   const lineItemRows = data.lineItems
     .map(
@@ -43,15 +42,30 @@ export function customerInvoiceTemplate(data: InvoiceEmailData): { subject: stri
         </tr>`
       : ''
 
-  const preparedForBlock =
-    data.businessName || data.address
-      ? `<div style="margin:0 0 24px;">
-          <p style="margin:0 0 6px;font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.08em;">Prepared For</p>
-          <p style="margin:0;font-size:14px;font-weight:600;color:#0f172a;">${data.clientName}</p>
-          ${data.businessName ? `<p style="margin:2px 0 0;font-size:13px;color:#475569;">${data.businessName}</p>` : ''}
-          ${data.address ? `<p style="margin:2px 0 0;font-size:13px;color:#475569;">${data.address}</p>` : ''}
-        </div>`
-      : `<p style="margin:0 0 24px;font-size:14px;color:#334155;">Hi ${firstName},</p>`
+  // ── FROM / TO header ─────────────────────────────────────────────────────
+  const fromToBlock = `
+    <table width="100%" cellpadding="0" cellspacing="0" role="presentation"
+      style="margin:0 0 28px;border:1px solid #e2e8f0;border-radius:10px;overflow:hidden;">
+      <tr>
+        <td style="padding:16px 20px;width:50%;vertical-align:top;border-right:1px solid #e2e8f0;">
+          <p style="margin:0 0 6px;font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.08em;">From</p>
+          <p style="margin:0;font-size:14px;font-weight:700;color:#0f172a;">RenewShine</p>
+          <p style="margin:2px 0 0;font-size:12px;color:#64748b;">Premium Residential &amp; Commercial Cleaning</p>
+          <p style="margin:2px 0 0;font-size:12px;color:#64748b;">DMV Area</p>
+          <p style="margin:4px 0 0;font-size:12px;color:#4A7C59;">
+            <a href="https://renewshine.co" style="color:#4A7C59;text-decoration:none;">renewshine.co</a>
+            &nbsp;·&nbsp;(771) 253-9204
+          </p>
+        </td>
+        <td style="padding:16px 20px;width:50%;vertical-align:top;">
+          <p style="margin:0 0 6px;font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.08em;">Billed To</p>
+          <p style="margin:0;font-size:14px;font-weight:700;color:#0f172a;">${data.clientName}</p>
+          ${data.businessName ? `<p style="margin:2px 0 0;font-size:12px;color:#64748b;">${data.businessName}</p>` : ''}
+          ${data.address ? `<p style="margin:2px 0 0;font-size:12px;color:#64748b;">${data.address}</p>` : ''}
+          <p style="margin:2px 0 0;font-size:12px;color:#64748b;">${data.clientEmail}</p>
+        </td>
+      </tr>
+    </table>`
 
   const serviceDateLine = data.serviceDate
     ? `<p style="margin:0 0 6px;font-size:13px;color:#64748b;">Service date: <strong style="color:#0f172a;">${data.serviceDate}</strong></p>`
@@ -65,7 +79,7 @@ export function customerInvoiceTemplate(data: InvoiceEmailData): { subject: stri
     : ''
 
   const content = `
-  ${preparedForBlock}
+  ${fromToBlock}
 
   <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="margin:0 0 20px;">
     <tr>
@@ -108,7 +122,9 @@ export function customerInvoiceTemplate(data: InvoiceEmailData): { subject: stri
     </tbody>
   </table>
 
-  ${ctaButton(`Pay $${data.amountDue.toFixed(2)} Now`, data.paymentUrl)}
+  <p style="margin:0 0 8px;font-size:13px;font-weight:600;color:#0f172a;text-align:center;">Questions before paying?</p>
+  <p style="margin:0 0 16px;font-size:13px;color:#64748b;text-align:center;">Reply to this email or text us at <a href="sms:+17712539204" style="color:#4A7C59;text-decoration:none;">(771) 253-9204</a></p>
+  ${ctaButton(`Submit Payment — $${data.amountDue.toFixed(2)}`, data.paymentUrl)}
 
   ${notesBlock}
 
