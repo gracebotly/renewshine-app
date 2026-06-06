@@ -141,17 +141,7 @@ export function customerInvoiceTemplate(data: InvoiceEmailData): { subject: stri
 
   ${notesBlock}
 
-  <p style="margin:0 0 6px;font-size:13px;font-weight:600;color:#0f172a;text-align:center;">Questions before paying?</p>
-  <p style="margin:0 0 20px;font-size:13px;color:#64748b;text-align:center;line-height:1.6;">
-    Reply to this email or text us at <a href="sms:+17712539204" style="color:#4A7C59;text-decoration:none;">(771) 253-9204</a>
-  </p>
-
   ${ctaButton(`Pay Now — $${data.amountDue.toFixed(2)}`, data.paymentUrl)}
-
-  <p style="margin:20px 0 0;font-size:12px;color:#94a3b8;text-align:center;line-height:1.6;">
-    No hidden fees. No surprise charges.<br/>
-    Payment is processed securely via Stripe.
-  </p>
 `
 
   return {

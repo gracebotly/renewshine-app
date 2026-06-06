@@ -290,19 +290,18 @@ Total: ${priceFmt}${j.deposit_paid ? `
 Deposit paid: −$${dep}` : ''}
 Balance due: ${remainFmt}
 
-Payment is due within 7 days of the service date. A secure payment link is included in the invoice email.
+Payment is due within 24 hours of the service date.
 
 — RenewShine`,
-      sms: `Hi ${first} — your ${svc} is complete.
+      sms: j.stripe_payment_link
+        ? `Hi ${first} — your ${svc} is complete.
 
-Your remaining balance of ${remainFmt} is due within 7 days.
+Your remaining balance of ${remainFmt} is due within 24 hours.
 
-${j.stripe_payment_link ? `Pay securely here:
-${j.stripe_payment_link}` : `We've sent your invoice and payment link to your email on file.`}
+${j.stripe_payment_link}
 
-Questions? Reply here anytime.
-
-— RenewShine`,
+— RenewShine`
+        : '',
     },
 
     custom: { email: '', sms: '' },
@@ -524,7 +523,7 @@ export function QuoteCard({ job }: { job: Job }) {
         const svc = getServiceLabel(job.service_type ?? null)
         const price = savedPrice ?? job.approved_price ?? 0
         const lineItems = [{ description: `${svc}${savedDate ? ` — ${new Date(savedDate + 'T12:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}` : ''}`, amount: price }]
-        const dueDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+        const dueDate = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0]
         const res = await fetch('/api/admin/send-invoice', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
