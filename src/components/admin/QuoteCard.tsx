@@ -290,19 +290,17 @@ Total: ${priceFmt}${j.deposit_paid ? `
 Deposit paid: −$${dep}` : ''}
 Balance due: ${remainFmt}
 
-Payment is due within 7 days. A secure payment link is included in the invoice email.
+Payment is due within 7 days of the service date. A secure payment link is included in the invoice email.
 
 — RenewShine`,
       sms: `Hi ${first} — your ${svc} is complete.
 
-${dateFmt ? `Service date: ${dateFmt}
-` : ''}Total: ${priceFmt}
-Deposit paid: $${dep}
-Balance due: ${remainFmt}
+Your remaining balance of ${remainFmt} is due within 7 days.
 
-Payment link below.
+${j.stripe_payment_link ? `Pay securely here:
+${j.stripe_payment_link}` : `We've sent your invoice and payment link to your email on file.`}
 
-Questions? Text us at (771) 253-9204.
+Questions? Reply here anytime.
 
 — RenewShine`,
     },
