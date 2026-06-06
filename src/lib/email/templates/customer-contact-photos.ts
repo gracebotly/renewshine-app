@@ -23,14 +23,14 @@ export function customerContactPhotosTemplate(job: Job): { subject: string; html
 
     ${para(`Before we can provide an accurate quote, our team reviews photos of every space. Could you send a few photos or a short walkthrough video of ${rooms}?`)}
 
-    ${para(`If photos are difficult, a quick FaceTime or video call works just as well — simply reply and we'll arrange a time.`)}
+    ${para(`If photos are difficult, a quick FaceTime or video call works just as well — text us at (771) 253-9204 and we'll arrange a time.`)}
 
     ${para(`Once we've reviewed everything, we'll send over your confirmed quote and available appointment options.`)}
 
     ${divider}
 
     <p style="margin:0;font-size:13px;color:#64748b;line-height:1.6;">
-      You can reply directly to this email or text us at
+      Email us at <a href="mailto:hello@renewshine.co" style="color:#4A7C59;text-decoration:none;">hello@renewshine.co</a> or text us at
       <a href="sms:+17712539204" style="color:#4A7C59;text-decoration:none;">(771) 253-9204</a>.
     </p>
   `

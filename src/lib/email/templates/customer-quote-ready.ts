@@ -31,13 +31,12 @@ export function customerQuoteReadyTemplate(job: Job): { subject: string; html: s
       infoRow('Remaining after service', `$${remaining.toFixed(2)}`)
     )}
 
-    ${para(`To move forward, please reply to this email and we'll send your deposit link to confirm the appointment.`)}
+    ${para(`To move forward, email us at hello@renewshine.co or text (771) 253-9204 and we'll send your deposit link to confirm the appointment.`)}
 
     ${divider}
 
     <p style="margin:0;font-size:12px;color:#94a3b8;line-height:1.6;text-align:center;">
-      Questions? Reply to this email or text us at
-      <a href="sms:+17712539204" style="color:#4A7C59;text-decoration:none;">(771) 253-9204</a>
+      Questions? Email us at <a href="mailto:hello@renewshine.co" style="color:#4A7C59;text-decoration:none;">hello@renewshine.co</a> or text <a href="sms:+17712539204" style="color:#4A7C59;text-decoration:none;">(771) 253-9204</a>
     </p>
   `
 
