@@ -294,10 +294,18 @@ Payment is due within 24 hours of the service date.
 
 — RenewShine`,
       sms: j.stripe_payment_link
-        ? `Hi ${first} — your ${svc} is complete.
+        ? `RenewShine — Invoice
 
-Your remaining balance of ${remainFmt} is due within 24 hours.
+Client: ${j.client_name}
+Service: ${svc}${beds}${dateFmt ? `
+Date: ${dateFmt}` : ''}${j.address ? `
+Address: ${j.address}` : ''}
 
+Service total: ${priceFmt}${j.deposit_paid ? `
+Deposit paid: -$${dep}` : ''}
+Balance due: ${remainFmt}
+
+Due within 24 hours:
 ${j.stripe_payment_link}
 
 — RenewShine`
