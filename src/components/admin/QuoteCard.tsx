@@ -182,24 +182,31 @@ FaceTime works too. Once we review it, we'll send over your quote.
     quote_dep: {
       email: `Hi ${first},
 
-Thank you for sending the photos.
+We've reviewed your photos and your quote is ready.
 
 Service: ${svc}${beds}
 Total: ${priceFmt}
 Deposit due today: $${dep}
 Balance after service: ${remainFmt}
 
-Once the deposit is received, your date is confirmed. Email us at hello@renewshine.co or text (771) 253-9204 with any questions.
+A full breakdown and deposit link is on its way to your inbox.
 
 — RenewShine`,
-      sms: `Hi ${first} — your ${svc} quote is ${priceFmt}.
+      sms: (() => {
+        const bedsLine = j.bedrooms ? ` · ${j.bedrooms}bd / ${j.bathrooms}ba` : ''
+        return `Hi ${first} — your RenewShine ${svc} quote is ready.
 
-To lock in your date, complete your $${dep} deposit here:
+Service: ${svc}${bedsLine}
+Total: ${priceFmt}
+Deposit to hold your date: $${dep}
+Balance after service: ${remainFmt}
+
+Pay here:
 [deposit link included]
 
-${remainFmt} balance due after the clean.
-
-— Grace`,
+Reply with any questions.
+— RenewShine`
+      })(),
     },
 
     quote_no: {
@@ -386,7 +393,7 @@ export function QuoteCard({ job }: { job: Job }) {
   const [contactEditBody, setContactEditBody] = React.useState('')
   const [contactSending, setContactSending] = React.useState(false)
 
-  // Recurring pricing toggle
+  // Recurring pricing toggle — auto-enabled when job already has a frequency
   const [includeRecurring, setIncludeRecurring] = React.useState<boolean>(() => {
     const f = job.service_frequency
     return !!f && ['weekly', 'biweekly', 'monthly'].includes(f)
@@ -401,6 +408,11 @@ export function QuoteCard({ job }: { job: Job }) {
   const recurringPrice = savedPrice && includeRecurring
     ? Math.round(savedPrice * (FREQ_MULT[recurringFreq] ?? 0.85))
     : null
+
+  // Email HTML preview
+  const [emailPreviewHtml, setEmailPreviewHtml] = React.useState<string | null>(null)
+  const [emailPreviewLoading, setEmailPreviewLoading] = React.useState(false)
+  const [showEmailPreview, setShowEmailPreview] = React.useState(false)
 
   const handleSavePrice = async () => {
     const val = parseFloat(priceInput)
@@ -465,9 +477,12 @@ export function QuoteCard({ job }: { job: Job }) {
     if (contactSending) return
     setContactSending(true)
     setErrorMsg('')
-    const body = contactEditBody.trim()
+    const rawBody = contactEditBody.trim()
       ? contactEditBody
-      : getTemplateContent(currentTemplate, currentChannel, job, savedPrice, savedDate, savedArrival)
+      : previewBody
+    const body = currentTemplate === 'quote_dep' && currentChannel === 'sms'
+      ? rawBody.replace('pay.stripe.com/preview', '[deposit link included]')
+      : rawBody
     try {
       if (currentTemplate === 'photos' || currentTemplate === 'custom') {
         await fetch('/api/admin/send-contact', {
@@ -492,7 +507,7 @@ export function QuoteCard({ job }: { job: Job }) {
             confirmedDate: savedDate || null,
             channel: currentChannel,
             customSmsBody: currentChannel === 'sms' ? body : undefined,
-            recurringFrequency: currentChannel === 'email' && includeRecurring ? recurringFreq : undefined,
+            recurringFrequency: includeRecurring ? recurringFreq : undefined,
           }),
         })
         setOverrideStatus('approved')
@@ -581,6 +596,28 @@ export function QuoteCard({ job }: { job: Job }) {
     setTimeout(() => setSuccessMsg(''), 3000)
   }
 
+  const handleToggleEmailPreview = async () => {
+    if (showEmailPreview) { setShowEmailPreview(false); return }
+    if (emailPreviewHtml) { setShowEmailPreview(true); return }
+    setEmailPreviewLoading(true)
+    try {
+      const res = await fetch('/api/admin/preview-quote-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          jobId: job.id,
+          approvedPrice: savedPrice ?? job.approved_price,
+          confirmedDate: savedDate || null,
+          recurringFrequency: includeRecurring ? recurringFreq : undefined,
+        }),
+      })
+      const data = await res.json()
+      setEmailPreviewHtml(data.html)
+      setShowEmailPreview(true)
+    } catch { /* silent — falls back to textarea */ }
+    setEmailPreviewLoading(false)
+  }
+
   const handleMarkScheduled = async () => {
     const res = await fetch('/api/admin/update-job-status', {
       method: 'POST',
@@ -652,7 +689,23 @@ export function QuoteCard({ job }: { job: Job }) {
 
   const firstName = job.client_name?.split(' ')[0] ?? ''
   const templateList = currentChannel === 'email' ? EMAIL_TEMPLATE_LIST : SMS_TEMPLATE_LIST
-  const previewBody = getTemplateContent(currentTemplate, currentChannel, job, savedPrice, savedDate, savedArrival)
+
+  // Base template content — recurring line injected below for SMS quote_dep
+  const basePreviewBody = getTemplateContent(currentTemplate, currentChannel, job, savedPrice, savedDate, savedArrival)
+
+  const previewBody = (() => {
+    if (currentTemplate === 'quote_dep' && currentChannel === 'sms' && includeRecurring && recurringPrice) {
+      return basePreviewBody.replace(
+        '\n\nPay here:',
+        `\n${FREQ_LABEL[recurringFreq]}: $${recurringPrice}/visit\n\nPay here:`
+      )
+    }
+    return basePreviewBody
+  })()
+
+  // SMS display: replace placeholder with a preview URL — real URL injected by route at send time
+  const smsDisplayBody = previewBody.replace('[deposit link included]', 'pay.stripe.com/preview')
+
   const previewSubject = currentChannel === 'email'
     ? getEmailSubject(currentTemplate, job, savedPrice, savedDate)
     : null
@@ -942,7 +995,7 @@ export function QuoteCard({ job }: { job: Job }) {
               {(['email', 'sms'] as const).map(ch => (
                 <button
                   key={ch}
-                  onClick={() => { setCurrentChannel(ch); setContactEditBody('') }}
+                  onClick={() => { setCurrentChannel(ch); setContactEditBody(''); setEmailPreviewHtml(null); setShowEmailPreview(false) }}
                   className={`flex-1 py-2.5 text-xs font-semibold transition-colors duration-150 cursor-pointer ${
                     currentChannel === ch
                       ? 'bg-[#4A7C59] text-white'
@@ -958,7 +1011,7 @@ export function QuoteCard({ job }: { job: Job }) {
               {/* Template dropdown */}
               <select
                 value={currentTemplate}
-                onChange={e => { setCurrentTemplate(e.target.value); setContactEditBody('') }}
+                onChange={e => { setCurrentTemplate(e.target.value); setContactEditBody(''); setEmailPreviewHtml(null); setShowEmailPreview(false) }}
                 className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-900 focus:border-[#4A7C59]/40 focus:outline-none cursor-pointer"
               >
                 {templateList.map(t => (
@@ -966,14 +1019,14 @@ export function QuoteCard({ job }: { job: Job }) {
                 ))}
               </select>
 
-              {/* Recurring rate toggle — only shown for email quote+deposit */}
-              {currentChannel === 'email' && currentTemplate === 'quote_dep' && (
-                <div className="flex items-center gap-2.5 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+              {/* Recurring rate toggle — quote_dep only, both channels */}
+              {currentTemplate === 'quote_dep' && (
+                <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
                   <input
                     type="checkbox"
                     id="include-recurring"
                     checked={includeRecurring}
-                    onChange={e => setIncludeRecurring(e.target.checked)}
+                    onChange={e => { setIncludeRecurring(e.target.checked); setEmailPreviewHtml(null); setShowEmailPreview(false) }}
                     className="h-3.5 w-3.5 accent-[#4A7C59] cursor-pointer shrink-0"
                   />
                   <label htmlFor="include-recurring" className="text-xs text-slate-700 cursor-pointer select-none">
@@ -983,12 +1036,12 @@ export function QuoteCard({ job }: { job: Job }) {
                     <>
                       <select
                         value={recurringFreq}
-                        onChange={e => setRecurringFreq(e.target.value)}
+                        onChange={e => { setRecurringFreq(e.target.value); setEmailPreviewHtml(null); setShowEmailPreview(false) }}
                         className="ml-auto rounded-md border border-slate-200 bg-white px-2 py-1 text-xs text-slate-700 focus:outline-none cursor-pointer"
                       >
-                        {Object.entries(FREQ_LABEL).map(([value, label]) => (
-                          <option key={value} value={value}>{label}</option>
-                        ))}
+                        <option value="biweekly">Bi-weekly</option>
+                        <option value="weekly">Weekly</option>
+                        <option value="monthly">Monthly</option>
                       </select>
                       {recurringPrice && (
                         <span className="text-xs font-semibold text-[#4A7C59] font-mono shrink-0">
@@ -1002,50 +1055,130 @@ export function QuoteCard({ job }: { job: Job }) {
 
               {/* Preview area */}
               <div className="overflow-hidden rounded-lg border border-slate-200">
+
                 {/* Preview header */}
                 <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50 px-3 py-2">
                   <span className="text-[10px] font-semibold uppercase tracking-widest text-slate-400">
                     Preview
                   </span>
-                  {!isCustomTemplate && contactEditBody && (
-                    <button
-                      onClick={() => setContactEditBody('')}
-                      className="text-[11px] text-slate-400 hover:text-slate-600 cursor-pointer transition-colors"
-                    >
-                      Reset
-                    </button>
-                  )}
+                  <div className="flex items-center gap-2">
+                    {/* Email iframe toggle — only for quote_dep on email */}
+                    {currentChannel === 'email' && currentTemplate === 'quote_dep' && (
+                      <button
+                        onClick={handleToggleEmailPreview}
+                        disabled={emailPreviewLoading}
+                        className={`text-[11px] font-medium px-2 py-0.5 rounded-md transition-colors duration-150 cursor-pointer ${
+                          showEmailPreview
+                            ? 'bg-[#4A7C59] text-white'
+                            : 'bg-slate-100 text-slate-500 hover:bg-[#e8f3ec] hover:text-[#4A7C59]'
+                        }`}
+                      >
+                        {emailPreviewLoading ? 'Loading…' : showEmailPreview ? 'Edit' : 'See email'}
+                      </button>
+                    )}
+                    {!isCustomTemplate && contactEditBody && !showEmailPreview && (
+                      <button
+                        onClick={() => setContactEditBody('')}
+                        className="text-[11px] text-slate-400 hover:text-slate-600 cursor-pointer transition-colors"
+                      >
+                        Reset
+                      </button>
+                    )}
+                  </div>
                 </div>
 
-                {/* Subject line — email only */}
-                {currentChannel === 'email' && previewSubject && (
-                  <div className="border-b border-slate-100 px-3 py-2">
-                    <span className="text-[10px] text-slate-400">Subject: </span>
-                    <span className="text-[11px] text-slate-700">{previewSubject}</span>
-                  </div>
+                {/* ── EMAIL CHANNEL ── */}
+                {currentChannel === 'email' && (
+                  <>
+                    {/* Subject line — always shown when not in iframe mode */}
+                    {previewSubject && !showEmailPreview && (
+                      <div className="border-b border-slate-100 px-3 py-2">
+                        <span className="text-[10px] text-slate-400">Subject: </span>
+                        <span className="text-[11px] text-slate-700">{previewSubject}</span>
+                      </div>
+                    )}
+
+                    {/* Iframe — full rendered email, shown when "See email" is active */}
+                    {currentTemplate === 'quote_dep' && showEmailPreview && emailPreviewHtml && (
+                      <div className="bg-slate-50 p-2">
+                        <p className="text-[10px] text-slate-400 mb-1.5 px-1">
+                          Exact email the customer will receive
+                        </p>
+                        <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+                          <iframe
+                            srcDoc={emailPreviewHtml}
+                            className="w-full"
+                            style={{ height: '520px', border: 'none', display: 'block' }}
+                            title="Email preview"
+                            sandbox="allow-same-origin"
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Plain textarea — shown when iframe is off or template is not quote_dep */}
+                    {!showEmailPreview && (
+                      <textarea
+                        value={contactEditBody || previewBody}
+                        onChange={e => setContactEditBody(e.target.value)}
+                        rows={7}
+                        maxLength={1000}
+                        placeholder={isCustomTemplate ? 'Type your message…' : undefined}
+                        className="w-full bg-white px-3 py-2.5 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none resize-none leading-relaxed"
+                      />
+                    )}
+                  </>
                 )}
 
-                {/* Body — always editable */}
-                <textarea
-                  value={contactEditBody || previewBody}
-                  onChange={e => setContactEditBody(e.target.value)}
-                  rows={7}
-                  maxLength={1000}
-                  placeholder={isCustomTemplate ? 'Type your message…' : undefined}
-                  className="w-full bg-white px-3 py-2.5 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none resize-none leading-relaxed"
-                />
+                {/* ── SMS CHANNEL ── */}
+                {currentChannel === 'sms' && (
+                  <>
+                    {/* Phone bubble */}
+                    <div className="bg-slate-50 px-3 pt-3 pb-2 space-y-2">
+                      <div className="flex items-center gap-2 pb-2 border-b border-slate-200">
+                        <div className="h-5 w-5 rounded-full bg-[#4A7C59] flex items-center justify-center shrink-0">
+                          <span className="text-[8px] font-bold text-white">RS</span>
+                        </div>
+                        <span className="text-[10px] font-semibold text-slate-600">RenewShine · (771) 253-9204</span>
+                      </div>
+                      <div className="flex justify-start">
+                        <div className="max-w-[88%] rounded-2xl rounded-tl-sm bg-slate-200 px-3 py-2.5">
+                          <p className="text-xs text-slate-900 leading-relaxed whitespace-pre-wrap">
+                            {(contactEditBody || smsDisplayBody).replace('[deposit link included]', 'pay.stripe.com/preview')}
+                          </p>
+                          {/* Styled link line within bubble */}
+                          {!contactEditBody && currentTemplate === 'quote_dep' && (
+                            <p className="mt-1 text-[11px] text-blue-500 underline break-all">
+                              pay.stripe.com/preview
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      <p className="text-[10px] text-slate-400 text-center">
+                        {(contactEditBody || smsDisplayBody).length} chars
+                        {(contactEditBody || smsDisplayBody).length > 160 && (
+                          <span className="text-amber-500"> · {Math.ceil((contactEditBody || smsDisplayBody).length / 160)} segments</span>
+                        )}
+                      </p>
+                    </div>
+
+                    {/* Editable textarea below bubble */}
+                    <div className="border-t border-slate-100">
+                      <textarea
+                        value={contactEditBody || smsDisplayBody}
+                        onChange={e => setContactEditBody(e.target.value)}
+                        rows={4}
+                        maxLength={1000}
+                        placeholder={isCustomTemplate ? 'Type your message…' : 'Edit message above…'}
+                        className="w-full bg-white px-3 py-2.5 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none resize-none leading-relaxed"
+                      />
+                    </div>
+                  </>
+                )}
 
                 {/* Send row */}
                 <div className="flex items-center justify-between border-t border-slate-100 bg-slate-50 px-3 py-2">
-                  <span className={`text-[10px] ${
-                    (contactEditBody || previewBody).length >= 500
-                      ? 'text-amber-500'
-                      : 'text-slate-400'
-                  }`}>
-                    {currentChannel === 'sms'
-                      ? `${(contactEditBody || previewBody).length} chars`
-                      : ''}
-                  </span>
+                  <span className="text-[10px] text-slate-400" />
                   <button
                     onClick={handleSendTemplate}
                     disabled={contactSending || (!previewBody.trim() && !contactEditBody.trim())}
