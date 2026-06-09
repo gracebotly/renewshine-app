@@ -2,7 +2,7 @@ import type { Job } from '@/types/database'
 import { ADD_ONS } from '@/lib/pricing'
 import { baseTemplate, badge, heading, para, ctaButton, divider } from './base'
 
-export function customerQuoteTemplate(job: Job, stripeUrl: string, depositAmountOverride?: number): { subject: string; html: string } {
+export function customerQuoteTemplate(job: Job, stripeUrl: string, depositAmountOverride?: number, recurringFrequency?: string): { subject: string; html: string } {
   const firstName = job.client_name.split(' ')[0]
   const serviceLabel =
     job.service_type === 'standard'            ? 'Standard Clean'
@@ -53,6 +53,20 @@ export function customerQuoteTemplate(job: Job, stripeUrl: string, depositAmount
   const totalDisplay = `$${approvedPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
   const depositDisplay = `$${depositAmount.toFixed(2)}`
   const remainingDisplay = `$${remainingAmount.toFixed(2)}`
+
+  // ── Recurring pricing ─────────────────────────────────────────────────────
+  const FREQ_CONFIG: Record<string, { label: string; mult: number }> = {
+    weekly:   { label: 'Weekly',    mult: 0.80 },
+    biweekly: { label: 'Bi-weekly', mult: 0.85 },
+    monthly:  { label: 'Monthly',   mult: 0.90 },
+  }
+  const activeFreq = recurringFrequency ?? (
+    job.service_frequency && ['weekly', 'biweekly', 'monthly'].includes(job.service_frequency)
+      ? job.service_frequency
+      : null
+  )
+  const freqCfg   = activeFreq ? FREQ_CONFIG[activeFreq] : null
+  const recurringPriceNum = freqCfg ? Math.round(approvedPrice * freqCfg.mult) : null
 
   const bedroomLine =
     job.bedrooms
@@ -140,6 +154,35 @@ export function customerQuoteTemplate(job: Job, stripeUrl: string, depositAmount
     </table>
     <p style="margin:0 0 24px;font-size:12px;color:#94a3b8;line-height:1.6;">No hidden fees. No surprise charges. If anything differs from the photos provided, we'll discuss it with you before any additional work is performed.</p>`
 
+  // ── Section: Recurring pricing ────────────────────────────────────────────
+  const recurringSection = freqCfg && recurringPriceNum ? `
+    <div style="margin:0 0 24px;">
+      <p style="margin:0 0 8px;font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.08em;">Recurring rate</p>
+      <table width="100%" cellpadding="0" cellspacing="0" role="presentation"
+        style="border:1px solid #d1e7d9;border-radius:8px;overflow:hidden;background:#f0f9f4;">
+        <tbody>
+          <tr>
+            <td style="padding:16px 18px;">
+              <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
+                <tr>
+                  <td style="vertical-align:middle;">
+                    <p style="margin:0 0 2px;font-size:12px;font-weight:600;color:#4A7C59;">${freqCfg.label} cleaning</p>
+                    <p style="margin:0;font-size:28px;font-weight:700;color:#1A2E1F;font-family:'Courier New',monospace;letter-spacing:-0.5px;line-height:1;">$${recurringPriceNum}<span style="font-size:14px;font-weight:500;color:#64748b;">/visit</span></p>
+                  </td>
+                  <td style="text-align:right;vertical-align:middle;">
+                    <p style="margin:0;font-size:12px;color:#94a3b8;text-decoration:line-through;font-family:'Courier New',monospace;">$${approvedPrice.toFixed(0)} one-time</p>
+                  </td>
+                </tr>
+              </table>
+              <p style="margin:10px 0 0;font-size:12px;color:#64748b;line-height:1.55;">
+                Interested in keeping up the clean? Let us know after your first visit and we'll set you up on a recurring plan.
+              </p>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>` : ''
+
   // ── Section: What happens next ───────────────────────────────────────────
   const nextStepsSection = `
     ${divider}
@@ -167,7 +210,7 @@ export function customerQuoteTemplate(job: Job, stripeUrl: string, depositAmount
         </tr>
       </tbody>
     </table>
-    <p style="margin:0;font-size:13px;color:#64748b;text-align:center;line-height:1.6;">Questions? Reach us at <a href="mailto:hello@renewshine.co" style="color:#4A7C59;text-decoration:none;">hello@renewshine.co</a></p>`
+    `
 
   // ── Full email body ───────────────────────────────────────────────────────
   const content = `
@@ -178,6 +221,8 @@ export function customerQuoteTemplate(job: Job, stripeUrl: string, depositAmount
     ${appointmentSection}
     ${serviceSection}
     ${paymentSection}
+
+    ${recurringSection}
 
     <table width="100%" cellpadding="0" cellspacing="0" role="presentation"
       style="background:#f8faf9;border:1px solid #d1e7d9;border-radius:8px;margin:0 0 20px;padding:16px 20px;">
@@ -193,9 +238,6 @@ export function customerQuoteTemplate(job: Job, stripeUrl: string, depositAmount
         </td>
       </tr>
     </table>
-
-    <p style="margin:0 0 8px;font-size:13px;font-weight:600;color:#0f172a;text-align:center;">Questions before booking?</p>
-    <p style="margin:0 0 20px;font-size:13px;color:#64748b;text-align:center;line-height:1.6;">Email us at <a href="mailto:hello@renewshine.co" style="color:#4A7C59;text-decoration:none;">hello@renewshine.co</a> or text <a href="sms:+17712539204" style="color:#4A7C59;text-decoration:none;">(771) 253-9204</a> and we'll be happy to help.</p>
 
     ${ctaButton('Confirm Booking', stripeUrl)}
 

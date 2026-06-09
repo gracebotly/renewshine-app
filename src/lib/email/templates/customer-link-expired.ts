@@ -60,9 +60,6 @@ export function customerLinkExpiredTemplate(
 
     ${ctaButton('Confirm my appointment', newStripeUrl)}
 
-    <p style="margin:16px 0 0;font-size:12px;color:#94a3b8;text-align:center;">
-      Have a question? Text us at (771) 253-9204.
-    </p>
   `
 
   return {

@@ -1,50 +1,178 @@
 import type { Job } from '@/types/database'
-import { baseTemplate, badge, heading, para, divider, infoTable, infoRow } from './base'
+import { ADD_ONS } from '@/lib/pricing'
+import { baseTemplate, badge, heading, para, divider } from './base'
 
 function getServiceLabel(serviceType: string | null): string {
-  if (serviceType === 'standard')          return 'Standard Clean'
-  if (serviceType === 'deep')              return 'Deep Clean'
-  if (serviceType === 'move_out')          return 'Move-In / Move-Out'
-  if (serviceType === 'post_construction') return 'Post-Construction'
+  if (serviceType === 'standard')           return 'Standard Clean'
+  if (serviceType === 'deep')               return 'Deep Clean'
+  if (serviceType === 'move_out')           return 'Move-In / Move-Out'
+  if (serviceType === 'post_construction')  return 'Post-Construction'
   return 'Cleaning Service'
 }
 
 export function customerQuoteReadyTemplate(job: Job): { subject: string; html: string } {
   const firstName    = job.client_name.split(' ')[0]
-  const price        = job.approved_price ?? 0
-  const deposit      = job.deposit_amount ?? 100
-  const remaining    = Math.max(price - deposit, 0)
   const serviceLabel = getServiceLabel(job.service_type ?? null)
   const subject      = `Your ${serviceLabel} quote is ready — RenewShine`
 
+  const timePrefMap: Record<string, string> = {
+    morning:         '8am – 12pm',
+    afternoon:       '12pm – 5pm',
+    early_morning:   '8am – 10am',
+    mid_morning:     '10am – 12pm',
+    noon:            '12pm – 2pm',
+    early_afternoon: '2pm – 4pm',
+    late_afternoon:  '4pm – 6pm',
+    flexible:        'Flexible',
+  }
+  const timePref = job.availability_time_pref
+    ? (timePrefMap[job.availability_time_pref] ?? 'Flexible')
+    : 'Flexible'
+
+  // Always show the availability window — never the confirmed_date.
+  // Confirmed date only appears in customer-booked.ts (post-deposit).
+  const availabilityWindowStr = (() => {
+    const start = job.availability_start
+      ? new Date(job.availability_start).toLocaleDateString('en-US', { month: 'long', day: 'numeric' })
+      : null
+    const end = job.availability_end
+      ? new Date(job.availability_end).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+      : null
+    if (start && end && start !== end) return `${start} – ${end}`
+    if (start) return start
+    return 'Dates to be confirmed'
+  })()
+
+  const appointmentLine = timePref !== 'Flexible'
+    ? `${availabilityWindowStr} · ${timePref}`
+    : availabilityWindowStr
+
+  const approvedPrice   = job.approved_price ?? 0
+  const depositAmount   = job.deposit_amount ?? 100
+  const remainingAmount = Math.max(approvedPrice - depositAmount, 0)
+
+  const totalDisplay     = `$${approvedPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+  const depositDisplay   = `$${depositAmount.toFixed(2)}`
+  const remainingDisplay = `$${remainingAmount.toFixed(2)}`
+
+  const bedroomLine = job.bedrooms
+    ? `${job.bedrooms} Bedroom${job.bedrooms !== 1 ? 's' : ''} · ${job.bathrooms} Bathroom${(job.bathrooms ?? 0) !== 1 ? 's' : ''}`
+    : ''
+
+  const selectedAddOns = ADD_ONS.filter((a) =>
+    Array.isArray(job.add_ons) && job.add_ons.includes(a.id)
+  )
+
+  const addOnRows = selectedAddOns
+    .map((a) => `
+      <tr>
+        <td style="padding:3px 0 3px 0;font-size:13px;color:#334155;line-height:1.5;">
+          <span style="display:inline-block;width:5px;height:5px;border-radius:50%;background:#4A7C59;margin-right:8px;vertical-align:middle;margin-bottom:2px;"></span>${a.label}
+        </td>
+      </tr>`)
+    .join('')
+
+  // ── Section: Appointment ─────────────────────────────────────────────────
+  const appointmentSection = `
+    <p style="margin:0 0 8px;font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.08em;">Your requested window</p>
+    <table width="100%" cellpadding="0" cellspacing="0" role="presentation"
+      style="border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;margin:0 0 24px;">
+      <tbody>
+        <tr>
+          <td style="padding:16px 18px 12px;">
+            <p style="margin:0 0 4px;font-size:16px;font-weight:700;color:#0f172a;line-height:1.3;">${appointmentLine}</p>
+            <p style="margin:0 0 12px;font-size:13px;color:#64748b;">${job.address ?? ''}</p>
+            <span style="display:inline-block;background:#fef9ec;color:#92600a;font-size:11px;font-weight:600;padding:4px 10px;border-radius:99px;letter-spacing:0.02em;">Date confirmed after deposit is received</span>
+          </td>
+        </tr>
+      </tbody>
+    </table>`
+
+  // ── Section: Service details ─────────────────────────────────────────────
+  const serviceSection = `
+    <p style="margin:0 0 8px;font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.08em;">Your service details</p>
+    <table width="100%" cellpadding="0" cellspacing="0" role="presentation"
+      style="border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;margin:0 0 24px;">
+      <tbody>
+        <tr>
+          <td style="padding:14px 18px;">
+            <p style="margin:0 0 2px;font-size:14px;font-weight:700;color:#0f172a;">${serviceLabel}</p>
+            ${bedroomLine ? `<p style="margin:0 0 ${selectedAddOns.length > 0 ? '10px' : '0'};font-size:12px;color:#64748b;">${bedroomLine}</p>` : ''}
+            ${selectedAddOns.length > 0 ? `<table width="100%" cellpadding="0" cellspacing="0" role="presentation">${addOnRows}</table>` : ''}
+          </td>
+        </tr>
+      </tbody>
+    </table>`
+
+  // ── Section: Payment summary ─────────────────────────────────────────────
+  const paymentSection = `
+    <p style="margin:0 0 8px;font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.08em;">Payment summary</p>
+    <table width="100%" cellpadding="0" cellspacing="0" role="presentation"
+      style="border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;margin:0 0 8px;">
+      <tbody>
+        <tr style="border-bottom:1px solid #e2e8f0;">
+          <td style="padding:14px 18px;">
+            <p style="margin:0 0 2px;font-size:12px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:0.05em;">Total service</p>
+            <p style="margin:0;font-size:26px;font-weight:700;color:#0f172a;font-family:'Courier New',monospace;letter-spacing:-0.5px;">${totalDisplay}</p>
+          </td>
+        </tr>
+        <tr style="background:#f0f9f4;border-bottom:1px solid #e2e8f0;">
+          <td style="padding:12px 18px;">
+            <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
+              <tr>
+                <td style="font-size:13px;font-weight:600;color:#1A2E1F;">Due today <span style="font-weight:400;color:#4A7C59;">(deposit)</span></td>
+                <td style="text-align:right;font-size:15px;font-weight:700;color:#1A2E1F;font-family:'Courier New',monospace;">${depositDisplay}</td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:12px 18px;">
+            <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
+              <tr>
+                <td style="font-size:13px;color:#64748b;">Remaining balance <span style="color:#94a3b8;">(after service)</span></td>
+                <td style="text-align:right;font-size:13px;font-weight:600;color:#64748b;font-family:'Courier New',monospace;">${remainingDisplay}</td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <p style="margin:0 0 24px;font-size:12px;color:#94a3b8;line-height:1.6;">No hidden fees. No surprise charges. If anything differs from the photos provided, we'll discuss it with you before any additional work is performed.</p>`
+
+  // ── Section: How to confirm ──────────────────────────────────────────────
+  const confirmSection = `
+    ${divider}
+    <p style="margin:0 0 8px;font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.08em;">To confirm your appointment</p>
+    <table width="100%" cellpadding="0" cellspacing="0" role="presentation"
+      style="background:#f0f9f4;border:1px solid #d1e7d9;border-radius:8px;overflow:hidden;margin:0 0 20px;">
+      <tbody>
+        <tr>
+          <td style="padding:16px 18px;">
+            <p style="margin:0 0 6px;font-size:14px;font-weight:600;color:#1A2E1F;">Reply to this email to confirm.</p>
+            <p style="margin:0;font-size:13px;color:#4A7C59;line-height:1.55;">We'll send your deposit link to hold the date — takes less than a minute.</p>
+          </td>
+        </tr>
+      </tbody>
+    </table>`
+
+  // ── Full email body ───────────────────────────────────────────────────────
   const content = `
     ${badge('Quote ready', 'green')}
     ${heading(`${firstName}, your quote is ready.`)}
-    ${para(`We've reviewed your photos and prepared your quote for the ${serviceLabel}.`)}
+    ${para("Review the details below. Reply to confirm and we'll send over your deposit link to hold the date.")}
 
-    ${infoTable(
-      infoRow('Service', serviceLabel) +
-      infoRow('Address', job.address ?? '—') +
-      (job.bedrooms ? infoRow('Home size', `${job.bedrooms} bed · ${job.bathrooms} bath`) : '') +
-      infoRow('Total', `$${price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`) +
-      infoRow('Deposit due today', `$${deposit.toFixed(2)}`) +
-      infoRow('Remaining after service', `$${remaining.toFixed(2)}`)
-    )}
-
-    ${para(`To move forward, email us at hello@renewshine.co or text (771) 253-9204 and we'll send your deposit link to confirm the appointment.`)}
-
-    ${divider}
-
-    <p style="margin:0;font-size:12px;color:#94a3b8;line-height:1.6;text-align:center;">
-      Questions? Email us at <a href="mailto:hello@renewshine.co" style="color:#4A7C59;text-decoration:none;">hello@renewshine.co</a> or text <a href="sms:+17712539204" style="color:#4A7C59;text-decoration:none;">(771) 253-9204</a>
-    </p>
+    ${appointmentSection}
+    ${serviceSection}
+    ${paymentSection}
+    ${confirmSection}
   `
 
   return {
     subject,
     html: baseTemplate(
       content,
-      `${firstName}, your ${serviceLabel} quote is ready — $${price.toLocaleString()} total, $${deposit} deposit to confirm.`
+      `${firstName}, your ${serviceLabel} quote is ready — $${approvedPrice.toLocaleString()} total, $${depositAmount} deposit to confirm.`
     ),
   }
 }
