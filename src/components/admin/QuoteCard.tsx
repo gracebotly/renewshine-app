@@ -192,16 +192,14 @@ Balance after service: ${remainFmt}
 Once the deposit is received, your date is confirmed. Email us at hello@renewshine.co or text (771) 253-9204 with any questions.
 
 — RenewShine`,
-      sms: `Hi ${first} — thanks for sending the photos.
+      sms: `Hi ${first} — your ${svc} quote is ${priceFmt}.
 
-Your ${svc} quote is ${priceFmt}.
+To lock in your date, complete your $${dep} deposit here:
+[deposit link included]
 
-$${dep} deposit due today.
-${remainFmt} due after the cleaning.
+${remainFmt} balance due after the clean.
 
-Reply YES and we'll send your deposit link.
-
-— RenewShine`,
+— Grace`,
     },
 
     quote_no: {
@@ -388,6 +386,22 @@ export function QuoteCard({ job }: { job: Job }) {
   const [contactEditBody, setContactEditBody] = React.useState('')
   const [contactSending, setContactSending] = React.useState(false)
 
+  // Recurring pricing toggle
+  const [includeRecurring, setIncludeRecurring] = React.useState<boolean>(() => {
+    const f = job.service_frequency
+    return !!f && ['weekly', 'biweekly', 'monthly'].includes(f)
+  })
+  const [recurringFreq, setRecurringFreq] = React.useState<string>(() => {
+    const f = job.service_frequency
+    return (f && ['weekly', 'biweekly', 'monthly'].includes(f)) ? f : 'biweekly'
+  })
+
+  const FREQ_MULT: Record<string, number> = { weekly: 0.80, biweekly: 0.85, monthly: 0.90 }
+  const FREQ_LABEL: Record<string, string> = { weekly: 'Weekly', biweekly: 'Bi-weekly', monthly: 'Monthly' }
+  const recurringPrice = savedPrice && includeRecurring
+    ? Math.round(savedPrice * (FREQ_MULT[recurringFreq] ?? 0.85))
+    : null
+
   const handleSavePrice = async () => {
     const val = parseFloat(priceInput)
     if (!priceInput || isNaN(val)) return
@@ -478,6 +492,7 @@ export function QuoteCard({ job }: { job: Job }) {
             confirmedDate: savedDate || null,
             channel: currentChannel,
             customSmsBody: currentChannel === 'sms' ? body : undefined,
+            recurringFrequency: currentChannel === 'email' && includeRecurring ? recurringFreq : undefined,
           }),
         })
         setOverrideStatus('approved')
@@ -950,6 +965,40 @@ export function QuoteCard({ job }: { job: Job }) {
                   <option key={t.id} value={t.id}>{t.label}</option>
                 ))}
               </select>
+
+              {/* Recurring rate toggle — only shown for email quote+deposit */}
+              {currentChannel === 'email' && currentTemplate === 'quote_dep' && (
+                <div className="flex items-center gap-2.5 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+                  <input
+                    type="checkbox"
+                    id="include-recurring"
+                    checked={includeRecurring}
+                    onChange={e => setIncludeRecurring(e.target.checked)}
+                    className="h-3.5 w-3.5 accent-[#4A7C59] cursor-pointer shrink-0"
+                  />
+                  <label htmlFor="include-recurring" className="text-xs text-slate-700 cursor-pointer select-none">
+                    Include recurring rate
+                  </label>
+                  {includeRecurring && (
+                    <>
+                      <select
+                        value={recurringFreq}
+                        onChange={e => setRecurringFreq(e.target.value)}
+                        className="ml-auto rounded-md border border-slate-200 bg-white px-2 py-1 text-xs text-slate-700 focus:outline-none cursor-pointer"
+                      >
+                        {Object.entries(FREQ_LABEL).map(([value, label]) => (
+                          <option key={value} value={value}>{label}</option>
+                        ))}
+                      </select>
+                      {recurringPrice && (
+                        <span className="text-xs font-semibold text-[#4A7C59] font-mono shrink-0">
+                          ${recurringPrice}/visit
+                        </span>
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
 
               {/* Preview area */}
               <div className="overflow-hidden rounded-lg border border-slate-200">
