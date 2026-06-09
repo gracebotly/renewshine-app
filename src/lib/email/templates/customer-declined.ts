@@ -16,7 +16,7 @@ export function customerDeclinedTemplate(
   const content = `
     ${badge('Request reviewed', 'amber')}
     ${heading(`An update on your cleaning request, ${firstName}.`)}
-    ${para(`After reviewing the details of your request, we're unable to accommodate it at this time.`)}
+    ${para(`We’ve reviewed your request and we’re not able to take this one on.`)}
 
     <div style="margin:0 0 20px;padding:16px 20px;background:#f8fafc;border-left:4px solid #4A7C59;border-radius:0 8px 8px 0;">
       <p style="margin:0;font-size:14px;color:#334155;line-height:1.7;">${reason}</p>
@@ -24,7 +24,7 @@ export function customerDeclinedTemplate(
 
     ${referralLine}
 
-    ${para('We appreciate you considering us and wish you the best.')}
+    ${para('We appreciate you reaching out.')}
 
     ${divider}
   `

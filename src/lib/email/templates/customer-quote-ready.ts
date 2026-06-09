@@ -149,8 +149,8 @@ export function customerQuoteReadyTemplate(job: Job): { subject: string; html: s
       <tbody>
         <tr>
           <td style="padding:16px 18px;">
-            <p style="margin:0 0 6px;font-size:14px;font-weight:600;color:#1A2E1F;">Reply to this email to confirm.</p>
-            <p style="margin:0;font-size:13px;color:#4A7C59;line-height:1.55;">We'll send your deposit link to hold the date — takes less than a minute.</p>
+            <p style="margin:0 0 6px;font-size:14px;font-weight:600;color:#1A2E1F;">Text or call us at (771) 253-9204 to confirm.</p>
+            <p style="margin:0;font-size:13px;color:#4A7C59;line-height:1.55;">We’ll get you scheduled and send your payment link right away.</p>
           </td>
         </tr>
       </tbody>
@@ -160,7 +160,7 @@ export function customerQuoteReadyTemplate(job: Job): { subject: string; html: s
   const content = `
     ${badge('Quote ready', 'green')}
     ${heading(`${firstName}, your quote is ready.`)}
-    ${para("Review the details below. Reply to confirm and we'll send over your deposit link to hold the date.")}
+    ${para("We’ve reviewed your home and confirmed your price. Text or call us at (771) 253-9204 to confirm.")}
 
     ${appointmentSection}
     ${serviceSection}

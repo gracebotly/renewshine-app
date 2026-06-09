@@ -118,9 +118,9 @@ export function customerSubmittedTemplate(job: Job): { subject: string; html: st
   const STEP_DIV    = '#e8f0eb'
 
   const nextSteps = [
-    'We review your request and service details',
-    'If needed, we\u2019ll contact you to clarify access, timing, photos, or scope',
-    'We\u2019ll follow up with personalized next steps for booking',
+    'We review your photos and service details',
+    'We may reach out if we have questions about your photos',
+    'We confirm your price and send your link to reserve your date',
   ]
 
   const stepsHtml = `
@@ -145,8 +145,8 @@ export function customerSubmittedTemplate(job: Job): { subject: string; html: st
   // ── Assemble content ──────────────────────────────────────────────────────
   const content = `
     ${badge('Request received', 'green')}
-    ${heading(`Your request has been confirmed, ${firstName}.`)}
-    ${para(`Your request has been received. We'll review your details and follow up as soon as possible — typically within a few hours.`)}
+    ${heading(`Your request is in, ${firstName}.`)}
+    ${para(`We review every job before quoting. You’ll hear from us the same business day.`)}
 
     ${stepsHtml}
 
@@ -160,7 +160,7 @@ export function customerSubmittedTemplate(job: Job): { subject: string; html: st
     subject,
     html: baseTemplate(
       content,
-      `Your RenewShine cleaning request has been received. We\u2019ll be in touch shortly.`
+      `Your RenewShine request is in. We’ll review and follow up the same business day.`
     ),
   }
 }
