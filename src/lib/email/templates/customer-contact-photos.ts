@@ -19,13 +19,11 @@ export function customerContactPhotosTemplate(job: Job): { subject: string; html
   const content = `
     ${heading(`${firstName}, one quick step before your quote.`)}
 
-    ${para(`Thank you for contacting RenewShine.`)}
+    ${para(`Before we confirm a price, our team reviews photos of every space. Could you send a few photos or a short walkthrough video of ${rooms}?`)}
 
-    ${para(`Before we can provide an accurate quote, our team reviews photos of every space. Could you send a few photos or a short walkthrough video of ${rooms}?`)}
+    ${para(`Send them to hello@renewshine.co, or text them to (771) 253-9204. A short video call works too — just text us to arrange a time.`)}
 
-    ${para(`If photos are difficult, a quick FaceTime or video call works just as well — text us at (771) 253-9204 and we'll arrange a time.`)}
-
-    ${para(`Once we've reviewed everything, we'll send over your confirmed quote and available appointment options.`)}
+    ${para(`Once we’ve reviewed everything, we’ll send your confirmed quote and reach out to schedule.`)}
 
     ${divider}
   `
@@ -34,7 +32,7 @@ export function customerContactPhotosTemplate(job: Job): { subject: string; html
     subject,
     html: baseTemplate(
       content,
-      `${firstName}, send a few photos of the space and we'll have your quote ready — RenewShine`
+      `${firstName}, send a few photos and we’ll have your quote ready the same business day.`
     ),
   }
 }

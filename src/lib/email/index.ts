@@ -6,7 +6,6 @@ import { customerQuoteTemplate } from './templates/customer-quote'
 import { customerBookedTemplate } from './templates/customer-booked'
 import { ownerBookedTemplate } from './templates/owner-booked'
 import { customerQuoteReminderTemplate } from './templates/customer-quote-reminder'
-import { customerLinkExpiredTemplate } from './templates/customer-link-expired'
 import { customerDeclinedTemplate } from './templates/customer-declined'
 import { customerAbandonedTemplate } from './templates/customer-abandoned'
 import { customerInvoiceTemplate, type InvoiceEmailData } from './templates/customer-invoice'
@@ -65,7 +64,7 @@ export async function sendQuoteReminder(job: Job, newStripeUrl: string): Promise
  * To: customer.
  */
 export async function sendExpiredLinkRecovery(job: Job, newStripeUrl: string): Promise<void> {
-  const { subject, html } = customerLinkExpiredTemplate(job, newStripeUrl)
+  const { subject, html } = customerQuoteReminderTemplate(job, newStripeUrl, true)
   await resend.emails.send({ from: FROM, to: job.client_email, subject, html })
 }
 

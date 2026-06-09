@@ -40,7 +40,7 @@ export function customerBookedTemplate(job: Job): { subject: string; html: strin
     ? new Date(job.confirmed_date).toLocaleDateString('en-US', { weekday: 'long' })
     : 'your appointment day'
 
-  const subject = `Booking confirmed — your ${serviceLabel} on ${confirmedDateStr}`
+  const subject = `Your ${serviceLabel} is confirmed for ${confirmedDateStr} — RenewShine`
 
   // ── Appointment details card ─────────────────────────────────────────────
   const appointmentCard = `
@@ -123,8 +123,8 @@ export function customerBookedTemplate(job: Job): { subject: string; html: strin
 
   const content = `
     ${badge('Booking confirmed', 'green')}
-    ${heading(`Your ${serviceLabel} is officially scheduled, ${firstName}.`)}
-    ${para(`We look forward to taking care of your home. Here's everything you need for your appointment.`)}
+    ${heading(`Your ${serviceLabel} is confirmed, ${firstName}.`)}
+    ${para(`Your home is in good hands. Here’s everything you need for your appointment.`)}
 
     ${appointmentCard}
     ${prepCard}
@@ -138,14 +138,14 @@ export function customerBookedTemplate(job: Job): { subject: string; html: strin
 
     ${divider}
 
-    ${para(`We'll reach out 48 hours before your appointment to confirm access and go over any final details.`)}
+    ${para(`You’ll receive a reminder text the day before your appointment.`)}
   `
 
   return {
     subject,
     html: baseTemplate(
       content,
-      `${firstName}, your ${serviceLabel} is confirmed for ${confirmedDateStr}. Arrival window: ${timePref}.`
+      `${firstName}, your ${serviceLabel} is confirmed. We’ll see you on ${confirmedDateStr}.`
     ),
   }
 }

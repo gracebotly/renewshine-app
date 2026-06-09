@@ -2,17 +2,28 @@ import type { Job } from '@/types/database'
 import { baseTemplate, badge, heading, para, divider, ctaButton, infoTable, infoRow, trustStrip } from './base'
 
 /**
- * Quote reminder template
- * Fires: when owner clicks "Resend Link" in admin on an approved, unpaid job
+ * Quote follow-up template — merged T6 + T7.
+ *
+ * Covers two cases:
+ *   isRefreshed = false (default): Grace clicked "Resend Link" — link still valid or recently resent
+ *   isRefreshed = true:            Grace regenerated an expired link — fresh Stripe URL
+ *
+ * Both send the same CTA. The only difference is badge color, subject line, and one
+ * sentence in the heading. Customer experience is identical: "your quote is open, here's the link."
+ *
+ * Fires from: src/lib/email/index.ts → sendQuoteReminder() and sendExpiredLinkRecovery()
  * To: customer (job.client_email)
- * Purpose: Re-engage customer who hasn't confirmed yet
  */
 export function customerQuoteReminderTemplate(
   job: Job,
-  stripeUrl: string
+  stripeUrl: string,
+  isRefreshed = false
 ): { subject: string; html: string } {
   const firstName = job.client_name.split(' ')[0]
-  const subject = `${firstName}, your RenewShine quote is still available`
+
+  const subject = isRefreshed
+    ? `${firstName}, your booking link has been refreshed — RenewShine`
+    : `${firstName}, your RenewShine quote is still open`
 
   const confirmedDateStr = job.confirmed_date
     ? new Date(job.confirmed_date).toLocaleDateString('en-US', {
@@ -34,13 +45,22 @@ export function customerQuoteReminderTemplate(
     ? (timePrefMap[job.availability_time_pref] ?? 'Flexible')
     : 'Flexible'
 
+  const badgeColor  = isRefreshed ? 'navy' : 'amber'
+  const badgeText   = isRefreshed ? 'Fresh link ready' : 'Quote still open'
+  const headingText = isRefreshed
+    ? `${firstName}, your booking link has been refreshed.`
+    : `${firstName}, your quote is still open.`
+  const bodyText = isRefreshed
+    ? `Your confirmed price and dates are unchanged. Here’s a fresh link.`
+    : `Your quote is still available and your dates haven’t been taken. Submitting your payment is what holds your spot on the calendar.`
+
   const content = `
-    ${badge('Quote still active', 'amber')}
-    ${heading(`${firstName}, your quote is still open.`)}
-    ${para(`We wanted to follow up on your quote — your confirmed price and requested date window are still available. Submitting your deposit is what holds your spot on the calendar.`)}
+    ${badge(badgeText, badgeColor)}
+    ${heading(headingText)}
+    ${para(bodyText)}
 
     ${infoTable(
-      infoRow('Date', confirmedDateStr) +
+      infoRow('Availability', confirmedDateStr) +
       infoRow('Arrival window', timePref) +
       infoRow('Address', job.address ?? '—') +
       infoRow('Confirmed price', job.approved_price ? `$${job.approved_price.toFixed(2)}` : '—')
@@ -49,15 +69,16 @@ export function customerQuoteReminderTemplate(
     ${trustStrip()}
     ${divider}
 
-    ${ctaButton('Confirm my appointment', stripeUrl)}
-
+    ${ctaButton('Reserve My Date', stripeUrl)}
   `
 
   return {
     subject,
     html: baseTemplate(
       content,
-      `${firstName}, your RenewShine quote is still open. Submit your deposit to hold your spot on the calendar.`
+      isRefreshed
+        ? `${firstName}, your RenewShine booking link has been refreshed. Price and dates unchanged.`
+        : `${firstName}, your RenewShine quote is still open. Reserve your date to hold your spot.`
     ),
   }
 }

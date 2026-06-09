@@ -113,7 +113,7 @@ const EMAIL_TEMPLATE_LIST = [
   { id: 'quote_dep',  label: 'Quote + deposit link' },
   { id: 'quote_no',   label: 'Quote — no deposit' },
   { id: 'appt',       label: 'Appointment confirmation' },
-  { id: 'reminder',   label: '48-hour before arrival' },
+  { id: 'reminder',   label: 'Day-before reminder' },
   { id: 'invoice',    label: 'Invoice (balance due)' },
   { id: 'custom',     label: 'Custom message' },
 ]
@@ -123,7 +123,7 @@ const SMS_TEMPLATE_LIST = [
   { id: 'quote_dep',  label: 'Quote + deposit link' },
   { id: 'quote_no',   label: 'Quote — no deposit' },
   { id: 'appt',       label: 'Appointment confirmation' },
-  { id: 'reminder',   label: '48-hour before arrival' },
+  { id: 'reminder',   label: 'Day-before reminder' },
   { id: 'invoice',    label: 'Invoice (balance due)' },
   { id: 'custom',     label: 'Custom message' },
 ]
@@ -163,18 +163,20 @@ function getTemplateContent(
     photos: {
       email: `Hi ${first},
 
-Thank you for contacting RenewShine. Before we can provide an accurate quote, our team reviews photos of every space.
+One quick step before your quote.
 
-Please send a few photos or a short walkthrough video${getRoomCallout(j.service_type)} to hello@renewshine.co or text them to (771) 253-9204. FaceTime works too.
+Before we confirm a price, our team reviews photos of every space. Please send a few photos or a short walkthrough video${getRoomCallout(j.service_type)} to hello@renewshine.co, or text them to (771) 253-9204.
 
-Once we've reviewed everything, we'll send over your confirmed quote and available appointment options.
+A short video call works too — just text us to arrange a time.
+
+Once we've reviewed everything, we'll send your confirmed quote and reach out to schedule.
 
 — RenewShine`,
-      sms: `Hi ${first}, thanks for reaching out to RenewShine.
+      sms: `Hi ${first}, one quick step before your quote.
 
-To provide an accurate quote, please send a few photos or a short walkthrough video${getRoomCallout(j.service_type)}.
+Please send a few photos or a short video${getRoomCallout(j.service_type)} — text them here or to (771) 253-9204.
 
-FaceTime works too. Once we review it, we'll send over your quote.
+A short video call works too. We'll have your quote ready the same business day.
 
 — RenewShine`,
     },
@@ -182,35 +184,38 @@ FaceTime works too. Once we review it, we'll send over your quote.
     quote_dep: {
       email: `Hi ${first},
 
-Thank you for sending the photos.
+We've reviewed your photos. Your quote is ready — full details and payment link are in the email.
 
 Service: ${svc}${beds}
 Total: ${priceFmt}
-Deposit due today: $${dep}
+To reserve your date: $${dep}
 Balance after service: ${remainFmt}
 
-Once the deposit is received, your date is confirmed. Email us at hello@renewshine.co or text (771) 253-9204 with any questions.
+Questions? Just reply or text (771) 253-9204.
 
 — RenewShine`,
       sms: `Hi ${first} — your ${svc} quote is ${priceFmt}.
 
-To lock in your date, complete your $${dep} deposit here:
+Service: ${svc}${beds}
+To reserve your date: $${dep}
+Balance after service: ${remainFmt}
+
+Reserve here:
 [deposit link included]
 
-${remainFmt} balance due after the clean.
-
-— Grace`,
+Questions? Just reply.
+— RenewShine`,
     },
 
     quote_no: {
       email: `Hi ${first},
 
-Thank you for sending the details.
+We've reviewed your request. Your quote is ready.
 
 Service: ${svc}${beds}
 Total: ${priceFmt}
 
-No deposit required. Email us at hello@renewshine.co or call (771) 253-9204 to confirm and we'll get you scheduled.
+No deposit required. Text or call us at (771) 253-9204 to confirm and we'll get you scheduled.
 
 — RenewShine`,
       sms: `Hi ${first} — your ${svc} quote is ${priceFmt}.
@@ -226,15 +231,13 @@ No deposit required. Reply YES to confirm and we'll get you scheduled.
 
 Your ${svc} is confirmed for ${dateFmt} · ${arrFmt}.
 
-A few notes before we arrive:
+Before we arrive:
 • Please have floors, countertops, and surfaces reasonably clear.
-• Let us know any priority areas beforehand.
-• For safety, we don't move heavy furniture or appliances.
+• Let us know any priority areas in advance.
+• For safety, our team doesn't move heavy furniture or appliances.
 • Pets should be secured if they may be uncomfortable.
 
-We'll bring all supplies. We'll also call you 48 hours before your appointment.
-
-Questions? Email us at hello@renewshine.co or text (771) 253-9204.
+We bring all supplies and equipment. You'll get a reminder text the day before your appointment.
 
 — RenewShine`
         : noDate,
@@ -242,12 +245,12 @@ Questions? Email us at hello@renewshine.co or text (771) 253-9204.
         ? `Hi ${first} — your ${svc} is confirmed for ${dateFmt} · ${arrFmt}.
 
 Before we arrive:
-• Please have floors and surfaces reasonably clear.
+• Floors and surfaces reasonably clear.
 • Let us know priority areas in advance.
 • We don't move heavy furniture or appliances.
-• Pets should be secured if they may be uncomfortable.
+• Pets secured if needed.
 
-We'll bring all supplies and call you 48 hours before.
+We bring all supplies. You'll get a reminder text the day before.
 
 — RenewShine`
         : noDate,
@@ -257,14 +260,13 @@ We'll bring all supplies and call you 48 hours before.
       email: dateFmt
         ? `Hi ${first},
 
-Just a reminder — your ${svc} is scheduled for ${dateFmt}, ${arrFmt}.
+Your ${svc} is tomorrow — ${dateFmt}, ${arrFmt}.
 
-Address on file: ${j.address ?? '—'}
+Address on file: ${j.address ?? 'on file'}
 
-If anything has changed or you have questions, email us at hello@renewshine.co or call (771) 253-9204.
+If anything has changed, let us know today.
 
 See you then.
-
 — RenewShine`
         : noDate,
       sms: dateFmt
@@ -292,12 +294,10 @@ Payment is due within 24 hours of the service date.
 
 — RenewShine`,
       sms: j.stripe_payment_link
-        ? `RenewShine — Invoice
+        ? `Hi ${first} — your RenewShine invoice.
 
-Client: ${j.client_name}
 Service: ${svc}${beds}${dateFmt ? `
-Date: ${dateFmt}` : ''}${j.address ? `
-Address: ${j.address}` : ''}
+Date: ${dateFmt}` : ''}
 
 Service total: ${priceFmt}${j.deposit_paid ? `
 Deposit paid: -$${dep}` : ''}
@@ -324,11 +324,11 @@ function getEmailSubject(id: string, j: Job, price: number | null, date: string 
     ? new Date(date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
     : null
   const subjects: Record<string, string> = {
-    photos:    'A quick follow-up about your cleaning request',
+    photos:    `One more step before your quote — RenewShine`,
     quote_dep: `${first}, your RenewShine quote is ready`,
     quote_no:  `${first}, your RenewShine quote is ready`,
-    appt:      dateFmt ? `${first}, your ${svc} is confirmed — ${dateFmt}` : `${first}, your ${svc} is confirmed`,
-    reminder:  `${first} — your clean is tomorrow`,
+    appt:      dateFmt ? `${first}, your ${svc} is confirmed for ${dateFmt}` : `${first}, your ${svc} is confirmed`,
+    reminder:  `Reminder: your ${svc} is tomorrow`,
     invoice:   `${first} — your RenewShine invoice`,
     custom:    '',
   }

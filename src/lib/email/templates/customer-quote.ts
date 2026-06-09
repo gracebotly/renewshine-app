@@ -152,7 +152,7 @@ export function customerQuoteTemplate(job: Job, stripeUrl: string, depositAmount
         </tr>
       </tbody>
     </table>
-    <p style="margin:0 0 24px;font-size:12px;color:#94a3b8;line-height:1.6;">No hidden fees. No surprise charges. If anything differs from the photos provided, we'll discuss it with you before any additional work is performed.</p>`
+    <p style="margin:0 0 24px;font-size:12px;color:#94a3b8;line-height:1.6;">No hidden fees. Fully insured cleaning professionals. If anything differs from the photos provided, we'll discuss it with you before any additional work is performed.</p>`
 
   // ── Section: Recurring pricing ────────────────────────────────────────────
   const recurringSection = freqCfg && recurringPriceNum ? `
@@ -194,7 +194,7 @@ export function customerQuoteTemplate(job: Job, stripeUrl: string, depositAmount
           <td style="padding:13px 16px;vertical-align:middle;width:40px;border-bottom:1px solid #e8f0eb;">
             <div style="width:24px;height:24px;border-radius:50%;background:#4A7C59;color:#fff;font-size:11px;font-weight:700;text-align:center;line-height:24px;">1</div>
           </td>
-          <td style="padding:13px 16px 13px 0;font-size:13px;color:#0f172a;line-height:1.5;vertical-align:middle;border-bottom:1px solid #e8f0eb;">Pay the $${depositAmount.toFixed(0)} deposit above to hold your spot</td>
+          <td style="padding:13px 16px 13px 0;font-size:13px;color:#0f172a;line-height:1.5;vertical-align:middle;border-bottom:1px solid #e8f0eb;">Reserve your date with the payment above to hold your spot</td>
         </tr>
         <tr>
           <td style="padding:13px 16px;vertical-align:middle;width:40px;border-bottom:1px solid #e8f0eb;">
@@ -206,7 +206,7 @@ export function customerQuoteTemplate(job: Job, stripeUrl: string, depositAmount
           <td style="padding:13px 16px;vertical-align:middle;width:40px;">
             <div style="width:24px;height:24px;border-radius:50%;background:#4A7C59;color:#fff;font-size:11px;font-weight:700;text-align:center;line-height:24px;">3</div>
           </td>
-          <td style="padding:13px 16px 13px 0;font-size:13px;color:#0f172a;line-height:1.5;vertical-align:middle;">We arrive and handle everything — no surprises</td>
+          <td style="padding:13px 16px 13px 0;font-size:13px;color:#0f172a;line-height:1.5;vertical-align:middle;">We show up and take care of everything. No surprises.</td>
         </tr>
       </tbody>
     </table>
@@ -216,7 +216,7 @@ export function customerQuoteTemplate(job: Job, stripeUrl: string, depositAmount
   const content = `
     ${badge('Quote ready', 'green')}
     ${heading(`${firstName}, your quote is ready.`)}
-    ${para('Review the details below and submit your deposit to secure your appointment.')}
+    ${para('We’ve reviewed your home and confirmed your price. Reserve your date with the payment below.')}
 
     ${appointmentSection}
     ${serviceSection}
@@ -230,16 +230,16 @@ export function customerQuoteTemplate(job: Job, stripeUrl: string, depositAmount
         <td>
           <p style="margin:0 0 10px;font-size:11px;font-weight:700;color:#4A7C59;text-transform:uppercase;letter-spacing:0.08em;">Why homeowners choose RenewShine</p>
           <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
-            <tr><td style="padding:3px 0;font-size:13px;color:#0f172a;line-height:1.5;"><span style="color:#4A7C59;font-weight:700;margin-right:8px;">·</span>Fully insured and background-checked</td></tr>
-            <tr><td style="padding:3px 0;font-size:13px;color:#0f172a;line-height:1.5;"><span style="color:#4A7C59;font-weight:700;margin-right:8px;">·</span>Transparent pricing — confirmed before you pay</td></tr>
-            <tr><td style="padding:3px 0;font-size:13px;color:#0f172a;line-height:1.5;"><span style="color:#4A7C59;font-weight:700;margin-right:8px;">·</span>No surprise charges</td></tr>
+            <tr><td style="padding:3px 0;font-size:13px;color:#0f172a;line-height:1.5;"><span style="color:#4A7C59;font-weight:700;margin-right:8px;">·</span>Confirmed pricing before service</td></tr>
+            <tr><td style="padding:3px 0;font-size:13px;color:#0f172a;line-height:1.5;"><span style="color:#4A7C59;font-weight:700;margin-right:8px;">·</span>Professional equipment and supplies included</td></tr>
+            <tr><td style="padding:3px 0;font-size:13px;color:#0f172a;line-height:1.5;"><span style="color:#4A7C59;font-weight:700;margin-right:8px;">·</span>Fully insured cleaning professionals</td></tr>
             <tr><td style="padding:3px 0;font-size:13px;color:#0f172a;line-height:1.5;"><span style="color:#4A7C59;font-weight:700;margin-right:8px;">·</span>Satisfaction guaranteed</td></tr>
           </table>
         </td>
       </tr>
     </table>
 
-    ${ctaButton('Confirm Booking', stripeUrl)}
+    ${ctaButton('Reserve My Date', stripeUrl)}
 
     ${nextStepsSection}
   `
@@ -248,7 +248,7 @@ export function customerQuoteTemplate(job: Job, stripeUrl: string, depositAmount
     subject,
     html: baseTemplate(
       content,
-      `${firstName}, your ${serviceLabel} quote is ready. Submit your deposit to secure your appointment.`
+      `${firstName}, your ${serviceLabel} quote is ready. Reserve your date with the payment below.`
     ),
   }
 }
