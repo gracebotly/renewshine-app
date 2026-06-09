@@ -2,6 +2,7 @@ import { stripe } from '@/lib/stripe/client'
 import { createServerClient } from '@/lib/supabase/server'
 import { sendOwnerBooked } from '@/lib/email'
 import { notifyDepositPaid } from '@/lib/slack'
+import { sendPushNotification } from '@/lib/push'
 
 // Required: raw body for Stripe signature verification
 export const runtime = 'nodejs'
@@ -87,8 +88,12 @@ export async function POST(request: Request) {
       return Response.json({ received: true })
     }
 
-    // Idempotency — Stripe retries events; skip if already processed
-    if (job.deposit_paid || job.status === 'completed') {
+    // Idempotency — split by payment type so balance payments aren't blocked by deposit_paid flag
+    const alreadyProcessed = paymentType === 'invoice'
+      ? (Number(job.remaining_amount) === 0 || job.status === 'completed')
+      : job.deposit_paid === true
+
+    if (alreadyProcessed) {
       console.log('Webhook: payment already recorded for job', resolvedJobId, '— skipping')
       return Response.json({ received: true })
     }
@@ -138,23 +143,53 @@ export async function POST(request: Request) {
       console.error('Webhook: owner booked email failed (non-blocking):', emailError)
     }
 
-    // Slack alert
+    // Push notification + Slack alert — fires for both deposit and invoice payments
     if (updatedJob) {
-      notifyDepositPaid(
-        `💰 *Deposit paid — Stripe*
-*${updatedJob.client_name}* paid $100 deposit
+      const jobUrl = `${process.env.NEXT_PUBLIC_SITE_URL}/admin/jobs/${updatedJob.id}`
+
+      if (paymentType === 'invoice') {
+        const amountPaid = Number(job.remaining_amount) // capture before update zeroed it
+
+        // Push — reaches Grace on mobile immediately
+        sendPushNotification({
+          title: 'Balance paid',
+          body: `${updatedJob.client_name} paid $${amountPaid} — job complete`,
+          url: jobUrl,
+          conversationId: updatedJob.id,
+        }).catch(() => {})
+
+        // Slack billing alert
+        notifyDepositPaid(
+          `💰 *Balance paid — Stripe*
+*${updatedJob.client_name}* paid $${amountPaid} balance
+Job status → completed
+🔗 ${jobUrl}`
+        ).catch(() => {})
+
+      } else {
+        // Push for deposit
+        sendPushNotification({
+          title: 'Deposit paid',
+          body: `${updatedJob.client_name} paid the $${updatedJob.deposit_amount ?? 100} deposit`,
+          url: jobUrl,
+          conversationId: updatedJob.id,
+        }).catch(() => {})
+
+        // Slack billing alert for deposit
+        notifyDepositPaid(
+          `💰 *Deposit paid — Stripe*
+*${updatedJob.client_name}* paid $${updatedJob.deposit_amount ?? 100} deposit
 🗓️ ${
-          updatedJob.confirmed_date
-            ? new Date(updatedJob.confirmed_date).toLocaleDateString('en-US', {
-                weekday: 'long',
-                month: 'long',
-                day: 'numeric',
-              })
-            : 'Date TBD'
-        }
+            updatedJob.confirmed_date
+              ? new Date(updatedJob.confirmed_date).toLocaleDateString('en-US', {
+                  weekday: 'long', month: 'long', day: 'numeric',
+                })
+              : 'Date TBD'
+          }
 💵 Remaining balance: $${updatedJob.remaining_amount ?? 0}
-🔗 ${process.env.NEXT_PUBLIC_SITE_URL}/admin/jobs/${updatedJob.id}`
-      ).catch(() => {})
+🔗 ${jobUrl}`
+        ).catch(() => {})
+      }
     }
 
     // Fire job-scheduled webhook for n8n day-before reminder — deposit only

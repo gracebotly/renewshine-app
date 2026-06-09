@@ -103,14 +103,13 @@ export async function POST(request: Request) {
     },
   })
 
-  // Store invoice link on the job
+  // Store invoice link on the job — do NOT touch status, keep whatever it currently is
   await supabase
     .from('jobs')
     .update({
       stripe_payment_link: paymentLink.url,
       approved_price: total,
       remaining_amount: amountDue,
-      status: 'approved',
     })
     .eq('id', jobId)
 
