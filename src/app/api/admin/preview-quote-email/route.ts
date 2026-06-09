@@ -10,7 +10,7 @@ export async function POST(request: Request) {
     return Response.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const { jobId, approvedPrice, confirmedDate, lineItems } = await request.json()
+  const { jobId, approvedPrice, confirmedDate, lineItems, recurringFrequency, recurringPriceOverride } = await request.json()
 
   if (!jobId) {
     return Response.json({ error: 'jobId is required' }, { status: 400 })
@@ -37,7 +37,13 @@ export async function POST(request: Request) {
       : (job as any).quote_line_items ?? [],
   }
 
-  const { html } = customerQuoteTemplate(previewJob as any, '#preview-stripe-link')
+  const { html } = customerQuoteTemplate(
+    previewJob as any,
+    '#preview-stripe-link',
+    undefined,
+    recurringFrequency as string | undefined,
+    recurringPriceOverride ? Number(recurringPriceOverride) : undefined
+  )
 
   return Response.json({ html })
 }

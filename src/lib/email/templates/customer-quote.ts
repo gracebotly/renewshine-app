@@ -2,7 +2,7 @@ import type { Job } from '@/types/database'
 import { ADD_ONS } from '@/lib/pricing'
 import { baseTemplate, badge, heading, para, ctaButton, divider } from './base'
 
-export function customerQuoteTemplate(job: Job, stripeUrl: string, depositAmountOverride?: number, recurringFrequency?: string): { subject: string; html: string } {
+export function customerQuoteTemplate(job: Job, stripeUrl: string, depositAmountOverride?: number, recurringFrequency?: string, recurringPriceOverride?: number): { subject: string; html: string } {
   const firstName = job.client_name.split(' ')[0]
   const serviceLabel =
     job.service_type === 'standard'            ? 'Standard Clean'
@@ -66,7 +66,11 @@ export function customerQuoteTemplate(job: Job, stripeUrl: string, depositAmount
       : null
   )
   const freqCfg   = activeFreq ? FREQ_CONFIG[activeFreq] : null
-  const recurringPriceNum = freqCfg ? Math.round(approvedPrice * freqCfg.mult) : null
+  const recurringPriceNum = freqCfg
+    ? (recurringPriceOverride && recurringPriceOverride > 0
+        ? Math.round(recurringPriceOverride)
+        : Math.round(approvedPrice * freqCfg.mult))
+    : null
 
   const bedroomLine =
     job.bedrooms
