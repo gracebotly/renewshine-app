@@ -710,7 +710,6 @@ export function QuoteCard({ job }: { job: Job }) {
   const firstName = job.client_name?.split(' ')[0] ?? ''
   const templateList = currentChannel === 'email' ? EMAIL_TEMPLATE_LIST : SMS_TEMPLATE_LIST
 
-  // Base template content — recurring line injected below for SMS quote_dep
   const basePreviewBody = getTemplateContent(currentTemplate, currentChannel, job, savedPrice, savedDate, savedArrival)
 
   const previewBody = (() => {
