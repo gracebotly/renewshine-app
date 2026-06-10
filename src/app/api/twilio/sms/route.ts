@@ -88,7 +88,7 @@ export async function POST(req: NextRequest) {
           `We're sorry to hear that. We want to make it right.\n\nReply YES and we'll schedule a complimentary re-clean at no charge.\n\n— RenewShine`
         )
         sendSms(
-          process.env.OWNER_PHONE ?? null,
+          process.env.OWNER_PHONE ? toE164(process.env.OWNER_PHONE) : null,
           `⚠️ Low rating — ${job.client_name ?? from} scored ${score}/5. Review: ${siteUrl}/admin/jobs/${job.id}`
         ).catch(err => console.error('owner low-score alert failed:', err))
       }
@@ -100,15 +100,50 @@ export async function POST(req: NextRequest) {
     return new NextResponse(EMPTY_TWIML, { status: 200, headers: { 'Content-Type': 'text/xml' } })
   }
 
-  // ─── YES — appointment confirmation ───────────────────────────────────────
+  // ─── YES — context-aware routing ──────────────────────────────────────────
+  // Two contexts for YES:
+  //   1. Re-clean offer acceptance (customer had a low rating score 1–3 within 7 days)
+  //   2. Standard appointment confirmation (day-before reminder or any other YES)
   if (normalized === 'YES') {
-    // Check if this is a re-clean acceptance (after low score) or appointment confirm
-    // We treat both the same: confirm and alert owner
-    await sendSms(from, `You're confirmed for tomorrow. See you then!\n\n— RenewShine`)
-    sendSms(
-      process.env.OWNER_PHONE ?? null,
-      `✅ ${from} confirmed their appointment.`
-    ).catch(err => console.error('owner YES alert failed:', err))
+    const normalizedFrom = toE164(from)
+    const ownerPhone = process.env.OWNER_PHONE ? toE164(process.env.OWNER_PHONE) : null
+
+    // Check if this is a re-clean YES: most recent completed job with low score (1–3)
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
+    const { data: lowScoreJob } = await supabase
+      .from('jobs')
+      .select('id, client_name')
+      .or(`client_phone.eq.${from},client_phone.eq.${normalizedFrom}`)
+      .eq('status', 'completed')
+      .lte('satisfaction_score', 3)
+      .not('satisfaction_score', 'is', null)
+      .gte('created_at', sevenDaysAgo)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    if (lowScoreJob) {
+      // Re-clean offer acceptance
+      await sendSms(
+        from,
+        `Great — we'll be in touch shortly to get your re-clean scheduled.
+
+— RenewShine`
+      )
+      sendSms(
+        ownerPhone,
+        `⚠️ Re-clean accepted — ${lowScoreJob.client_name ?? from} said YES to the re-clean offer. Schedule their complimentary clean: ${siteUrl}/admin/jobs/${lowScoreJob.id}`
+      ).catch(err => console.error('owner re-clean alert failed:', err))
+    } else {
+      // Standard appointment confirmation
+      await sendSms(from, `You're confirmed. See you then!
+
+— RenewShine`)
+      sendSms(
+        ownerPhone,
+        `✅ ${from} confirmed their appointment.`
+      ).catch(err => console.error('owner YES alert failed:', err))
+    }
 
     await storeInInbox({ supabase, from, body, sid, siteUrl, skipOwnerAlert: true, mediaUrl, params })
 
@@ -122,7 +157,7 @@ export async function POST(req: NextRequest) {
       `No problem — we'll get you rescheduled. I'll reach out shortly to find a new time that works.\n\n— RenewShine`
     )
     sendSms(
-      process.env.OWNER_PHONE ?? null,
+      process.env.OWNER_PHONE ? toE164(process.env.OWNER_PHONE) : null,
       `⚠️ ${from} replied NO to their appointment confirmation. Reschedule needed.`
     ).catch(err => console.error('owner NO alert failed:', err))
 
@@ -132,12 +167,15 @@ export async function POST(req: NextRequest) {
   }
 
   // ─── HUMAN REPLY — store in inbox, pause automation, alert owner ──────────
-  // Pause automation for this customer for 12 hours so n8n sequences skip
-  await supabase
+  // Pause automation for this customer for 12 hours so n8n sequences skip.
+  // Fire-and-forget — do NOT await. This must not block the TwiML response to Twilio.
+  supabase
     .from('jobs')
     .update({ automation_paused_until: new Date(Date.now() + 12 * 60 * 60 * 1000).toISOString() })
     .eq('client_phone', from)
     .in('status', ['approved', 'scheduled', 'completed'])
+    .then(() => {})
+    .catch(err => console.error('automation pause update failed (non-blocking):', err))
 
   await storeInInbox({ supabase, from, body, sid, siteUrl, skipOwnerAlert: false, mediaUrl, params })
 
@@ -241,7 +279,7 @@ async function storeInInbox({
       ? '📷 sent a photo'
       : body.length > 60 ? `${body.slice(0, 60)}…` : body
     sendSms(
-      process.env.OWNER_PHONE ?? null,
+      process.env.OWNER_PHONE ? toE164(process.env.OWNER_PHONE) : null,
       `New RenewShine text from ${displayName}: "${preview}" — ${siteUrl}/admin/inbox`
     ).catch(err => console.error('owner backup SMS failed (non-blocking):', err))
   }
