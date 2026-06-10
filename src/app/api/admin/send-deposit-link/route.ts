@@ -20,7 +20,7 @@ export async function POST(request: Request) {
     return Response.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const { jobId, approvedPrice, depositAmount, confirmedDate, regenerate, channel = 'email', customSmsBody } = await request.json()
+  const { jobId, approvedPrice, depositAmount, confirmedDate, regenerate, channel = 'email', customSmsBody, recurringFrequency, recurringPriceOverride } = await request.json()
 
   // Validate
   if (!jobId || !approvedPrice) {
@@ -198,7 +198,13 @@ ${paymentLink.url}
         if (regenerate) {
           await sendExpiredLinkRecovery(updatedJob, paymentLink.url)
         } else {
-          await sendCustomerQuote(updatedJob, paymentLink.url, resolvedDeposit)
+          await sendCustomerQuote(
+            updatedJob,
+            paymentLink.url,
+            resolvedDeposit,
+            recurringFrequency as string | undefined,
+            recurringPriceOverride ? Number(recurringPriceOverride) : undefined
+          )
         }
       }
     }

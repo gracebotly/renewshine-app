@@ -404,6 +404,28 @@ export function QuoteCard({ job }: { job: Job }) {
   const [contactEditBody, setContactEditBody] = React.useState('')
   const [contactSending, setContactSending] = React.useState(false)
 
+  // Recurring pricing toggle — auto-enabled when job already has a frequency
+  const [includeRecurring, setIncludeRecurring] = React.useState<boolean>(() => {
+    const f = job.service_frequency
+    return !!f && ['weekly', 'biweekly', 'monthly'].includes(f)
+  })
+  const [recurringFreq, setRecurringFreq] = React.useState<string>(() => {
+    const f = job.service_frequency
+    return (f && ['weekly', 'biweekly', 'monthly'].includes(f)) ? f : 'biweekly'
+  })
+  const [customRecurringPrice, setCustomRecurringPrice] = React.useState<string>('')
+
+  const FREQ_MULT: Record<string, number> = { weekly: 0.80, biweekly: 0.85, monthly: 0.90 }
+  const FREQ_LABEL: Record<string, string> = { weekly: 'Weekly', biweekly: 'Bi-weekly', monthly: 'Monthly' }
+  const recurringPrice = savedPrice && includeRecurring
+    ? Math.round(savedPrice * (FREQ_MULT[recurringFreq] ?? 0.85))
+    : null
+  const effectiveRecurringPrice: number | null = (() => {
+    if (!includeRecurring) return null
+    const custom = customRecurringPrice !== '' ? Number(customRecurringPrice) : NaN
+    if (!isNaN(custom) && custom > 0) return Math.round(custom)
+    return recurringPrice
+  })()
 
   // Email HTML preview
   const [emailPreviewHtml, setEmailPreviewHtml] = React.useState<string | null>(null)
@@ -503,6 +525,8 @@ export function QuoteCard({ job }: { job: Job }) {
             confirmedDate: savedDate || null,
             channel: currentChannel,
             customSmsBody: currentChannel === 'sms' ? body : undefined,
+            recurringFrequency: includeRecurring ? recurringFreq : undefined,
+            recurringPriceOverride: includeRecurring && effectiveRecurringPrice ? effectiveRecurringPrice : undefined,
           }),
         })
         setOverrideStatus('approved')
@@ -603,6 +627,8 @@ export function QuoteCard({ job }: { job: Job }) {
           jobId: job.id,
           approvedPrice: savedPrice ?? job.approved_price,
           confirmedDate: savedDate || null,
+          recurringFrequency: includeRecurring ? recurringFreq : undefined,
+          recurringPriceOverride: includeRecurring && effectiveRecurringPrice ? effectiveRecurringPrice : undefined,
         }),
       })
       const data = await res.json()
@@ -685,7 +711,16 @@ export function QuoteCard({ job }: { job: Job }) {
   const templateList = currentChannel === 'email' ? EMAIL_TEMPLATE_LIST : SMS_TEMPLATE_LIST
 
   const basePreviewBody = getTemplateContent(currentTemplate, currentChannel, job, savedPrice, savedDate, savedArrival)
-  const previewBody = basePreviewBody
+
+  const previewBody = (() => {
+    if (currentTemplate === 'quote_dep' && currentChannel === 'sms' && includeRecurring && effectiveRecurringPrice) {
+      return basePreviewBody.replace(
+        '\n\nReserve here:',
+        `\n${FREQ_LABEL[recurringFreq]}: $${effectiveRecurringPrice}/visit\n\nReserve here:`
+      )
+    }
+    return basePreviewBody
+  })()
 
   // SMS display: replace placeholder with a preview URL — real URL injected by route at send time
   const smsDisplayBody = previewBody.replace('[deposit link included]', 'pay.stripe.com/preview')
@@ -1002,6 +1037,59 @@ export function QuoteCard({ job }: { job: Job }) {
                   <option key={t.id} value={t.id}>{t.label}</option>
                 ))}
               </select>
+
+              {/* Recurring rate toggle — quote_dep only, both channels */}
+              {currentTemplate === 'quote_dep' && (
+                <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+                  <input
+                    type="checkbox"
+                    id="include-recurring"
+                    checked={includeRecurring}
+                    onChange={e => { setIncludeRecurring(e.target.checked); setEmailPreviewHtml(null); setShowEmailPreview(false) }}
+                    className="h-3.5 w-3.5 accent-[#4A7C59] cursor-pointer shrink-0"
+                  />
+                  <label htmlFor="include-recurring" className="text-xs text-slate-700 cursor-pointer select-none">
+                    Include recurring rate
+                  </label>
+                  {includeRecurring && (
+                    <>
+                      <select
+                        value={recurringFreq}
+                        onChange={e => {
+                          setRecurringFreq(e.target.value)
+                          setCustomRecurringPrice('')
+                          setEmailPreviewHtml(null)
+                          setShowEmailPreview(false)
+                        }}
+                        className="ml-auto rounded-md border border-slate-200 bg-white px-2 py-1 text-xs text-slate-700 focus:outline-none cursor-pointer"
+                      >
+                        <option value="biweekly">Bi-weekly</option>
+                        <option value="weekly">Weekly</option>
+                        <option value="monthly">Monthly</option>
+                      </select>
+                      {recurringPrice !== null && (
+                        <div className="flex items-center gap-0.5 shrink-0">
+                          <span className="text-[10px] text-slate-400">$</span>
+                          <input
+                            type="number"
+                            value={customRecurringPrice !== '' ? customRecurringPrice : (recurringPrice?.toString() ?? '')}
+                            onChange={e => {
+                              setCustomRecurringPrice(e.target.value)
+                              setEmailPreviewHtml(null)
+                              setShowEmailPreview(false)
+                            }}
+                            min="0"
+                            step="1"
+                            className="w-14 rounded border border-slate-200 bg-white px-1 py-0.5 text-xs font-semibold text-[#4A7C59] font-mono text-center focus:outline-none focus:border-[#4A7C59]"
+                            title="Custom recurring price per visit (overrides auto-calculation)"
+                          />
+                          <span className="text-[10px] text-slate-400">/visit</span>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
 
               {/* Preview area */}
               <div className="overflow-hidden rounded-lg border border-slate-200">

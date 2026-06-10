@@ -2,7 +2,7 @@ import type { Job } from '@/types/database'
 import { ADD_ONS } from '@/lib/pricing'
 import { baseTemplate, badge, heading, para, ctaButton, divider } from './base'
 
-export function customerQuoteTemplate(job: Job, stripeUrl: string, depositAmountOverride?: number): { subject: string; html: string } {
+export function customerQuoteTemplate(job: Job, stripeUrl: string, depositAmountOverride?: number, recurringFrequency?: string, recurringPriceOverride?: number): { subject: string; html: string } {
   const firstName = job.client_name.split(' ')[0]
   const serviceLabel =
     job.service_type === 'standard'            ? 'Standard Clean'
@@ -53,6 +53,24 @@ export function customerQuoteTemplate(job: Job, stripeUrl: string, depositAmount
   const totalDisplay = `$${approvedPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
   const depositDisplay = `$${depositAmount.toFixed(2)}`
   const remainingDisplay = `$${remainingAmount.toFixed(2)}`
+
+  // ── Recurring pricing ─────────────────────────────────────────────────────
+  const FREQ_CONFIG: Record<string, { label: string; mult: number }> = {
+    weekly:   { label: 'Weekly',    mult: 0.80 },
+    biweekly: { label: 'Bi-weekly', mult: 0.85 },
+    monthly:  { label: 'Monthly',   mult: 0.90 },
+  }
+  const activeFreq = recurringFrequency ?? (
+    job.service_frequency && ['weekly', 'biweekly', 'monthly'].includes(job.service_frequency)
+      ? job.service_frequency
+      : null
+  )
+  const freqCfg   = activeFreq ? FREQ_CONFIG[activeFreq] : null
+  const recurringPriceNum = freqCfg
+    ? (recurringPriceOverride && recurringPriceOverride > 0
+        ? Math.round(recurringPriceOverride)
+        : Math.round(approvedPrice * freqCfg.mult))
+    : null
 
   const bedroomLine =
     job.bedrooms
