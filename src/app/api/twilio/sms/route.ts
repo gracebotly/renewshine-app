@@ -174,8 +174,7 @@ export async function POST(req: NextRequest) {
     .update({ automation_paused_until: new Date(Date.now() + 12 * 60 * 60 * 1000).toISOString() })
     .eq('client_phone', from)
     .in('status', ['approved', 'scheduled', 'completed'])
-    .then(() => {})
-    .catch(err => console.error('automation pause update failed (non-blocking):', err))
+    .then(() => {}, err => console.error('automation pause update failed (non-blocking):', err))
 
   await storeInInbox({ supabase, from, body, sid, siteUrl, skipOwnerAlert: false, mediaUrl, params })
 
