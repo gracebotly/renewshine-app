@@ -3,6 +3,7 @@
 import * as React from 'react'
 import { ChevronDown, Pencil, Table } from 'lucide-react'
 import type { Job } from '@/types/database'
+import { InvoicePanel } from '@/components/admin/InvoicePanel'
 
 function getServiceLabel(serviceType: string | null): string {
   if (serviceType === 'standard')           return 'Standard Clean'
@@ -581,25 +582,6 @@ export function QuoteCard({ job, defaultOpenPanel }: { job: Job; defaultOpenPane
             }),
           })
         }
-      } else if (currentTemplate === 'invoice') {
-        const svc = getServiceLabel(job.service_type ?? null)
-        const price = savedPrice ?? job.approved_price ?? 0
-        const lineItems = [{ description: `${svc}${savedDate ? ` — ${new Date(savedDate + 'T12:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}` : ''}`, amount: price }]
-        const dueDate = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0]
-        const res = await fetch('/api/admin/send-invoice', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ jobId: job.id, lineItems, dueDate }),
-        })
-        if (res.ok && currentChannel === 'sms') {
-          const { paymentUrl } = await res.json()
-          const smsBody = body.replace('Payment link below.', `Pay now: ${paymentUrl}`)
-          await fetch('/api/admin/send-contact', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ jobId: job.id, method: 'sms', customBody: smsBody }),
-          })
-        }
       }
       setSuccessMsg('Sent ✓')
       setTimeout(() => setSuccessMsg(''), 4000)
@@ -1096,8 +1078,19 @@ export function QuoteCard({ job, defaultOpenPanel }: { job: Job; defaultOpenPane
                 </div>
               )}
 
-              {/* Preview area */}
-              <div className="overflow-hidden rounded-lg border border-slate-200">
+              {/* Preview area — or InvoicePanel when invoice template is selected */}
+              {currentTemplate === 'invoice' ? (
+                <div className="mt-1">
+                  <InvoicePanel
+                    job={job}
+                    onClose={() => {
+                      setCurrentTemplate('photos')
+                      setContactEditBody('')
+                    }}
+                  />
+                </div>
+              ) : (
+                <div className="overflow-hidden rounded-lg border border-slate-200">
 
                 {/* Preview header */}
                 <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50 px-3 py-2">
@@ -1231,6 +1224,7 @@ export function QuoteCard({ job, defaultOpenPanel }: { job: Job; defaultOpenPane
                   </button>
                 </div>
               </div>
+              )}
             </div>
           </div>
 

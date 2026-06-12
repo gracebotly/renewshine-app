@@ -23,7 +23,7 @@ export async function POST(request: Request) {
     return Response.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const { jobId, lineItems, dueDate, businessName, preparedForAddress, notes, depositCredit: depositCreditOverride } = await request.json() as {
+  const { jobId, lineItems, dueDate, businessName, preparedForAddress, notes, depositCredit: depositCreditOverride, arrivalTime } = await request.json() as {
     jobId: string
     lineItems: InvoiceLineItem[]
     dueDate: string       // ISO date string — always required, sent by client
@@ -31,6 +31,7 @@ export async function POST(request: Request) {
     preparedForAddress?: string
     notes?: string
     depositCredit?: number
+    arrivalTime?: string
   }
 
   if (!jobId || !lineItems || lineItems.length === 0) {
@@ -145,6 +146,7 @@ export async function POST(request: Request) {
       dueDate: dueDateStr,
       paymentUrl: paymentLink.url,
       serviceDate: serviceDateStr,
+      arrivalTime: arrivalTime?.trim() || null,
       notes: notes?.trim() || null,
     })
   } catch (emailError) {

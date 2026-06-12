@@ -23,6 +23,7 @@ export async function POST(request: Request) {
     preparedForAddress?: string
     notes?: string
     depositCredit?: number
+    arrivalTime?: string
   }
 
   const { type, jobId } = body
@@ -97,6 +98,7 @@ export async function POST(request: Request) {
       dueDate: dueDateStr,
       paymentUrl: '#preview-payment-link',
       serviceDate: serviceDateStr,
+      arrivalTime: body.arrivalTime?.trim() || null,
       notes: body.notes?.trim() || null,
     })
     html = rendered
