@@ -128,6 +128,8 @@ const SMS_TEMPLATE_LIST = [
   { id: 'custom',     label: 'Custom message' },
 ]
 
+const VALID_TEMPLATES = ['photos', 'quote_dep', 'quote_no', 'appt', 'reminder', 'invoice', 'custom']
+
 function getRoomCallout(serviceType: string | null): string {
   if (serviceType === 'standard' || serviceType === 'deep')
     return ' of the kitchen, bathrooms, bedrooms, and living areas'
@@ -355,7 +357,7 @@ function getEmailSubject(id: string, j: Job, price: number | null, date: string 
 
 // ─── QuoteCard ────────────────────────────────────────────────────────────────
 
-export function QuoteCard({ job }: { job: Job }) {
+export function QuoteCard({ job, defaultOpenPanel }: { job: Job; defaultOpenPanel?: string }) {
   const [overrideStatus, setOverrideStatus] = React.useState(job.status)
   const [loadingResend, setLoadingResend] = React.useState(false)
   const [loadingComplete, setLoadingComplete] = React.useState(false)
@@ -400,7 +402,10 @@ export function QuoteCard({ job }: { job: Job }) {
   const [currentChannel, setCurrentChannel] = React.useState<'email' | 'sms'>(
     job.preferred_contact === 'text' ? 'sms' : 'email'
   )
-  const [currentTemplate, setCurrentTemplate] = React.useState<string>('photos')
+  const [currentTemplate, setCurrentTemplate] = React.useState<string>(() => {
+    if (defaultOpenPanel && VALID_TEMPLATES.includes(defaultOpenPanel)) return defaultOpenPanel
+    return 'photos'
+  })
   const [contactEditBody, setContactEditBody] = React.useState('')
   const [contactSending, setContactSending] = React.useState(false)
 

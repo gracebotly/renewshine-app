@@ -21,6 +21,7 @@ export default async function AdminPage({
     { data: staleJobs },
     { data: outstandingJobs },
     { data: pagedJobs, count: totalCount },
+    { data: completedJobs },
   ] = await Promise.all([
     // Stale alert — new/under_review jobs older than 4 hours
     supabase
@@ -48,6 +49,14 @@ export default async function AdminPage({
       .eq('is_archived', false)
       .order('created_at', { ascending: false })
       .range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1),
+
+    // Repeat clients — all completed, non-archived jobs for the Repeat Clients tab
+    supabase
+      .from('jobs')
+      .select('id, client_name, client_email, client_phone, service_type, approved_price, confirmed_date, created_at, type, bedrooms, bathrooms, address, business_name, notes, deposit_paid, deposit_amount, remaining_amount, status, add_ons, service_frequency, availability_time_pref, availability_start, availability_end, satisfaction_score, automation_paused_until, contacted_at, contact_method, contact_note, home_type, preferred_contact, last_completed_step, dropped_at_label, quote_line_items, is_archived, stripe_payment_link, stripe_session_id, appointment_confirmed, estimated_price_low, estimated_price_high, sms_opt_in, condition, pets, home_entry, property_type, property_other_description, square_footage')
+      .eq('status', 'completed')
+      .eq('is_archived', false)
+      .order('created_at', { ascending: false }),
   ])
 
   const totalPages = Math.ceil((totalCount ?? 0) / PAGE_SIZE)
@@ -62,6 +71,7 @@ export default async function AdminPage({
       hasPrev={page > 1}
       hasNext={page < totalPages}
       totalCount={totalCount ?? 0}
+      repeatJobs={completedJobs ?? []}
     />
   )
 }

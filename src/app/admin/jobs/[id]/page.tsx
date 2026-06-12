@@ -3,6 +3,7 @@ import { createServerClient } from '@/lib/supabase/server'
 import { ChevronLeft } from 'lucide-react'
 import { notFound } from 'next/navigation'
 import { QuoteCard } from '@/components/admin/QuoteCard'
+import { NewVisitButton } from '@/components/admin/NewVisitModal'
 import { ADD_ONS } from '@/lib/pricing'
 
 // ── Label/Value row — read-only display ──────────────────────────────────────
@@ -431,9 +432,16 @@ function SubmissionCard({ job }: { job: any }) {
 }
 
 // ── Page ─────────────────────────────────────────────────────────────────────
-export default async function JobDetailPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function JobDetailPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>
+  searchParams?: Promise<Record<string, string | undefined>>
+}) {
   const supabase = createServerClient()
   const { id } = await params
+  const openPanel = (await searchParams)?.openPanel
   const { data: job } = await supabase
     .from('jobs')
     .select('*, job_media(id, file_url, file_type)')
@@ -488,18 +496,21 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
   return (
     <div className="min-h-screen bg-slate-50">
       <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-        <Link
-          href="/admin"
-          className="mb-6 inline-flex cursor-pointer items-center gap-1.5 text-sm text-slate-600 transition-colors duration-200 hover:text-slate-900"
-        >
-          <ChevronLeft size={16} /> Back to Dashboard
-        </Link>
+        <div className="mb-6 flex items-center justify-between">
+          <Link
+            href="/admin"
+            className="inline-flex cursor-pointer items-center gap-1.5 text-sm text-slate-600 transition-colors duration-200 hover:text-slate-900"
+          >
+            <ChevronLeft size={16} /> Back to Dashboard
+          </Link>
+          {job.status === 'completed' && <NewVisitButton job={job} />}
+        </div>
 
         <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
 
           {/* RIGHT — sticky decision panel */}
           <div className="w-full lg:w-80 xl:w-96 lg:sticky lg:top-8 shrink-0 lg:order-2">
-            <QuoteCard job={job} />
+            <QuoteCard job={job} defaultOpenPanel={openPanel} />
           </div>
 
           {/* LEFT — submission + media + timeline */}

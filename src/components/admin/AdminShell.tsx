@@ -6,6 +6,7 @@ import { MessageCircle, ArrowUpDown, ChevronLeft, ChevronRight } from 'lucide-re
 import { JobsTable, StaleAlert } from '@/components/admin/JobsTable'
 import { LogoutButton } from '@/components/admin/LogoutButton'
 import { AnalyticsPanel } from '@/components/admin/AnalyticsPanel'
+import { NewVisitButton } from '@/components/admin/NewVisitModal'
 import type { Database } from '@/types/database'
 
 type JobRecord = Database['public']['Tables']['jobs']['Row']
@@ -31,6 +32,7 @@ interface AdminShellProps {
   hasPrev: boolean
   hasNext: boolean
   totalCount: number
+  repeatJobs: JobRecord[]
 }
 
 function formatService(type: string | null): string {
@@ -48,6 +50,115 @@ function daysAgo(created: string): string {
   return `${diff}d ago`
 }
 
+
+function RepeatClientsPanel({ jobs }: { jobs: JobRecord[] }) {
+  const clients = React.useMemo(() => {
+    const groups: Record<string, JobRecord[]> = {}
+    for (const job of jobs) {
+      const key = job.client_email
+      if (!groups[key]) groups[key] = []
+      groups[key].push(job)
+    }
+
+    return Object.values(groups)
+      .map(group => {
+        const sorted = [...group].sort(
+          (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        )
+        const totalRevenue = sorted.reduce((sum, job) => sum + (job.approved_price ?? 0), 0)
+        return {
+          lastJob: sorted[0],
+          visitCount: sorted.length,
+          totalRevenue,
+          lastServiceDate: sorted[0].confirmed_date ?? sorted[0].created_at,
+        }
+      })
+      .sort((a, b) => new Date(b.lastServiceDate).getTime() - new Date(a.lastServiceDate).getTime())
+  }, [jobs])
+
+  if (clients.length === 0) {
+    return (
+      <div className="rounded-xl border border-slate-200 bg-white px-4 py-12 text-center shadow-sm">
+        <p className="text-sm text-slate-400">No completed jobs yet.</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+        <table className="hidden w-full text-sm sm:table">
+          <thead>
+            <tr className="border-b border-slate-200 bg-slate-50">
+              {['Client', 'Last service', 'Visits', 'Total revenue', 'Last price', ''].map(heading => (
+                <th key={heading} className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  {heading}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {clients.map(({ lastJob, visitCount, totalRevenue, lastServiceDate }) => {
+              const dateStr = lastServiceDate
+                ? new Date(lastServiceDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                : '—'
+
+              return (
+                <tr key={lastJob.id} className="border-b border-slate-100 transition-colors duration-100 last:border-b-0 hover:bg-slate-50">
+                  <td className="px-4 py-3">
+                    <p className="font-medium text-slate-900">{lastJob.client_name}</p>
+                    <p className="text-xs text-slate-400">{lastJob.client_email}</p>
+                  </td>
+                  <td className="px-4 py-3 text-slate-600">{dateStr}</td>
+                  <td className="px-4 py-3">
+                    <span className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-600">
+                      {visitCount} {visitCount === 1 ? 'visit' : 'visits'}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 font-mono text-sm font-medium text-slate-900">
+                    ${totalRevenue.toLocaleString()}
+                  </td>
+                  <td className="px-4 py-3 font-mono text-sm text-slate-600">
+                    {lastJob.approved_price ? `$${lastJob.approved_price.toLocaleString()}` : '—'}
+                  </td>
+                  <td className="px-4 py-3">
+                    <NewVisitButton job={lastJob} />
+                  </td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+
+        <div className="divide-y divide-slate-100 sm:hidden">
+          {clients.map(({ lastJob, visitCount, totalRevenue, lastServiceDate }) => {
+            const dateStr = lastServiceDate
+              ? new Date(lastServiceDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+              : '—'
+
+            return (
+              <div key={lastJob.id} className="px-4 py-3.5">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold text-slate-900">{lastJob.client_name}</p>
+                    <p className="text-xs text-slate-400">{lastJob.client_email}</p>
+                    <div className="mt-2 flex flex-wrap items-center gap-3">
+                      <span className="text-xs text-slate-500">Last: {dateStr}</span>
+                      <span className="text-xs text-slate-500">{visitCount} {visitCount === 1 ? 'visit' : 'visits'}</span>
+                      <span className="font-mono text-xs font-medium text-slate-900">${totalRevenue.toLocaleString()} total</span>
+                    </div>
+                  </div>
+                  <NewVisitButton job={lastJob} />
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export function AdminShell({
   jobs,
   outstandingJobs,
@@ -57,8 +168,9 @@ export function AdminShell({
   hasPrev,
   hasNext,
   totalCount,
+  repeatJobs,
 }: AdminShellProps) {
-  const [activeTab, setActiveTab] = React.useState<'operations' | 'analytics'>('operations')
+  const [activeTab, setActiveTab] = React.useState<'operations' | 'analytics' | 'repeat'>('operations')
 
   return (
     <div className="min-h-screen bg-slate-50 pb-safe">
@@ -91,6 +203,22 @@ export function AdminShell({
                 }`}
               >
                 Analytics
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('repeat')}
+                className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors duration-150 cursor-pointer ${
+                  activeTab === 'repeat'
+                    ? 'bg-white text-slate-900 shadow-sm'
+                    : 'text-slate-500 hover:text-slate-700'
+                }`}
+              >
+                Repeat Clients
+                {repeatJobs.length > 0 && (
+                  <span className="ml-1.5 rounded-full bg-[#4A7C59] px-1.5 py-0.5 text-[10px] font-semibold text-white">
+                    {new Set(repeatJobs.map(job => job.client_email)).size}
+                  </span>
+                )}
               </button>
             </div>
           </div>
@@ -197,6 +325,9 @@ export function AdminShell({
 
         {/* Analytics panel */}
         {activeTab === 'analytics' && <AnalyticsPanel />}
+
+        {/* Repeat Clients panel */}
+        {activeTab === 'repeat' && <RepeatClientsPanel jobs={repeatJobs} />}
       </div>
     </div>
   )
