@@ -7,10 +7,9 @@ interface LineItem {
   amount: string
 }
 
-// Returns today's date + 48 hours as a yyyy-mm-dd string in local time
-function getDefault48hrDate(): string {
+// Returns today's date as a yyyy-mm-dd string in local time
+function getTodayDate(): string {
   const d = new Date()
-  d.setHours(d.getHours() + 48)
   const year = d.getFullYear()
   const month = String(d.getMonth() + 1).padStart(2, '0')
   const day = String(d.getDate()).padStart(2, '0')
@@ -22,7 +21,8 @@ export function InvoicePanel({ job, onClose }: { job: any; onClose?: () => void 
   const [businessName, setBusinessName] = React.useState(job.business_name ?? '')
   const [preparedForAddress, setPreparedForAddress] = React.useState(job.address ?? '')
   const [notes, setNotes] = React.useState('')
-  const [dueDate, setDueDate] = React.useState(getDefault48hrDate)
+  const [arrivalTime, setArrivalTime] = React.useState('')
+  const [dueDate, setDueDate] = React.useState(getTodayDate)
   const [loading, setLoading] = React.useState(false)
   const [success, setSuccess] = React.useState('')
   const [error, setError] = React.useState('')
@@ -92,6 +92,7 @@ export function InvoicePanel({ job, onClose }: { job: any; onClose?: () => void 
           dueDate,
           businessName: businessName || undefined,
           preparedForAddress: preparedForAddress || undefined,
+          arrivalTime: arrivalTime.trim() || undefined,
           notes: notes || undefined,
           depositCredit,
         }),
@@ -133,6 +134,7 @@ export function InvoicePanel({ job, onClose }: { job: any; onClose?: () => void 
         dueDate,
         businessName: businessName || undefined,
         preparedForAddress: preparedForAddress || undefined,
+        arrivalTime: arrivalTime.trim() || undefined,
         notes: notes || undefined,
         depositCredit,
       }),
@@ -143,7 +145,7 @@ export function InvoicePanel({ job, onClose }: { job: any; onClose?: () => void 
       setSuccess(`Invoice ${data.invoiceNumber} sent to ${job.client_email} ✓`)
       setLineItems([{ description: '', amount: '' }])
       setNotes('')
-      setDueDate(getDefault48hrDate())
+      setDueDate(getTodayDate())
       // Keep the success message visible — don't close automatically
     } else {
       const err = await res.json().catch(() => ({}))
@@ -321,6 +323,22 @@ export function InvoicePanel({ job, onClose }: { job: any; onClose?: () => void 
 
       <div className="space-y-1">
         <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+          Arrival time{' '}
+          <span className="normal-case font-normal text-slate-400">
+            (optional — shown on invoice)
+          </span>
+        </label>
+        <input
+          type="text"
+          value={arrivalTime}
+          onChange={(e) => setArrivalTime(e.target.value)}
+          placeholder="e.g. 10:00 AM"
+          className={inputClass}
+        />
+      </div>
+
+      <div className="space-y-1">
+        <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
           Notes <span className="normal-case font-normal text-slate-400">(optional — shown on invoice)</span>
         </label>
         <textarea
@@ -352,10 +370,7 @@ export function InvoicePanel({ job, onClose }: { job: any; onClose?: () => void 
       )}
 
       <label className="block space-y-1">
-        <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Due Date</span>
-        <p className="text-xs text-slate-400">
-          Pre-filled to 48 hours from now — change to today for immediate payment
-        </p>
+        <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Due date</span>
         <input
           type="date"
           value={dueDate}
