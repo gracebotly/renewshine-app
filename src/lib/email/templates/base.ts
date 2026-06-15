@@ -12,7 +12,7 @@ const LOGO_IMG = `<img
   src="https://renewshine.co/logo-primary.png"
   alt="RenewShine Premium Cleaning"
   width="160"
-  height="44"
+  height="120"
   style="display:block;border:0;outline:none;text-decoration:none;"
 />`
 
@@ -32,7 +32,7 @@ export function baseTemplate(content: string, previewText: string): string {
         <table width="600" cellpadding="0" cellspacing="0" role="presentation"
           style="max-width:600px;width:100%;background:#ffffff;border-radius:12px;overflow:hidden;border:1px solid ${BORDER};">
           <tr>
-            <td style="background:${BRAND};padding:20px 28px;">
+            <td style="background:#000000;padding:20px 28px;">
               ${LOGO_IMG}
             </td>
           </tr>
