@@ -12,8 +12,8 @@ if (process.env.VAPID_PRIVATE_KEY) {
 interface PushPayload {
   title: string
   body: string
-  url: string
-  conversationId: string
+  url?: string
+  conversationId?: string
 }
 
 export async function sendPushNotification(payload: PushPayload): Promise<void> {
@@ -22,27 +22,34 @@ export async function sendPushNotification(payload: PushPayload): Promise<void> 
   const supabase = createServerClient()
   const { data: subscriptions } = await supabase
     .from('push_subscriptions')
-    .select('endpoint, p256dh, auth')
+    .select('id, endpoint, p256dh, auth')
 
   if (!subscriptions?.length) return
 
-  const notification = JSON.stringify(payload)
+  const notification = JSON.stringify({
+    ...payload,
+    url: payload.url ?? '/',
+  })
 
-  await Promise.allSettled(
-    subscriptions.map((sub) =>
-      webpush
-        .sendNotification(
-          { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
-          notification
-        )
-        .catch(async (err: { statusCode?: number }) => {
-          if (err.statusCode === 410 || err.statusCode === 404) {
-            await supabase
-              .from('push_subscriptions')
-              .delete()
-              .eq('endpoint', sub.endpoint)
-          }
-        })
-    )
-  )
+  for (const sub of subscriptions) {
+    try {
+      await webpush.sendNotification(
+        { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
+        notification
+      )
+    } catch (err: unknown) {
+      const pushError = err as { statusCode?: number; status?: number }
+      const statusCode = pushError.statusCode ?? pushError.status
+
+      if (statusCode === 410 || statusCode === 404) {
+        console.warn('[push] Stale subscription deleted:', sub.endpoint.slice(0, 60))
+        await supabase
+          .from('push_subscriptions')
+          .delete()
+          .eq('id', sub.id)
+      } else {
+        console.error('[push] sendNotification failed:', err)
+      }
+    }
+  }
 }
