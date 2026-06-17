@@ -23,7 +23,7 @@ const COMPLIANCE_KEYWORDS = new Set([
   'STOP','STOPALL','UNSUBSCRIBE','CANCEL','END','QUIT','HELP','INFO'
 ])
 
-export async function POST(req: NextRequest) {
+async function handleInboundSms(req: NextRequest) {
   const rawBody = await req.text()
   const params  = Object.fromEntries(new URLSearchParams(rawBody))
 
@@ -31,7 +31,8 @@ export async function POST(req: NextRequest) {
   const url       = `${process.env.NEXT_PUBLIC_SITE_URL}/api/twilio/sms`
 
   if (!validateTwilioSignature(signature, url, params)) {
-    return new NextResponse('Forbidden', { status: 403 })
+    console.error('[inbound-sms] Invalid Twilio signature')
+    return new NextResponse(EMPTY_TWIML, { status: 200, headers: { 'Content-Type': 'text/xml' } })
   }
 
   const from     = params['From'] ?? ''
@@ -181,6 +182,16 @@ export async function POST(req: NextRequest) {
   return new NextResponse(EMPTY_TWIML, { status: 200, headers: { 'Content-Type': 'text/xml' } })
 }
 
+export async function POST(req: NextRequest) {
+  try {
+    return await handleInboundSms(req)
+  } catch (err) {
+    console.error('[inbound-sms] Unhandled error:', err)
+  }
+
+  return new NextResponse(EMPTY_TWIML, { status: 200, headers: { 'Content-Type': 'text/xml' } })
+}
+
 // ─── Shared: store message in SMS inbox ──────────────────────────────────────
 
 async function storeInInbox({
@@ -264,22 +275,31 @@ async function storeInInbox({
 
   const displayName = conv.contact_name ?? from
 
-  // Push notification — always fires
-  sendPushNotification({
-    title:          `💬 ${displayName}`,
-    body:           body.slice(0, 80),
-    url:            `/admin/inbox?phone=${encodeURIComponent(from)}`,
-    conversationId: conv.id,
-  }).catch(err => console.error('push failed (non-blocking):', err))
+  // Push notification — isolated. Failure is non-blocking.
+  try {
+    await sendPushNotification({
+      title:          `💬 ${displayName}`,
+      body:           body.slice(0, 80),
+      url:            `/admin/inbox?phone=${encodeURIComponent(from)}`,
+      conversationId: conv.id,
+    })
+  } catch (pushErr) {
+    console.error('[inbound-sms] Push notification failed — continuing:', pushErr)
+  }
 
-  // Owner backup SMS — only for human replies, not for structured replies (YES/NO/scores)
+  // Owner backup SMS — isolated separately. Always attempts regardless of push result.
   if (!skipOwnerAlert) {
     const preview = !body && mediaUrl
       ? '📷 sent a photo'
       : body.length > 60 ? `${body.slice(0, 60)}…` : body
-    sendSms(
-      process.env.OWNER_PHONE ? toE164(process.env.OWNER_PHONE) : null,
-      `New RenewShine text from ${displayName}: "${preview}" — ${siteUrl}/admin/inbox`
-    ).catch(err => console.error('owner backup SMS failed (non-blocking):', err))
+
+    try {
+      await sendSms(
+        process.env.OWNER_PHONE ? toE164(process.env.OWNER_PHONE) : null,
+        `New RenewShine text from ${displayName}: "${preview}" — ${siteUrl}/admin/inbox`
+      )
+    } catch (smsErr) {
+      console.error('[inbound-sms] Owner SMS alert failed:', smsErr)
+    }
   }
 }
