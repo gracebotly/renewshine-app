@@ -69,7 +69,7 @@ export function customerQuoteReminderTemplate(
     ${trustStrip()}
     ${divider}
 
-    ${ctaButton('Reserve My Date', stripeUrl)}
+    ${ctaButton('Pay Deposit', stripeUrl)}
   `
 
   return {
