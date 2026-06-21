@@ -2,7 +2,14 @@ import type { Job } from '@/types/database'
 import { ADD_ONS } from '@/lib/pricing'
 import { baseTemplate, badge, heading, para, ctaButton, divider } from './base'
 
-export function customerQuoteTemplate(job: Job, stripeUrl: string, depositAmountOverride?: number, recurringFrequency?: string, recurringPriceOverride?: number): { subject: string; html: string } {
+export function customerQuoteTemplate(
+  job: Job,
+  stripeUrl: string,
+  depositAmountOverride?: number,
+  recurringFrequency?: string,
+  recurringPriceOverride?: number,
+  customBodyOverride?: string
+): { subject: string; html: string } {
   const firstName = job.client_name.split(' ')[0]
   const serviceLabel =
     job.service_type === 'standard'            ? 'Standard Clean'
@@ -11,6 +18,29 @@ export function customerQuoteTemplate(job: Job, stripeUrl: string, depositAmount
     : job.service_type === 'post_construction' ? 'Post-Construction'
     : 'Cleaning Service'
   const subject = `Your ${serviceLabel} quote is ready — RenewShine`
+  const escapeHtml = (value: string) => value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+
+  // ── Admin override — if Grace typed custom text, that text IS the email.
+  // Do not blend it with the auto-generated sections below.
+  if (customBodyOverride && customBodyOverride.trim()) {
+    const paragraphs = customBodyOverride
+      .trim()
+      .split(/\n{2,}/)
+      .map(p => `<p style="margin:0 0 14px;font-size:14px;color:#334155;line-height:1.6;white-space:pre-line;">${escapeHtml(p)}</p>`)
+      .join('')
+
+    const overrideContent = `
+      ${badge('Quote ready', 'green')}
+      ${heading(`${firstName}, your quote is ready.`)}
+      ${paragraphs}
+      ${ctaButton('Reserve My Date', stripeUrl)}
+    `
+
+    return {
+      subject,
+      html: baseTemplate(overrideContent, `${firstName}, your quote is ready. Reserve your date with the payment below.`),
+    }
+  }
 
   const timePrefMap: Record<string, string> = {
     morning:         '8am – 12pm',
@@ -90,8 +120,31 @@ export function customerQuoteTemplate(job: Job, stripeUrl: string, depositAmount
       </tr>`)
     .join('')
 
+  type QuoteLineItem = { label: string; price: number }
+  const parseLineItems = (raw: unknown): QuoteLineItem[] => {
+    if (!Array.isArray(raw)) return []
+    return raw.filter((i): i is QuoteLineItem =>
+      !!i && typeof i === 'object' &&
+      typeof (i as Record<string, unknown>).label === 'string' &&
+      typeof (i as Record<string, unknown>).price === 'number'
+    )
+  }
+  const lineItems = parseLineItems((job as unknown as { quote_line_items?: unknown }).quote_line_items)
+  const hasLineItems = lineItems.length > 0
+
+  const lineItemRows = lineItems.map(li => `
+    <tr style="border-bottom:1px solid #f1f5f9;">
+      <td style="padding:10px 18px;font-size:13px;color:#0f172a;line-height:1.5;">${escapeHtml(li.label)}</td>
+      <td style="padding:10px 18px;text-align:right;font-size:13px;font-weight:600;color:#0f172a;font-family:'Courier New',monospace;white-space:nowrap;">$${li.price.toLocaleString()}</td>
+    </tr>`).join('')
+
   // ── Section: Appointment ─────────────────────────────────────────────────
-  const appointmentSection = `
+  const appointmentSection = hasLineItems ? `
+    <p style="margin:0 0 8px;font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.08em;">Your service locations</p>
+    <table width="100%" cellpadding="0" cellspacing="0" role="presentation"
+      style="border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;margin:0 0 24px;">
+      <tbody>${lineItemRows}</tbody>
+    </table>` : `
     <p style="margin:0 0 8px;font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.08em;">Your requested window</p>
     <table width="100%" cellpadding="0" cellspacing="0" role="presentation"
       style="border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;margin:0 0 24px;">
@@ -115,8 +168,8 @@ export function customerQuoteTemplate(job: Job, stripeUrl: string, depositAmount
         <tr>
           <td style="padding:14px 18px;">
             <p style="margin:0 0 2px;font-size:14px;font-weight:700;color:#0f172a;">${serviceLabel}</p>
-            ${bedroomLine ? `<p style="margin:0 0 ${selectedAddOns.length > 0 ? '10px' : '0'};font-size:12px;color:#64748b;">${bedroomLine}</p>` : ''}
-            ${selectedAddOns.length > 0 ? `<table width="100%" cellpadding="0" cellspacing="0" role="presentation">${addOnRows}</table>` : ''}
+            ${!hasLineItems && bedroomLine ? `<p style="margin:0 0 ${selectedAddOns.length > 0 ? '10px' : '0'};font-size:12px;color:#64748b;">${bedroomLine}</p>` : ''}
+            ${!hasLineItems && selectedAddOns.length > 0 ? `<table width="100%" cellpadding="0" cellspacing="0" role="presentation">${addOnRows}</table>` : ''}
           </td>
         </tr>
       </tbody>

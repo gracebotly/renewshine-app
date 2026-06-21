@@ -531,6 +531,7 @@ export function QuoteCard({ job, defaultOpenPanel }: { job: Job; defaultOpenPane
             confirmedDate: savedDate || null,
             channel: currentChannel,
             customSmsBody: currentChannel === 'sms' ? body : undefined,
+            customEmailBody: currentChannel === 'email' && contactEditBody.trim() ? contactEditBody : undefined,
             recurringFrequency: includeRecurring ? recurringFreq : undefined,
             recurringPriceOverride: includeRecurring && effectiveRecurringPrice ? effectiveRecurringPrice : undefined,
           }),
@@ -614,6 +615,7 @@ export function QuoteCard({ job, defaultOpenPanel }: { job: Job; defaultOpenPane
           jobId: job.id,
           approvedPrice: savedPrice ?? job.approved_price,
           confirmedDate: savedDate || null,
+          customEmailBody: contactEditBody.trim() ? contactEditBody : undefined,
           recurringFrequency: includeRecurring ? recurringFreq : undefined,
           recurringPriceOverride: includeRecurring && effectiveRecurringPrice ? effectiveRecurringPrice : undefined,
         }),
@@ -1156,7 +1158,7 @@ export function QuoteCard({ job, defaultOpenPanel }: { job: Job; defaultOpenPane
                     {!showEmailPreview && (
                       <textarea
                         value={contactEditBody || previewBody}
-                        onChange={e => setContactEditBody(e.target.value)}
+                        onChange={e => { setContactEditBody(e.target.value); setEmailPreviewHtml(null) }}
                         rows={7}
                         maxLength={1000}
                         placeholder={isCustomTemplate ? 'Type your message…' : undefined}
