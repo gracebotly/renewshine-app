@@ -33,7 +33,7 @@ export function customerQuoteTemplate(
       ${badge('Quote ready', 'green')}
       ${heading(`${firstName}, your quote is ready.`)}
       ${paragraphs}
-      ${ctaButton('Reserve My Date', stripeUrl)}
+      ${ctaButton('Pay Deposit', stripeUrl)}
     `
 
     return {
@@ -266,7 +266,7 @@ export function customerQuoteTemplate(
       </tr>
     </table>
 
-    ${ctaButton('Reserve My Date', stripeUrl)}
+    ${ctaButton('Pay Deposit', stripeUrl)}
 
     ${nextStepsSection}
   `
