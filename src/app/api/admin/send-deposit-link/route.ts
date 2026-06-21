@@ -20,7 +20,7 @@ export async function POST(request: Request) {
     return Response.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const { jobId, approvedPrice, depositAmount, confirmedDate, regenerate, channel = 'email', customSmsBody, recurringFrequency, recurringPriceOverride } = await request.json()
+  const { jobId, approvedPrice, depositAmount, confirmedDate, regenerate, channel = 'email', customSmsBody, customEmailBody, recurringFrequency, recurringPriceOverride } = await request.json()
 
   // Validate
   if (!jobId || !approvedPrice) {
@@ -203,7 +203,8 @@ ${paymentLink.url}
             paymentLink.url,
             resolvedDeposit,
             recurringFrequency as string | undefined,
-            recurringPriceOverride ? Number(recurringPriceOverride) : undefined
+            recurringPriceOverride ? Number(recurringPriceOverride) : undefined,
+            customEmailBody as string | undefined
           )
         }
       }
