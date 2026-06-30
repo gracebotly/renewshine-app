@@ -168,7 +168,8 @@ function buildTemplateTokens(
   const serviceDetail = [svc, ...roomDetails].join(' • ')
   const beds = bedroomCount && bathroomCount ? ` · ${bedroomCount} bed / ${bathroomCount} bath` : ''
   const dep = deposit
-  const remaining = price ? Math.max(price - dep, 0) : null
+  const creditedDeposit = templateId === 'invoice' && !j.deposit_paid ? 0 : dep
+  const remaining = price ? Math.max(price - creditedDeposit, 0) : null
   const priceFmt = price ? `$${price.toLocaleString()}` : '—'
   const remainFmt = remaining !== null ? `$${remaining.toLocaleString()}` : '—'
   const arrFmt = ARRIVAL_MAP[arrival] ?? arrival
@@ -457,6 +458,12 @@ export function QuoteCard({ job, defaultOpenPanel }: { job: Job; defaultOpenPane
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ jobId: job.id, channel: currentChannel, body, subject: previewSubject }),
+        })
+      } else if (currentTemplate === 'invoice' && currentChannel === 'sms') {
+        await fetch('/api/admin/send-invoice-sms', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ jobId: job.id, customSmsBody: body }),
         })
       } else if (currentTemplate === 'appt') {
         if (currentChannel === 'email') {
@@ -1042,7 +1049,7 @@ export function QuoteCard({ job, defaultOpenPanel }: { job: Job; defaultOpenPane
               )}
 
               {/* Preview area — or InvoicePanel when invoice template is selected */}
-              {currentTemplate === 'invoice' ? (
+              {currentTemplate === 'invoice' && currentChannel === 'email' ? (
                 <div className="mt-1">
                   <InvoicePanel
                     job={job}

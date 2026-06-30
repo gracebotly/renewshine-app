@@ -3,7 +3,7 @@ import { requireAdmin } from '@/lib/require-admin'
 import { DEFAULT_TEMPLATES } from '@/lib/templates/defaults'
 import type { MessageTemplate, TemplateChannel, TemplateId } from '@/lib/templates/types'
 
-const VALID_IDS: TemplateId[] = ['photos', 'quote_dep', 'quote_no', 'appt', 'reminder', 'invoice']
+const VALID_IDS: TemplateId[] = ['photos', 'quote_dep', 'quote_dep_bullets', 'quote_dep_next_steps', 'quote_no', 'appt', 'reminder', 'invoice']
 const VALID_CHANNELS: TemplateChannel[] = ['email', 'sms']
 
 export async function GET() {

@@ -37,7 +37,7 @@ export async function POST(request: Request) {
       : (job as any).quote_line_items ?? [],
   }
 
-  const { html } = customerQuoteTemplate(
+  const { html } = await customerQuoteTemplate(
     previewJob as any,
     '#preview-stripe-link',
     undefined,
