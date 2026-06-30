@@ -11,14 +11,20 @@ export async function POST(request: Request) {
     return Response.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const { jobId, approvedPrice, confirmedDate } = await request.json()
+  const { jobId, approvedPrice, confirmedDate, depositAmount } = await request.json()
 
   if (!jobId || !approvedPrice || !confirmedDate) {
     return Response.json({ error: 'jobId, approvedPrice, and confirmedDate are required' }, { status: 400 })
   }
 
   const supabase = createServerClient()
-  const remaining = Number(approvedPrice) - 100
+  const resolvedDeposit = depositAmount === undefined || depositAmount === null || depositAmount === ''
+    ? 100
+    : Number(depositAmount)
+  if (!Number.isFinite(resolvedDeposit) || resolvedDeposit < 0) {
+    return Response.json({ error: 'Deposit amount must be a valid amount of $0 or more' }, { status: 400 })
+  }
+  const remaining = Math.max(Number(approvedPrice) - resolvedDeposit, 0)
 
   const { error: updateError } = await supabase
     .from('jobs')
@@ -26,6 +32,7 @@ export async function POST(request: Request) {
       status: 'scheduled',
       deposit_paid: true,
       approved_price: Number(approvedPrice),
+      deposit_amount: resolvedDeposit,
       confirmed_date: confirmedDate,
       remaining_amount: remaining,
     })
@@ -55,7 +62,7 @@ export async function POST(request: Request) {
   if (job) {
     notifyDepositPaid(
       `💵 *Deposit paid — Cash*
-*${job.client_name}* — $100 cash deposit recorded manually
+*${job.client_name}* — $${job.deposit_amount ?? resolvedDeposit} cash deposit recorded manually
 🗓️ ${job.confirmed_date ? new Date(job.confirmed_date).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }) : 'Date TBD'}
 💵 Remaining balance: $${job.remaining_amount ?? 0}
 🔗 ${process.env.NEXT_PUBLIC_SITE_URL}/admin/jobs/${job.id}`

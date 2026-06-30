@@ -26,14 +26,23 @@ export async function POST(request: Request) {
   if (!jobId || !approvedPrice) {
     return Response.json({ error: 'jobId and approvedPrice are required' }, { status: 400 })
   }
-  // Deposit amount — use what was passed, fall back to 100 only if not provided
-  const resolvedDeposit = Number(depositAmount) > 0 ? Number(depositAmount) : 100
+  // Deposit amount — use what was passed, fall back to 100 only when omitted.
+  // A quote with no deposit should use the separate no-deposit template instead of silently forcing $100.
+  const resolvedDeposit = depositAmount === undefined || depositAmount === null || depositAmount === ''
+    ? 100
+    : Number(depositAmount)
+  if (!Number.isFinite(resolvedDeposit) || resolvedDeposit <= 0) {
+    return Response.json({ error: 'Deposit link amount must be greater than $0. Use Quote — no deposit for a $0 deposit.' }, { status: 400 })
+  }
 
   if (!['email', 'sms'].includes(channel)) {
     return Response.json({ error: 'channel must be email or sms' }, { status: 400 })
   }
-  if (Number(approvedPrice) <= 100) {
-    return Response.json({ error: 'approvedPrice must be greater than $100' }, { status: 400 })
+  if (Number(approvedPrice) <= 0) {
+    return Response.json({ error: 'approvedPrice must be greater than $0' }, { status: 400 })
+  }
+  if (resolvedDeposit > Number(approvedPrice)) {
+    return Response.json({ error: 'Deposit amount cannot be greater than the approved price' }, { status: 400 })
   }
 
   const supabase = createServerClient()
@@ -238,7 +247,7 @@ ${paymentLink.url}
     `📋 *Quote sent*
 *${job.client_name}* — $${approvedPrice} approved
 📧 ${job.client_email}
-Deposit link sent. Waiting for $100 deposit.`
+Deposit link sent. Waiting for $${resolvedDeposit} deposit.`
   ).catch(() => {})
 
   return Response.json({ url: paymentLink.url })
