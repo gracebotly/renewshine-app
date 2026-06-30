@@ -85,7 +85,7 @@ export async function POST(request: Request) {
         })
       : null
 
-    const { html: rendered } = customerInvoiceTemplate({
+    const { html: rendered } = await customerInvoiceTemplate({
       clientName: job.client_name,
       clientEmail: job.client_email,
       businessName: body.businessName?.trim() || job.business_name || null,

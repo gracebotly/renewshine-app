@@ -141,7 +141,7 @@ ${paymentLink.url}
             `Remaining balance of $${remaining.toLocaleString()} is due after the clean.
 
 ` +
-            `— Grace`
+            `RenewShine`
           )
           const finalSmsBody = smsBody.replace('[deposit link included]', paymentLink.url)
           await sendSms(job.client_phone, finalSmsBody)
