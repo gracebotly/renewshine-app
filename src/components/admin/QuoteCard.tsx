@@ -101,15 +101,19 @@ function JobActionDropdown({
   )
 }
 
-const ARRIVAL_MAP: Record<string, string> = {
+const BOOKING_TIME_PREFERENCE_MAP: Record<string, string> = {
   early_morning: '8am – 10am',
   mid_morning: '10am – 12pm',
   noon: '12pm – 2pm',
   early_afternoon: '2pm – 4pm',
   late_afternoon: '4pm – 6pm',
+  flexible: 'Flexible',
+}
+
+const ARRIVAL_MAP: Record<string, string> = {
+  ...BOOKING_TIME_PREFERENCE_MAP,
   morning: '8am – 12pm',
   afternoon: '12pm – 5pm',
-  flexible: 'Morning to Afternoon',
 }
 
 const EMAIL_TEMPLATE_LIST = [
@@ -149,16 +153,32 @@ function buildTemplateTokens(
   price: number | null,
   date: string | null,
   arrival: string,
-  deposit: number
+  deposit: number,
+  includeRecurring: boolean,
+  recurringFrequencyLabel: string,
+  effectiveRecurringPrice: number | null
 ): Record<string, string> {
   const first = j.client_name?.split(' ')[0] ?? 'there'
   const svc = getServiceLabel(j.service_type ?? null)
-  const beds = j.bedrooms && j.bathrooms ? ` · ${j.bedrooms} bed / ${j.bathrooms} bath` : ''
+  const bedroomCount = typeof j.bedrooms === 'number' && j.bedrooms > 0 ? j.bedrooms : null
+  const bathroomCount = typeof j.bathrooms === 'number' && j.bathrooms > 0 ? j.bathrooms : null
+  const bedLabel = bedroomCount ? `${bedroomCount} Bedroom${bedroomCount === 1 ? '' : 's'}` : ''
+  const bathLabel = bathroomCount ? `${bathroomCount} Bathroom${bathroomCount === 1 ? '' : 's'}` : ''
+  const roomDetails = [bedLabel, bathLabel].filter(Boolean)
+  const serviceDetail = [svc, ...roomDetails].join(' • ')
+  const beds = bedroomCount && bathroomCount ? ` · ${bedroomCount} bed / ${bathroomCount} bath` : ''
   const dep = deposit
   const remaining = price ? Math.max(price - dep, 0) : null
   const priceFmt = price ? `$${price.toLocaleString()}` : '—'
   const remainFmt = remaining !== null ? `$${remaining.toLocaleString()}` : '—'
   const arrFmt = ARRIVAL_MAP[arrival] ?? arrival
+  const timePrefFmt = j.availability_time_pref
+    ? (BOOKING_TIME_PREFERENCE_MAP[j.availability_time_pref] ?? j.availability_time_pref)
+    : ''
+  const recurringLine = includeRecurring && effectiveRecurringPrice
+    ? `Recurring rate:
+${recurringFrequencyLabel}: $${effectiveRecurringPrice.toLocaleString()}/visit`
+    : ''
   const dateFmt = date
     ? new Date(date + 'T12:00:00').toLocaleDateString('en-US', {
         weekday: 'long', month: 'long', day: 'numeric',
@@ -171,9 +191,8 @@ function buildTemplateTokens(
     const e = j.availability_end
       ? new Date(j.availability_end + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
       : null
-    const tw = ARRIVAL_MAP[j.availability_time_pref ?? ''] ?? j.availability_time_pref ?? ''
-    if (s && e && s !== e) return `${s} – ${e}${tw ? ` · ${tw}` : ''}`
-    if (s) return `${s}${tw ? ` · ${tw}` : ''}`
+    if (s && e && s !== e) return `${s} – ${e}`
+    if (s) return s
     return 'Dates to be confirmed'
   })()
 
@@ -181,11 +200,14 @@ function buildTemplateTokens(
     firstName: first,
     service: svc,
     bedBath: beds,
+    serviceDetail,
     roomCallout: getRoomCallout(j.service_type),
     availabilityWindow: availWindow,
+    timePreference: timePrefFmt,
     total: priceFmt,
     deposit: `$${dep}`,
     balance: remainFmt,
+    recurringLine,
     date: dateFmt,
     arrivalWindow: arrFmt,
     address: j.address ?? 'on file',
@@ -204,7 +226,10 @@ function renderFor(
   price: number | null,
   date: string | null,
   arrival: string,
-  deposit: number
+  deposit: number,
+  includeRecurring: boolean,
+  recurringFrequencyLabel: string,
+  effectiveRecurringPrice: number | null
 ): { subject: string; body: string } {
   if (id === 'custom') return { subject: '', body: '' }
 
@@ -217,7 +242,16 @@ function renderFor(
 
   if (!row) return { subject: '', body: '' }
 
-  const tokens = buildTemplateTokens(j, price, date, arrival, deposit)
+  const tokens = buildTemplateTokens(
+    j,
+    price,
+    date,
+    arrival,
+    deposit,
+    includeRecurring,
+    recurringFrequencyLabel,
+    effectiveRecurringPrice
+  )
   return {
     subject: renderTemplate(row.subject ?? '', tokens),
     body: renderTemplate(row.body, tokens),
@@ -556,7 +590,19 @@ export function QuoteCard({ job, defaultOpenPanel }: { job: Job; defaultOpenPane
   const firstName = job.client_name?.split(' ')[0] ?? ''
   const templateList = currentChannel === 'email' ? EMAIL_TEMPLATE_LIST : SMS_TEMPLATE_LIST
 
-  const rendered = renderFor(templates, currentTemplate, currentChannel, job, savedPrice, savedDate, savedArrival, savedDeposit)
+  const rendered = renderFor(
+    templates,
+    currentTemplate,
+    currentChannel,
+    job,
+    savedPrice,
+    savedDate,
+    savedArrival,
+    savedDeposit,
+    includeRecurring,
+    FREQ_LABEL[recurringFreq] ?? recurringFreq,
+    effectiveRecurringPrice
+  )
   const basePreviewBody = rendered.body
 
   const previewBody = (() => {
@@ -566,10 +612,11 @@ export function QuoteCard({ job, defaultOpenPanel }: { job: Job; defaultOpenPane
       // DEPOSIT_LINK_PLACEHOLDER) that can't be edited away from the settings page,
       // while the surrounding prose can. Anchoring to editable prose silently breaks
       // this injection the moment that wording changes.
-      if (basePreviewBody.includes('[deposit link included]')) {
+      if (basePreviewBody.includes('[deposit link included]') && !basePreviewBody.includes('Recurring rate:')) {
+        const recurringLine = `Recurring rate:\n${FREQ_LABEL[recurringFreq]}: $${effectiveRecurringPrice.toLocaleString()}/visit`
         return basePreviewBody.replace(
           '[deposit link included]',
-          `${FREQ_LABEL[recurringFreq]}: $${effectiveRecurringPrice}/visit\n[deposit link included]`
+          `${recurringLine}\n[deposit link included]`
         )
       }
     }
