@@ -344,7 +344,7 @@ export function QuoteCard({ job, defaultOpenPanel }: { job: Job; defaultOpenPane
     const res = await fetch('/api/admin/lock-in-booking', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ jobId: job.id, confirmedDate: dateInput }),
+      body: JSON.stringify({ jobId: job.id, confirmedDate: dateInput, arrivalTimePref: arrivalInput }),
     })
     if (res.ok) {
       setSavedDate(dateInput)
@@ -677,7 +677,7 @@ export function QuoteCard({ job, defaultOpenPanel }: { job: Job; defaultOpenPane
             {/* Price row */}
             <div
               className="flex items-center justify-between px-3 py-2.5 border-b border-slate-100 hover:bg-slate-50 transition-colors duration-150 cursor-pointer"
-              onClick={() => { setPriceEditOpen(p => !p); setDateEditOpen(false) }}
+              onClick={() => { setPriceEditOpen(p => !p); setDateEditOpen(false); setDepositEditOpen(false) }}
             >
               <span className="text-xs text-slate-400">Price</span>
               <div className="flex items-center gap-2">
@@ -782,7 +782,7 @@ export function QuoteCard({ job, defaultOpenPanel }: { job: Job; defaultOpenPane
             {/* Date row */}
             <div
               className="flex items-center justify-between px-3 py-2.5 border-b border-slate-100 hover:bg-slate-50 transition-colors duration-150 cursor-pointer"
-              onClick={() => { setDateEditOpen(p => !p); setPriceEditOpen(false) }}
+              onClick={() => { setDateEditOpen(p => !p); setPriceEditOpen(false); setDepositEditOpen(false) }}
             >
               <span className="text-xs text-slate-400">Date</span>
               <div className="flex items-center gap-2">

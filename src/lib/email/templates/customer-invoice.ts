@@ -97,7 +97,7 @@ export async function customerInvoiceTemplate(data: InvoiceEmailData): Promise<{
         <td style="vertical-align:top;text-align:right;">
           ${data.serviceDate ? `<p style="margin:0 0 4px;font-size:13px;color:#64748b;">Service date: <strong style="color:#0f172a;">${data.serviceDate}</strong></p>` : ''}
           ${data.arrivalTime ? `<p style="margin:0 0 4px;font-size:13px;color:#64748b;">Arrival: <strong style="color:#0f172a;">${data.arrivalTime}</strong></p>` : ''}
-          <p style="margin:0;font-size:13px;color:#64748b;">Due: <strong style="color:#0f172a;">Upon receipt</strong></p>
+          <p style="margin:0;font-size:13px;color:#64748b;">Due: <strong style="color:#0f172a;">${data.dueDate}</strong></p>
         </td>
       </tr>
     </table>`
@@ -132,7 +132,7 @@ export async function customerInvoiceTemplate(data: InvoiceEmailData): Promise<{
             $${data.amountDue.toFixed(2)}
           </p>
           <p style="margin:6px 0 0;font-size:13px;color:rgba(255,255,255,0.75);">
-            Due upon receipt
+            Due ${data.dueDate}
           </p>
         </td>
       </tr>

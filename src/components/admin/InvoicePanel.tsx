@@ -8,6 +8,43 @@ interface LineItem {
 }
 
 // Returns today's date as a yyyy-mm-dd string in local time
+
+function getServiceLabel(serviceType: string | null | undefined): string {
+  if (serviceType === 'standard') return 'Standard Clean'
+  if (serviceType === 'deep') return 'Deep Clean'
+  if (serviceType === 'move_out') return 'Move-In / Move-Out Clean'
+  if (serviceType === 'post_construction') return 'Post-Construction Clean'
+  return 'Cleaning Service'
+}
+
+const ARRIVAL_MAP: Record<string, string> = {
+  early_morning: '8am – 10am',
+  mid_morning: '10am – 12pm',
+  noon: '12pm – 2pm',
+  early_afternoon: '2pm – 4pm',
+  late_afternoon: '4pm – 6pm',
+  morning: '8am – 12pm',
+  afternoon: '12pm – 5pm',
+  flexible: 'Morning to Afternoon',
+}
+
+function getDefaultLineItem(job: any): LineItem {
+  const service = getServiceLabel(job.service_type)
+  const details = [
+    job.business_name,
+    job.bedrooms && job.bathrooms ? `${job.bedrooms} bed / ${job.bathrooms} bath` : null,
+    job.square_footage ? `${Number(job.square_footage).toLocaleString()} sq ft` : null,
+  ].filter(Boolean).join(' · ')
+  return {
+    description: details ? `${service} — ${details}` : service,
+    amount: job.approved_price ? String(job.approved_price) : '',
+  }
+}
+
+function getDefaultArrival(job: any): string {
+  return ARRIVAL_MAP[job.availability_time_pref ?? ''] ?? job.availability_time_pref ?? ''
+}
+
 function getTodayDate(): string {
   const d = new Date()
   const year = d.getFullYear()
@@ -17,11 +54,11 @@ function getTodayDate(): string {
 }
 
 export function InvoicePanel({ job, onClose }: { job: any; onClose?: () => void }) {
-  const [lineItems, setLineItems] = React.useState<LineItem[]>([{ description: '', amount: '' }])
+  const [lineItems, setLineItems] = React.useState<LineItem[]>(() => [getDefaultLineItem(job)])
   const [businessName, setBusinessName] = React.useState(job.business_name ?? '')
   const [preparedForAddress, setPreparedForAddress] = React.useState(job.address ?? '')
   const [notes, setNotes] = React.useState('')
-  const [arrivalTime, setArrivalTime] = React.useState('')
+  const [arrivalTime, setArrivalTime] = React.useState(() => getDefaultArrival(job))
   const [dueDate, setDueDate] = React.useState(getTodayDate)
   const [loading, setLoading] = React.useState(false)
   const [success, setSuccess] = React.useState('')
@@ -143,7 +180,7 @@ export function InvoicePanel({ job, onClose }: { job: any; onClose?: () => void 
     if (res.ok) {
       const data = await res.json()
       setSuccess(`Invoice ${data.invoiceNumber} sent to ${job.client_email} ✓`)
-      setLineItems([{ description: '', amount: '' }])
+      setLineItems([getDefaultLineItem(job)])
       setNotes('')
       setDueDate(getTodayDate())
       // Keep the success message visible — don't close automatically
@@ -193,9 +230,9 @@ export function InvoicePanel({ job, onClose }: { job: any; onClose?: () => void 
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
-          <p className="text-sm font-semibold text-slate-900">Send Invoice</p>
+          <p className="text-sm font-semibold text-slate-900">Professional Invoice</p>
           <p className="text-xs text-slate-500 mt-0.5">
-            Stripe payment link + branded email to{' '}
+            Preloaded from this booking. Review, preview, then send to{' '}
             <span className="font-medium text-slate-700">{job.client_email}</span>
           </p>
         </div>
@@ -235,7 +272,7 @@ export function InvoicePanel({ job, onClose }: { job: any; onClose?: () => void 
           <div key={index} className="flex gap-2 items-start">
             <input
               type="text"
-              placeholder="e.g. Commercial Office Deep Clean — 2,400 sq ft"
+              placeholder="Service description"
               value={item.description}
               onChange={(e) => updateItem(index, 'description', e.target.value)}
               className={`flex-1 ${inputClass}`}
