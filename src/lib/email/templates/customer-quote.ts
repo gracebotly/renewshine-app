@@ -28,6 +28,7 @@ export async function customerQuoteTemplate(
   // Do not blend it with the auto-generated sections below.
   if (customBodyOverride && customBodyOverride.trim()) {
     const paragraphs = customBodyOverride
+      .replace('[deposit link included]', stripeUrl)
       .trim()
       .split(/\n{2,}/)
       .map(p => `<p style="margin:0 0 14px;font-size:14px;color:#334155;line-height:1.6;white-space:pre-line;">${escapeHtml(p)}</p>`)
