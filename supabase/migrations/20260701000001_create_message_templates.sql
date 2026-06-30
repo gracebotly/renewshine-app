@@ -3,12 +3,12 @@
 -- Created: 2026-07-01
 -- Description: Single source of truth for the 6 customer-contact
 --   templates (photos, quote_dep, quote_no, appt, reminder, invoice),
---   plus quote_dep_bullets and quote_dep_next_steps email-only section rows. Body text uses
+--   each with an email and sms row - 12 total. Body text uses
 --   {{token}} placeholders resolved at render time by
 --   src/lib/templates/render.ts.
 --
 --   A missing row for a given (template_id, channel) is not an
---   error — the API falls back to the hardcoded defaults in
+--   error - the API falls back to the hardcoded defaults in
 --   src/lib/templates/defaults.ts.
 -- ============================================================
 
