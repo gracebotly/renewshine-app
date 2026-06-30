@@ -3,7 +3,7 @@ import type { MessageTemplate } from './types'
 // Must stay byte-for-byte identical to the seed data in
 // supabase/migrations/20260701000001_create_message_templates.sql.
 // Runtime fallback used when a row is missing from the database
-// (deleted, reset, or not yet seeded) — the app must never break or
+// (deleted, reset, or not yet seeded) - the app must never break or
 // show blank copy because of a missing row.
 
 export const DEFAULT_TEMPLATES: MessageTemplate[] = [
