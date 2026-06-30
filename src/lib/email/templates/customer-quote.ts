@@ -1,15 +1,19 @@
 import type { Job } from '@/types/database'
 import { ADD_ONS } from '@/lib/pricing'
-import { baseTemplate, badge, heading, para, ctaButton, divider } from './base'
+import { baseTemplate, badge, heading, ctaButton, divider } from './base'
+import { DEFAULT_TEMPLATES } from '@/lib/templates/defaults'
+import { renderTemplate } from '@/lib/templates/render'
+import { createServerClient } from '@/lib/supabase/server'
+import type { TemplateId } from '@/lib/templates/types'
 
-export function customerQuoteTemplate(
+export async function customerQuoteTemplate(
   job: Job,
   stripeUrl: string,
   depositAmountOverride?: number,
   recurringFrequency?: string,
   recurringPriceOverride?: number,
   customBodyOverride?: string
-): { subject: string; html: string } {
+): Promise<{ subject: string; html: string }> {
   const firstName = job.client_name.split(' ')[0]
   const serviceLabel =
     job.service_type === 'standard'            ? 'Standard Clean'
@@ -17,8 +21,8 @@ export function customerQuoteTemplate(
     : job.service_type === 'move_out'          ? 'Move-In / Move-Out'
     : job.service_type === 'post_construction' ? 'Post-Construction'
     : 'Cleaning Service'
-  const subject = `Your ${serviceLabel} quote is ready — RenewShine`
   const escapeHtml = (value: string) => value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+  const defaultSubject = `Your ${serviceLabel} quote is ready — RenewShine`
 
   // ── Admin override — if Grace typed custom text, that text IS the email.
   // Do not blend it with the auto-generated sections below.
@@ -38,7 +42,7 @@ export function customerQuoteTemplate(
     `
 
     return {
-      subject,
+      subject: defaultSubject,
       html: baseTemplate(overrideContent, `${firstName}, your quote is ready. Reserve your date with the payment below.`),
     }
   }
@@ -107,6 +111,36 @@ export function customerQuoteTemplate(
     job.bedrooms
       ? `${job.bedrooms} Bedroom${job.bedrooms !== 1 ? 's' : ''} · ${job.bathrooms} Bathroom${(job.bathrooms ?? 0) !== 1 ? 's' : ''}`
       : ''
+
+  const templateTokens = {
+    firstName,
+    service: serviceLabel,
+    bedBath: bedroomLine ? ` — ${bedroomLine}` : '',
+    availabilityWindow: appointmentLine,
+    total: totalDisplay,
+    deposit: depositDisplay,
+    balance: remainingDisplay,
+  }
+  const [quoteTemplate, bulletsTemplate, nextStepsTemplate] = await Promise.all([
+    getQuoteEmailTemplate('quote_dep'),
+    getQuoteEmailTemplate('quote_dep_bullets'),
+    getQuoteEmailTemplate('quote_dep_next_steps'),
+  ])
+  const subject = renderTemplate(quoteTemplate.subject ?? `Your ${serviceLabel} quote is ready — RenewShine`, templateTokens)
+  const quoteBodyHtml = bodyToParagraphs(renderTemplate(quoteTemplate.body, templateTokens), escapeHtml)
+  const trustBulletRows = splitRenderedLines(renderTemplate(bulletsTemplate.body, templateTokens))
+    .map(line => `<tr><td style="padding:3px 0;font-size:13px;color:#0f172a;line-height:1.5;"><span style="color:#4A7C59;font-weight:700;margin-right:8px;">·</span>${escapeHtml(line)}</td></tr>`)
+    .join('')
+  const nextStepRows = splitRenderedLines(renderTemplate(nextStepsTemplate.body, templateTokens))
+    .map((line, index, rows) => `
+        <tr>
+          <td style="padding:13px 16px;vertical-align:middle;width:40px;${index < rows.length - 1 ? 'border-bottom:1px solid #e8f0eb;' : ''}">
+            <div style="width:24px;height:24px;border-radius:50%;background:#4A7C59;color:#fff;font-size:11px;font-weight:700;text-align:center;line-height:24px;">${index + 1}</div>
+          </td>
+          <td style="padding:13px 16px 13px 0;font-size:13px;color:#0f172a;line-height:1.5;vertical-align:middle;${index < rows.length - 1 ? 'border-bottom:1px solid #e8f0eb;' : ''}">${escapeHtml(line)}</td>
+        </tr>`)
+    .join('')
+
 
   const selectedAddOns = ADD_ONS.filter((a) =>
     Array.isArray(job.add_ons) && job.add_ons.includes(a.id)
@@ -218,25 +252,7 @@ export function customerQuoteTemplate(
     <p style="margin:0 0 12px;font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.08em;">What happens next</p>
     <table width="100%" cellpadding="0" cellspacing="0" role="presentation"
       style="background:#f8faf9;border:1px solid #d1e7d9;border-radius:8px;margin:0 0 20px;">
-      <tbody>
-        <tr>
-          <td style="padding:13px 16px;vertical-align:middle;width:40px;border-bottom:1px solid #e8f0eb;">
-            <div style="width:24px;height:24px;border-radius:50%;background:#4A7C59;color:#fff;font-size:11px;font-weight:700;text-align:center;line-height:24px;">1</div>
-          </td>
-          <td style="padding:13px 16px 13px 0;font-size:13px;color:#0f172a;line-height:1.5;vertical-align:middle;border-bottom:1px solid #e8f0eb;">Reserve your date with the payment above to hold your spot</td>
-        </tr>
-        <tr>
-          <td style="padding:13px 16px;vertical-align:middle;width:40px;border-bottom:1px solid #e8f0eb;">
-            <div style="width:24px;height:24px;border-radius:50%;background:#4A7C59;color:#fff;font-size:11px;font-weight:700;text-align:center;line-height:24px;">2</div>
-          </td>
-          <td style="padding:13px 16px 13px 0;font-size:13px;color:#0f172a;line-height:1.5;vertical-align:middle;border-bottom:1px solid #e8f0eb;">We'll confirm your exact date and send a booking confirmation</td>
-        </tr>
-        <tr>
-          <td style="padding:13px 16px;vertical-align:middle;width:40px;">
-            <div style="width:24px;height:24px;border-radius:50%;background:#4A7C59;color:#fff;font-size:11px;font-weight:700;text-align:center;line-height:24px;">3</div>
-          </td>
-          <td style="padding:13px 16px 13px 0;font-size:13px;color:#0f172a;line-height:1.5;vertical-align:middle;">We show up and take care of everything. No surprises.</td>
-        </tr>
+      <tbody>${nextStepRows}
       </tbody>
     </table>
     `
@@ -245,7 +261,7 @@ export function customerQuoteTemplate(
   const content = `
     ${badge('Quote ready', 'green')}
     ${heading(`${firstName}, your quote is ready.`)}
-    ${para('We’ve reviewed your home and confirmed your price. Reserve your date with the payment below.')}
+    ${quoteBodyHtml}
 
     ${appointmentSection}
     ${serviceSection}
@@ -258,10 +274,7 @@ export function customerQuoteTemplate(
         <td>
           <p style="margin:0 0 10px;font-size:11px;font-weight:700;color:#4A7C59;text-transform:uppercase;letter-spacing:0.08em;">Why homeowners choose RenewShine</p>
           <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
-            <tr><td style="padding:3px 0;font-size:13px;color:#0f172a;line-height:1.5;"><span style="color:#4A7C59;font-weight:700;margin-right:8px;">·</span>Confirmed pricing before service</td></tr>
-            <tr><td style="padding:3px 0;font-size:13px;color:#0f172a;line-height:1.5;"><span style="color:#4A7C59;font-weight:700;margin-right:8px;">·</span>Professional equipment and supplies included</td></tr>
-            <tr><td style="padding:3px 0;font-size:13px;color:#0f172a;line-height:1.5;"><span style="color:#4A7C59;font-weight:700;margin-right:8px;">·</span>Fully insured cleaning professionals</td></tr>
-            <tr><td style="padding:3px 0;font-size:13px;color:#0f172a;line-height:1.5;"><span style="color:#4A7C59;font-weight:700;margin-right:8px;">·</span>Satisfaction guaranteed</td></tr>
+            ${trustBulletRows}
           </table>
         </td>
       </tr>
@@ -279,4 +292,37 @@ export function customerQuoteTemplate(
       `${firstName}, your ${serviceLabel} quote is ready. Reserve your date with the payment below.`
     ),
   }
+}
+
+
+function splitRenderedLines(value: string): string[] {
+  return value
+    .split(/\r?\n/)
+    .map(line => line.trim().replace(/^[-•*]\s*/, ''))
+    .filter(Boolean)
+}
+
+function bodyToParagraphs(value: string, escapeHtml: (value: string) => string): string {
+  return value
+    .trim()
+    .split(/\n{2,}/)
+    .map(p => `<p style="margin:0 0 14px;font-size:14px;color:#334155;line-height:1.6;white-space:pre-line;">${escapeHtml(p)}</p>`)
+    .join('')
+}
+
+async function getQuoteEmailTemplate(templateId: Extract<TemplateId, 'quote_dep' | 'quote_dep_bullets' | 'quote_dep_next_steps'>) {
+  try {
+    const supabase = createServerClient()
+    const { data } = await supabase
+      .from('message_templates')
+      .select('subject, body')
+      .eq('template_id', templateId)
+      .eq('channel', 'email')
+      .maybeSingle()
+    if (data) return data
+  } catch {
+    // fall through to defaults
+  }
+  const def = DEFAULT_TEMPLATES.find(t => t.templateId === templateId && t.channel === 'email')!
+  return { subject: def.subject, body: def.body }
 }

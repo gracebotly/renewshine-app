@@ -49,7 +49,7 @@ export async function POST(request: Request) {
     }
 
     const depositOverride = Number(body.depositAmount) > 0 ? Number(body.depositAmount) : undefined
-    const { html: rendered } = customerQuoteTemplate(previewJob as any, '#preview-deposit-link', depositOverride)
+    const { html: rendered } = await customerQuoteTemplate(previewJob as any, '#preview-deposit-link', depositOverride)
     html = rendered
   }
 

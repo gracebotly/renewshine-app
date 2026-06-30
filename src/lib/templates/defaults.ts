@@ -74,6 +74,23 @@ Reserve here:
 RenewShine`,
   },
   {
+    templateId: 'quote_dep_bullets',
+    channel: 'email',
+    subject: null,
+    body: `Confirmed pricing before service
+Professional equipment and supplies included
+Fully insured cleaning professionals
+Satisfaction guaranteed`,
+  },
+  {
+    templateId: 'quote_dep_next_steps',
+    channel: 'email',
+    subject: null,
+    body: `Reserve your date with the payment above to hold your spot
+We'll confirm your exact date and send a booking confirmation
+We show up and take care of everything. No surprises.`,
+  },
+  {
     templateId: 'quote_no',
     channel: 'email',
     subject: '{{firstName}}, your RenewShine quote is ready',

@@ -1,4 +1,4 @@
-export type TemplateId = 'photos' | 'quote_dep' | 'quote_no' | 'appt' | 'reminder' | 'invoice'
+export type TemplateId = 'photos' | 'quote_dep' | 'quote_dep_bullets' | 'quote_dep_next_steps' | 'quote_no' | 'appt' | 'reminder' | 'invoice'
 export type TemplateChannel = 'email' | 'sms'
 
 export interface MessageTemplate {
@@ -11,6 +11,8 @@ export interface MessageTemplate {
 export const TEMPLATE_LABELS: Record<TemplateId, string> = {
   photos: 'Request photos / video',
   quote_dep: 'Quote + deposit link',
+  quote_dep_bullets: 'Quote trust bullets',
+  quote_dep_next_steps: 'Quote next steps',
   quote_no: 'Quote — no deposit',
   appt: 'Appointment confirmation',
   reminder: 'Day-before reminder',
@@ -20,7 +22,9 @@ export const TEMPLATE_LABELS: Record<TemplateId, string> = {
 // Tokens available per template — shown as helper text in the settings page.
 export const TEMPLATE_TOKENS: Record<TemplateId, string[]> = {
   photos: ['firstName', 'roomCallout'],
-  quote_dep: ['firstName', 'service', 'serviceDetail', 'bedBath', 'availabilityWindow', 'timePreference', 'total', 'deposit', 'balance', 'recurringLine'],
+  quote_dep: ['firstName', 'service', 'bedBath', 'availabilityWindow', 'total', 'deposit', 'balance'],
+  quote_dep_bullets: ['firstName', 'service', 'bedBath', 'availabilityWindow', 'total', 'deposit', 'balance'],
+  quote_dep_next_steps: ['firstName', 'service', 'bedBath', 'availabilityWindow', 'total', 'deposit', 'balance'],
   quote_no: ['firstName', 'service', 'bedBath', 'availabilityWindow', 'total'],
   appt: ['firstName', 'service', 'date', 'arrivalWindow'],
   reminder: ['firstName', 'service', 'date', 'arrivalWindow', 'address'],

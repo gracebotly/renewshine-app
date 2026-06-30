@@ -7,7 +7,17 @@ import { TEMPLATE_LABELS, TEMPLATE_TOKENS } from '@/lib/templates/types'
 import type { TemplateId, TemplateChannel, MessageTemplate } from '@/lib/templates/types'
 import { DEFAULT_TEMPLATES } from '@/lib/templates/defaults'
 
-const TEMPLATE_ORDER: TemplateId[] = ['photos', 'quote_dep', 'quote_no', 'appt', 'reminder', 'invoice']
+const TEMPLATE_ORDER: TemplateId[] = ['photos', 'quote_dep', 'quote_dep_bullets', 'quote_dep_next_steps', 'quote_no', 'appt', 'reminder', 'invoice']
+const CHANNELS_BY_TEMPLATE: Record<TemplateId, TemplateChannel[]> = {
+  photos: ['email', 'sms'],
+  quote_dep: ['email', 'sms'],
+  quote_dep_bullets: ['email'],
+  quote_dep_next_steps: ['email'],
+  quote_no: ['email', 'sms'],
+  appt: ['email', 'sms'],
+  reminder: ['email', 'sms'],
+  invoice: ['email', 'sms'],
+}
 
 function findTemplate(list: MessageTemplate[], id: TemplateId, channel: TemplateChannel) {
   return list.find(t => t.templateId === id && t.channel === channel)
@@ -194,18 +204,15 @@ export default function TemplatesSettingsPage() {
             <div key={id} className="space-y-3">
               <h2 className="text-sm font-semibold text-slate-900">{TEMPLATE_LABELS[id]}</h2>
               <div className="grid gap-3 sm:grid-cols-2">
-                <ChannelEditor
-                  templateId={id}
-                  channel="email"
-                  template={findTemplate(templates, id, 'email')}
-                  onSaved={handleSaved}
-                />
-                <ChannelEditor
-                  templateId={id}
-                  channel="sms"
-                  template={findTemplate(templates, id, 'sms')}
-                  onSaved={handleSaved}
-                />
+                {CHANNELS_BY_TEMPLATE[id].map(channel => (
+                  <ChannelEditor
+                    key={channel}
+                    templateId={id}
+                    channel={channel}
+                    template={findTemplate(templates, id, channel)}
+                    onSaved={handleSaved}
+                  />
+                ))}
               </div>
             </div>
           ))}
