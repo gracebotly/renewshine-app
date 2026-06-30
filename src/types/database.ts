@@ -310,6 +310,18 @@ export interface Database {
         Update: Partial<Database['public']['Tables']['quick_replies']['Insert']>
         Relationships: []
       }
+      message_templates: {
+        Row: {
+          template_id: string
+          channel: string
+          subject: string | null
+          body: string
+          updated_at: string
+        }
+        Insert: Database['public']['Tables']['message_templates']['Row']
+        Update: Partial<Database['public']['Tables']['message_templates']['Row']>
+        Relationships: []
+      }
       reactivation_log: {
         Row: {
           id: string

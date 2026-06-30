@@ -2,7 +2,7 @@
 
 import * as React from 'react'
 import Link from 'next/link'
-import { MessageCircle, ArrowUpDown, ChevronLeft, ChevronRight } from 'lucide-react'
+import { MessageCircle, ArrowUpDown, ChevronLeft, ChevronRight, FileText } from 'lucide-react'
 import { JobsTable, StaleAlert } from '@/components/admin/JobsTable'
 import { LogoutButton } from '@/components/admin/LogoutButton'
 import { AnalyticsPanel } from '@/components/admin/AnalyticsPanel'
@@ -237,6 +237,13 @@ export function AdminShell({
             >
               <ArrowUpDown size={14} />
               <span className="hidden xs:inline">Transfer</span>
+            </Link>
+            <Link
+              href="/admin/templates"
+              className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition-colors duration-200 hover:border-brand/30 hover:text-brand cursor-pointer"
+            >
+              <FileText size={14} />
+              <span className="hidden xs:inline">Templates</span>
             </Link>
             <LogoutButton />
           </div>
