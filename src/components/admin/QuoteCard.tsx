@@ -148,12 +148,13 @@ function buildTemplateTokens(
   j: Job,
   price: number | null,
   date: string | null,
-  arrival: string
+  arrival: string,
+  deposit: number
 ): Record<string, string> {
   const first = j.client_name?.split(' ')[0] ?? 'there'
   const svc = getServiceLabel(j.service_type ?? null)
   const beds = j.bedrooms && j.bathrooms ? ` · ${j.bedrooms} bed / ${j.bathrooms} bath` : ''
-  const dep = j.deposit_amount ?? 100
+  const dep = deposit
   const remaining = price ? Math.max(price - dep, 0) : null
   const priceFmt = price ? `$${price.toLocaleString()}` : '—'
   const remainFmt = remaining !== null ? `$${remaining.toLocaleString()}` : '—'
@@ -202,7 +203,8 @@ function renderFor(
   j: Job,
   price: number | null,
   date: string | null,
-  arrival: string
+  arrival: string,
+  deposit: number
 ): { subject: string; body: string } {
   if (id === 'custom') return { subject: '', body: '' }
 
@@ -215,7 +217,7 @@ function renderFor(
 
   if (!row) return { subject: '', body: '' }
 
-  const tokens = buildTemplateTokens(j, price, date, arrival)
+  const tokens = buildTemplateTokens(j, price, date, arrival, deposit)
   return {
     subject: renderTemplate(row.subject ?? '', tokens),
     body: renderTemplate(row.body, tokens),
@@ -236,6 +238,7 @@ export function QuoteCard({ job, defaultOpenPanel }: { job: Job; defaultOpenPane
     job.confirmed_date ? String(job.confirmed_date).split(/[T ]/)[0] : null
   )
   const [savedPrice, setSavedPrice] = React.useState<number | null>(job.approved_price ?? null)
+  const [savedDeposit, setSavedDeposit] = React.useState<number>(job.deposit_amount ?? 100)
   const [savedNotes] = React.useState<string>(job.notes ?? '')
   const [appointmentConfirmed, setAppointmentConfirmed] = React.useState<boolean>(
     job.appointment_confirmed ?? false
@@ -309,10 +312,11 @@ export function QuoteCard({ job, defaultOpenPanel }: { job: Job; defaultOpenPane
     return recurringPrice
   })()
 
-  // Email HTML preview
+  // Email HTML preview — defaults to ON for the email channel (showing the real
+  // branded email), toggled OFF to reveal the plain-text editor.
   const [emailPreviewHtml, setEmailPreviewHtml] = React.useState<string | null>(null)
   const [emailPreviewLoading, setEmailPreviewLoading] = React.useState(false)
-  const [showEmailPreview, setShowEmailPreview] = React.useState(false)
+  const [showEmailEditor, setShowEmailEditor] = React.useState(false)
 
   const handleSavePrice = async () => {
     const val = parseFloat(priceInput)
@@ -364,6 +368,7 @@ export function QuoteCard({ job, defaultOpenPanel }: { job: Job; defaultOpenPane
       body: JSON.stringify({ jobId: job.id, depositAmount: val }),
     })
     if (res.ok) {
+      setSavedDeposit(val)
       setDepositEditOpen(false)
       setSuccessMsg('Deposit amount saved.')
       setTimeout(() => setSuccessMsg(''), 3000)
@@ -403,7 +408,7 @@ export function QuoteCard({ job, defaultOpenPanel }: { job: Job; defaultOpenPane
           body: JSON.stringify({
             jobId: job.id,
             approvedPrice: savedPrice ?? job.approved_price,
-            depositAmount: job.deposit_amount ?? 100,
+            depositAmount: savedDeposit,
             confirmedDate: savedDate || null,
             channel: currentChannel,
             customSmsBody: currentChannel === 'sms' ? body : undefined,
@@ -417,7 +422,7 @@ export function QuoteCard({ job, defaultOpenPanel }: { job: Job; defaultOpenPane
         await fetch('/api/admin/send-quote-no-deposit', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ jobId: job.id, channel: currentChannel, body }),
+          body: JSON.stringify({ jobId: job.id, channel: currentChannel, body, subject: previewSubject }),
         })
       } else if (currentTemplate === 'appt') {
         if (currentChannel === 'email') {
@@ -479,30 +484,6 @@ export function QuoteCard({ job, defaultOpenPanel }: { job: Job; defaultOpenPane
     setTimeout(() => setSuccessMsg(''), 3000)
   }
 
-  const handleToggleEmailPreview = async () => {
-    if (showEmailPreview) { setShowEmailPreview(false); return }
-    if (emailPreviewHtml) { setShowEmailPreview(true); return }
-    setEmailPreviewLoading(true)
-    try {
-      const res = await fetch('/api/admin/preview-quote-email', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          jobId: job.id,
-          approvedPrice: savedPrice ?? job.approved_price,
-          confirmedDate: savedDate || null,
-          customEmailBody: contactEditBody.trim() ? contactEditBody : undefined,
-          recurringFrequency: includeRecurring ? recurringFreq : undefined,
-          recurringPriceOverride: includeRecurring && effectiveRecurringPrice ? effectiveRecurringPrice : undefined,
-        }),
-      })
-      const data = await res.json()
-      setEmailPreviewHtml(data.html)
-      setShowEmailPreview(true)
-    } catch { /* silent — falls back to textarea */ }
-    setEmailPreviewLoading(false)
-  }
-
   const handleMarkScheduled = async () => {
     const res = await fetch('/api/admin/update-job-status', {
       method: 'POST',
@@ -547,9 +528,9 @@ export function QuoteCard({ job, defaultOpenPanel }: { job: Job; defaultOpenPane
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         jobId: job.id,
-        approvedPrice: job.approved_price,
-        depositAmount: job.deposit_amount,
-        confirmedDate: job.confirmed_date,
+        approvedPrice: savedPrice ?? job.approved_price,
+        depositAmount: savedDeposit,
+        confirmedDate: savedDate || job.confirmed_date,
         regenerate: true,
       }),
     })
@@ -575,15 +556,22 @@ export function QuoteCard({ job, defaultOpenPanel }: { job: Job; defaultOpenPane
   const firstName = job.client_name?.split(' ')[0] ?? ''
   const templateList = currentChannel === 'email' ? EMAIL_TEMPLATE_LIST : SMS_TEMPLATE_LIST
 
-  const rendered = renderFor(templates, currentTemplate, currentChannel, job, savedPrice, savedDate, savedArrival)
+  const rendered = renderFor(templates, currentTemplate, currentChannel, job, savedPrice, savedDate, savedArrival, savedDeposit)
   const basePreviewBody = rendered.body
 
   const previewBody = (() => {
     if (currentTemplate === 'quote_dep' && currentChannel === 'sms' && includeRecurring && effectiveRecurringPrice) {
-      return basePreviewBody.replace(
-        '\n\nReserve here:',
-        `\n${FREQ_LABEL[recurringFreq]}: $${effectiveRecurringPrice}/visit\n\nReserve here:`
-      )
+      // Anchor to [deposit link included] instead of the prose "Reserve here:" label —
+      // the placeholder is a protected token (see src/lib/templates/types.ts,
+      // DEPOSIT_LINK_PLACEHOLDER) that can't be edited away from the settings page,
+      // while the surrounding prose can. Anchoring to editable prose silently breaks
+      // this injection the moment that wording changes.
+      if (basePreviewBody.includes('[deposit link included]')) {
+        return basePreviewBody.replace(
+          '[deposit link included]',
+          `${FREQ_LABEL[recurringFreq]}: $${effectiveRecurringPrice}/visit\n[deposit link included]`
+        )
+      }
     }
     return basePreviewBody
   })()
@@ -594,6 +582,57 @@ export function QuoteCard({ job, defaultOpenPanel }: { job: Job; defaultOpenPane
   const previewSubject = currentChannel === 'email' ? rendered.subject : null
   const isCustomTemplate = currentTemplate === 'custom'
 
+  // Auto-fetch the real rendered HTML whenever email channel + relevant inputs change.
+  // Debounced so typing in price/deposit/recurring fields doesn't fire a request per keystroke.
+  React.useEffect(() => {
+    if (currentChannel !== 'email' || isCustomTemplate) {
+      setEmailPreviewHtml(null)
+      return
+    }
+    const timer = setTimeout(async () => {
+      setEmailPreviewLoading(true)
+      try {
+        let html = ''
+        if (currentTemplate === 'quote_dep') {
+          const res = await fetch('/api/admin/preview-quote-email', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              jobId: job.id,
+              approvedPrice: savedPrice ?? job.approved_price,
+              depositAmount: savedDeposit,
+              confirmedDate: savedDate || null,
+              customEmailBody: contactEditBody.trim() ? contactEditBody : undefined,
+              recurringFrequency: includeRecurring ? recurringFreq : undefined,
+              recurringPriceOverride: includeRecurring && effectiveRecurringPrice ? effectiveRecurringPrice : undefined,
+            }),
+          })
+          const data = await res.json()
+          html = data.html ?? ''
+        } else {
+          const res = await fetch('/api/admin/preview-formatted-email', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              subject: previewSubject,
+              body: contactEditBody.trim() ? contactEditBody : previewBody,
+            }),
+          })
+          const data = await res.json()
+          html = data.html ?? ''
+        }
+        setEmailPreviewHtml(html)
+      } catch {
+        setEmailPreviewHtml(null)
+      }
+      setEmailPreviewLoading(false)
+    }, 400)
+    return () => clearTimeout(timer)
+  }, [
+    currentChannel, currentTemplate, isCustomTemplate, previewBody, previewSubject,
+    savedPrice, savedDeposit, savedDate, contactEditBody,
+    includeRecurring, recurringFreq, effectiveRecurringPrice, job.id, job.approved_price,
+  ])
 
   const dateDisplay = (() => {
     if (savedDate) {
@@ -688,7 +727,7 @@ export function QuoteCard({ job, defaultOpenPanel }: { job: Job; defaultOpenPane
                 {/* Journey-aware status */}
                 {job.deposit_paid ? (
                   <span className="text-xs font-medium text-emerald-600">
-                    ${job.deposit_amount ?? 100} paid ✓
+                    ${savedDeposit} paid ✓
                   </span>
                 ) : job.stripe_payment_link ? (
                   <div className="flex items-center gap-2">
@@ -703,7 +742,7 @@ export function QuoteCard({ job, defaultOpenPanel }: { job: Job; defaultOpenPane
                   </div>
                 ) : (
                   <span className="text-xs text-slate-400">
-                    ${job.deposit_amount ?? 100}
+                    ${savedDeposit}
                   </span>
                 )}
                 <Pencil size={11} className="text-slate-300" />
@@ -878,7 +917,7 @@ export function QuoteCard({ job, defaultOpenPanel }: { job: Job; defaultOpenPane
               {(['email', 'sms'] as const).map(ch => (
                 <button
                   key={ch}
-                  onClick={() => { setCurrentChannel(ch); setContactEditBody(''); setEmailPreviewHtml(null); setShowEmailPreview(false) }}
+                  onClick={() => { setCurrentChannel(ch); setContactEditBody(''); setEmailPreviewHtml(null); setShowEmailEditor(false) }}
                   className={`flex-1 py-2.5 text-xs font-semibold transition-colors duration-150 cursor-pointer ${
                     currentChannel === ch
                       ? 'bg-[#4A7C59] text-white'
@@ -894,7 +933,7 @@ export function QuoteCard({ job, defaultOpenPanel }: { job: Job; defaultOpenPane
               {/* Template dropdown */}
               <select
                 value={currentTemplate}
-                onChange={e => { setCurrentTemplate(e.target.value); setContactEditBody(''); setEmailPreviewHtml(null); setShowEmailPreview(false) }}
+                onChange={e => { setCurrentTemplate(e.target.value); setContactEditBody(''); setEmailPreviewHtml(null); setShowEmailEditor(false) }}
                 className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-900 focus:border-[#4A7C59]/40 focus:outline-none cursor-pointer"
               >
                 {templateList.map(t => (
@@ -909,7 +948,7 @@ export function QuoteCard({ job, defaultOpenPanel }: { job: Job; defaultOpenPane
                     type="checkbox"
                     id="include-recurring"
                     checked={includeRecurring}
-                    onChange={e => { setIncludeRecurring(e.target.checked); setEmailPreviewHtml(null); setShowEmailPreview(false) }}
+                    onChange={e => { setIncludeRecurring(e.target.checked); setEmailPreviewHtml(null); setShowEmailEditor(false) }}
                     className="h-3.5 w-3.5 accent-[#4A7C59] cursor-pointer shrink-0"
                   />
                   <label htmlFor="include-recurring" className="text-xs text-slate-700 cursor-pointer select-none">
@@ -923,7 +962,7 @@ export function QuoteCard({ job, defaultOpenPanel }: { job: Job; defaultOpenPane
                           setRecurringFreq(e.target.value)
                           setCustomRecurringPrice('')
                           setEmailPreviewHtml(null)
-                          setShowEmailPreview(false)
+                          setShowEmailEditor(false)
                         }}
                         className="ml-auto rounded-md border border-slate-200 bg-white px-2 py-1 text-xs text-slate-700 focus:outline-none cursor-pointer"
                       >
@@ -940,7 +979,7 @@ export function QuoteCard({ job, defaultOpenPanel }: { job: Job; defaultOpenPane
                             onChange={e => {
                               setCustomRecurringPrice(e.target.value)
                               setEmailPreviewHtml(null)
-                              setShowEmailPreview(false)
+                              setShowEmailEditor(false)
                             }}
                             min="0"
                             step="1"
@@ -975,21 +1014,22 @@ export function QuoteCard({ job, defaultOpenPanel }: { job: Job; defaultOpenPane
                     Preview
                   </span>
                   <div className="flex items-center gap-2">
-                    {/* Email iframe toggle — only for quote_dep on email */}
-                    {currentChannel === 'email' && currentTemplate === 'quote_dep' && (
+                    {/* Default view is the real rendered email. This button switches to
+                        plain-text editing (to type a manual override) and back. */}
+                    {currentChannel === 'email' && !isCustomTemplate && (
                       <button
-                        onClick={handleToggleEmailPreview}
+                        onClick={() => setShowEmailEditor(v => !v)}
                         disabled={emailPreviewLoading}
                         className={`text-[11px] font-medium px-2 py-0.5 rounded-md transition-colors duration-150 cursor-pointer ${
-                          showEmailPreview
+                          showEmailEditor
                             ? 'bg-[#4A7C59] text-white'
                             : 'bg-slate-100 text-slate-500 hover:bg-[#e8f3ec] hover:text-[#4A7C59]'
                         }`}
                       >
-                        {emailPreviewLoading ? 'Loading…' : showEmailPreview ? 'Edit' : 'See email'}
+                        {emailPreviewLoading ? 'Loading…' : showEmailEditor ? 'See email' : 'Edit text'}
                       </button>
                     )}
-                    {!isCustomTemplate && contactEditBody && !showEmailPreview && (
+                    {!isCustomTemplate && contactEditBody && showEmailEditor && (
                       <button
                         onClick={() => setContactEditBody('')}
                         className="text-[11px] text-slate-400 hover:text-slate-600 cursor-pointer transition-colors"
@@ -1003,16 +1043,16 @@ export function QuoteCard({ job, defaultOpenPanel }: { job: Job; defaultOpenPane
                 {/* ── EMAIL CHANNEL ── */}
                 {currentChannel === 'email' && (
                   <>
-                    {/* Subject line — always shown when not in iframe mode */}
-                    {previewSubject && !showEmailPreview && (
+                    {/* Subject line — shown only in plain-text edit mode; the iframe has its own subject inside the email itself */}
+                    {previewSubject && showEmailEditor && (
                       <div className="border-b border-slate-100 px-3 py-2">
                         <span className="text-[10px] text-slate-400">Subject: </span>
                         <span className="text-[11px] text-slate-700">{previewSubject}</span>
                       </div>
                     )}
 
-                    {/* Iframe — full rendered email, shown when "See email" is active */}
-                    {currentTemplate === 'quote_dep' && showEmailPreview && emailPreviewHtml && (
+                    {/* Default: the real rendered email, exactly what the customer receives */}
+                    {!showEmailEditor && !isCustomTemplate && emailPreviewHtml && (
                       <div className="bg-slate-50 p-2">
                         <p className="text-[10px] text-slate-400 mb-1.5 px-1">
                           Exact email the customer will receive
@@ -1028,12 +1068,17 @@ export function QuoteCard({ job, defaultOpenPanel }: { job: Job; defaultOpenPane
                         </div>
                       </div>
                     )}
+                    {!showEmailEditor && !isCustomTemplate && !emailPreviewHtml && (
+                      <div className="p-4 text-center text-xs text-slate-400">
+                        {emailPreviewLoading ? 'Loading preview…' : 'Preview unavailable.'}
+                      </div>
+                    )}
 
-                    {/* Plain textarea — shown when iframe is off or template is not quote_dep */}
-                    {!showEmailPreview && (
+                    {/* Plain textarea — manual override mode, or always for Custom Message */}
+                    {(showEmailEditor || isCustomTemplate) && (
                       <textarea
                         value={contactEditBody || previewBody}
-                        onChange={e => { setContactEditBody(e.target.value); setEmailPreviewHtml(null) }}
+                        onChange={e => setContactEditBody(e.target.value)}
                         rows={7}
                         maxLength={1000}
                         placeholder={isCustomTemplate ? 'Type your message…' : undefined}
