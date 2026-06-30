@@ -69,6 +69,7 @@ export function InvoicePanel({ job, onClose }: { job: any; onClose?: () => void 
   const [showPreview, setShowPreview] = React.useState(false)
   const [previewHtml, setPreviewHtml] = React.useState('')
   const [previewLoading, setPreviewLoading] = React.useState(false)
+  const [customizing, setCustomizing] = React.useState(false)
 
   // Deposit credit — pre-fill from DB but fully overridable
   const [applyDeposit, setApplyDeposit] = React.useState<boolean>(job.deposit_paid === true)
@@ -79,6 +80,15 @@ export function InvoicePanel({ job, onClose }: { job: any; onClose?: () => void 
   const depositCredit = applyDeposit ? (parseFloat(depositCreditAmount) || 0) : 0
   const subtotal = lineItems.reduce((sum, i) => sum + (parseFloat(i.amount) || 0), 0)
   const amountDue = Math.max(subtotal - depositCredit, 0)
+
+  // The simple, default view — what this invoice would charge with zero
+  // manual edits, computed straight from the booking. job.deposit_paid is
+  // respected here (an unpaid deposit isn't credited), unlike the toggle
+  // above which defaults to whatever was true when the form first opened.
+  const autoAmountDue = Math.max(
+    (job.approved_price ?? 0) - (job.deposit_paid ? (job.deposit_amount ?? 0) : 0),
+    0
+  )
 
   // Single close handler — always calls onClose if provided
   function handleClose() {
@@ -230,9 +240,9 @@ export function InvoicePanel({ job, onClose }: { job: any; onClose?: () => void 
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
-          <p className="text-sm font-semibold text-slate-900">Professional Invoice</p>
+          <p className="text-sm font-semibold text-slate-900">Invoice</p>
           <p className="text-xs text-slate-500 mt-0.5">
-            Preloaded from this booking. Review, preview, then send to{' '}
+            {job.client_name} · sends to{' '}
             <span className="font-medium text-slate-700">{job.client_email}</span>
           </p>
         </div>
@@ -244,28 +254,65 @@ export function InvoicePanel({ job, onClose }: { job: any; onClose?: () => void 
         </button>
       </div>
 
-      {/* Prepared For */}
-      <div className="space-y-2 rounded-lg border border-slate-200 bg-white p-4">
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Prepared For</p>
-        <p className="text-sm font-medium text-slate-900">{job.client_name}</p>
-        <input
-          type="text"
-          placeholder="Business name (optional)"
-          value={businessName}
-          onChange={(e) => setBusinessName(e.target.value)}
-          className={inputClass}
-        />
-        <input
-          type="text"
-          placeholder="Address (optional)"
-          value={preparedForAddress}
-          onChange={(e) => setPreparedForAddress(e.target.value)}
-          className={inputClass}
-        />
-      </div>
+      {!customizing && (
+        <>
+          <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+            <div className="flex justify-between px-4 py-2.5 text-slate-600 border-b border-slate-100 text-sm">
+              <span>{getDefaultLineItem(job).description}</span>
+              <span className="font-mono tabular-nums">${(job.approved_price ?? 0).toFixed(2)}</span>
+            </div>
+            {job.deposit_paid && (
+              <div className="flex justify-between px-4 py-2.5 text-slate-500 border-b border-slate-100 text-sm">
+                <span>Deposit paid</span>
+                <span className="font-mono tabular-nums text-emerald-600">−${(job.deposit_amount ?? 0).toFixed(2)}</span>
+              </div>
+            )}
+            <div className="flex justify-between bg-(--color-brand) px-4 py-3 font-semibold text-white text-sm">
+              <span>Amount Due</span>
+              <span className="font-mono tabular-nums">${autoAmountDue.toFixed(2)}</span>
+            </div>
+          </div>
 
-      {/* Line Items */}
-      <div className="space-y-2">
+          <button
+            onClick={() => setCustomizing(true)}
+            className="text-xs font-medium cursor-pointer text-(--color-brand) hover:underline transition-colors duration-200"
+          >
+            Customize line items, address, or notes
+          </button>
+        </>
+      )}
+
+      {customizing && (
+        <>
+          <button
+            onClick={() => setCustomizing(false)}
+            className="text-xs font-medium cursor-pointer text-slate-400 hover:text-slate-600 transition-colors duration-200"
+          >
+            ← Back to simple invoice
+          </button>
+
+          {/* Prepared For */}
+          <div className="space-y-2 rounded-lg border border-slate-200 bg-white p-4">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Prepared For</p>
+            <p className="text-sm font-medium text-slate-900">{job.client_name}</p>
+            <input
+              type="text"
+              placeholder="Business name (optional)"
+              value={businessName}
+              onChange={(e) => setBusinessName(e.target.value)}
+              className={inputClass}
+            />
+            <input
+              type="text"
+              placeholder="Address (optional)"
+              value={preparedForAddress}
+              onChange={(e) => setPreparedForAddress(e.target.value)}
+              className={inputClass}
+            />
+          </div>
+
+          {/* Line Items */}
+          <div className="space-y-2">
         <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Line Items</p>
 
         {lineItems.map((item, index) => (
@@ -415,6 +462,8 @@ export function InvoicePanel({ job, onClose }: { job: any; onClose?: () => void 
           className={inputClass}
         />
       </label>
+        </>
+      )}
 
       {job.stripe_payment_link && job.status !== 'completed' && (
         <button
@@ -460,7 +509,7 @@ export function InvoicePanel({ job, onClose }: { job: any; onClose?: () => void 
           ? 'Sending…'
           : subtotal === 0
             ? 'Add line items to send'
-            : `Send Invoice to ${job.client_name.split(' ')[0]} — $${amountDue.toFixed(2)}`}
+            : `Send Invoice to ${job.client_name.split(' ')[0]} — $${(customizing ? amountDue : autoAmountDue).toFixed(2)}`}
       </button>
 
       <p className="text-xs text-slate-400 text-center">Stripe payment link · Branded invoice email</p>
