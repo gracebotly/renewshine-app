@@ -1,4 +1,8 @@
 import { baseTemplate, ctaButton } from './base'
+import { renderTemplate } from '@/lib/templates/render'
+import { DEFAULT_TEMPLATES } from '@/lib/templates/defaults'
+import { LINE_ITEMS_MARKER } from '@/lib/templates/types'
+import { createServerClient } from '@/lib/supabase/server'
 
 export interface InvoiceLineItem {
   description: string
@@ -22,8 +26,16 @@ export interface InvoiceEmailData {
   notes?: string | null
 }
 
-export function customerInvoiceTemplate(data: InvoiceEmailData): { subject: string; html: string } {
-  const subject = `Invoice ${data.invoiceNumber} — $${data.amountDue.toFixed(2)} · RenewShine`
+export async function customerInvoiceTemplate(data: InvoiceEmailData): Promise<{ subject: string; html: string }> {
+  const subjectTemplate = await getInvoiceTemplate('email')
+  const tokens = {
+    firstName: data.clientName.split(' ')[0],
+    service: data.businessName ? data.businessName : 'your service',
+    serviceDateLine: data.serviceDate ? ` on ${data.serviceDate}` : '',
+    invoiceNumber: data.invoiceNumber,
+    amountDue: `$${data.amountDue.toFixed(2)}`,
+  }
+  const subject = renderTemplate(subjectTemplate.subject ?? '', tokens)
 
   // ── Line item rows ─────────────────────────────────────────────────────
   const lineItemRows = data.lineItems
@@ -146,8 +158,39 @@ export function customerInvoiceTemplate(data: InvoiceEmailData): { subject: stri
   ${ctaButton(`Pay Now — $${data.amountDue.toFixed(2)}`, data.paymentUrl)}
 `
 
+  const [introRaw, closingRaw] = renderTemplate(subjectTemplate.body, tokens).split(LINE_ITEMS_MARKER)
+  const intro = (introRaw ?? '').trim()
+  const closing = (closingRaw ?? '').trim()
+
+  const introHtml = intro
+    ? intro.split(/\n{2,}/).map(p => `<p style="margin:0 0 14px;font-size:14px;color:#334155;line-height:1.6;">${p}</p>`).join('')
+    : ''
+  const closingHtml = closing
+    ? closing.split(/\n{2,}/).map(p => `<p style="margin:0 0 14px;font-size:14px;color:#334155;line-height:1.6;">${p}</p>`).join('')
+    : ''
+
   return {
     subject,
-    html: baseTemplate(content, `Invoice ${data.invoiceNumber} — $${data.amountDue.toFixed(2)} due ${data.dueDate}`),
+    html: baseTemplate(
+      `${introHtml}${content}${closingHtml}`,
+      `Invoice from RenewShine — Total: $${data.amountDue.toFixed(2)}`
+    ),
   }
+}
+
+async function getInvoiceTemplate(channel: 'email' | 'sms') {
+  try {
+    const supabase = createServerClient()
+    const { data } = await supabase
+      .from('message_templates')
+      .select('subject, body')
+      .eq('template_id', 'invoice')
+      .eq('channel', channel)
+      .maybeSingle()
+    if (data) return data
+  } catch {
+    // fall through to default
+  }
+  const def = DEFAULT_TEMPLATES.find(t => t.templateId === 'invoice' && t.channel === channel)!
+  return { subject: def.subject, body: def.body }
 }

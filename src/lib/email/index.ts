@@ -101,7 +101,7 @@ export async function sendAbandonedFormReminder(
 
 /** Custom invoice — fires when owner clicks "Send Invoice" in admin. To: customer. */
 export async function sendCustomerInvoice(data: InvoiceEmailData): Promise<void> {
-  const { subject, html } = customerInvoiceTemplate(data)
+  const { subject, html } = await customerInvoiceTemplate(data)
   await resend.emails.send({ from: FROM, to: data.clientEmail, subject, html })
 }
 

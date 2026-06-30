@@ -4,6 +4,9 @@ import * as React from 'react'
 import { ChevronDown, Pencil, Table } from 'lucide-react'
 import type { Job } from '@/types/database'
 import { InvoicePanel } from '@/components/admin/InvoicePanel'
+import { renderTemplate } from '@/lib/templates/render'
+import { DEFAULT_TEMPLATES } from '@/lib/templates/defaults'
+import type { MessageTemplate } from '@/lib/templates/types'
 
 function getServiceLabel(serviceType: string | null): string {
   if (serviceType === 'standard')           return 'Standard Clean'
@@ -139,14 +142,14 @@ function getRoomCallout(serviceType: string | null): string {
   return ''
 }
 
-function getTemplateContent(
-  id: string,
-  channel: 'email' | 'sms',
+const NO_DATE_MESSAGE = '(Set a confirmed date in the Booking card first)'
+
+function buildTemplateTokens(
   j: Job,
   price: number | null,
   date: string | null,
   arrival: string
-): string {
+): Record<string, string> {
   const first = j.client_name?.split(' ')[0] ?? 'there'
   const svc = getServiceLabel(j.service_type ?? null)
   const beds = j.bedrooms && j.bathrooms ? ` · ${j.bedrooms} bed / ${j.bathrooms} bath` : ''
@@ -159,8 +162,7 @@ function getTemplateContent(
     ? new Date(date + 'T12:00:00').toLocaleDateString('en-US', {
         weekday: 'long', month: 'long', day: 'numeric',
       })
-    : null
-  const noDate = '(Set a confirmed date in the Booking card first)'
+    : ''
   const availWindow = (() => {
     const s = j.availability_start
       ? new Date(j.availability_start + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
@@ -174,186 +176,50 @@ function getTemplateContent(
     return 'Dates to be confirmed'
   })()
 
-  const t: Record<string, Record<'email' | 'sms', string>> = {
-    photos: {
-      email: `Hi ${first},
-
-One quick step before your quote.
-
-Before we confirm a price, our team reviews photos of every space. Please send a few photos or a short walkthrough video${getRoomCallout(j.service_type)} to hello@renewshine.co, or text them to (771) 253-9204.
-
-A short video call works too — just text us to arrange a time.
-
-Once we've reviewed everything, we'll send your confirmed quote and reach out to schedule.
-
-— RenewShine`,
-      sms: `Hi ${first}, one quick step before your quote.
-
-Please send a few photos or a short video${getRoomCallout(j.service_type)} — text them here or to (771) 253-9204.
-
-A short video call works too. We'll have your quote ready the same business day.
-
-— RenewShine`,
-    },
-
-    quote_dep: {
-      email: `Hi ${first},
-
-We've reviewed your photos. Your quote is ready.
-
-Service: ${svc}${beds}
-Requested dates: ${availWindow}
-Total: ${priceFmt}
-To reserve your date: $${dep}
-Balance after service: ${remainFmt}
-
-Questions? Just reply or text (771) 253-9204.
-
-— RenewShine`,
-      sms: `Hi ${first} — your ${svc} quote is ${priceFmt}.
-
-Service: ${svc}${beds}
-Requested dates: ${availWindow}
-To reserve your date: $${dep}
-Balance after service: ${remainFmt}
-
-Reserve here:
-[deposit link included]
-
-Questions? Just reply.
-— RenewShine`,
-    },
-
-    quote_no: {
-      email: `Hi ${first},
-
-We've reviewed your request. Your quote is ready.
-
-Service: ${svc}${beds}
-Requested dates: ${availWindow}
-Total: ${priceFmt}
-
-No deposit required. Text or call us at (771) 253-9204 to confirm and we'll get you scheduled.
-
-— RenewShine`,
-      sms: `Hi ${first} — your ${svc} quote is ${priceFmt}.
-
-Service: ${svc}${beds}
-Requested dates: ${availWindow}
-
-No deposit required. Reply YES to confirm and we'll get you scheduled.
-
-— RenewShine`,
-    },
-
-    appt: {
-      email: dateFmt
-        ? `Hi ${first},
-
-Your ${svc} is confirmed for ${dateFmt} · ${arrFmt}.
-
-Before we arrive:
-• Please have floors, countertops, and surfaces reasonably clear.
-• Let us know any priority areas in advance.
-• For safety, our team doesn't move heavy furniture or appliances.
-• Pets should be secured if they may be uncomfortable.
-
-We bring all supplies and equipment. You'll get a reminder text the day before your appointment.
-
-— RenewShine`
-        : noDate,
-      sms: dateFmt
-        ? `Hi ${first} — your ${svc} is confirmed for ${dateFmt} · ${arrFmt}.
-
-Before we arrive:
-• Floors and surfaces reasonably clear.
-• Let us know priority areas in advance.
-• We don't move heavy furniture or appliances.
-• Pets secured if needed.
-
-We bring all supplies. You'll get a reminder text the day before.
-
-— RenewShine`
-        : noDate,
-    },
-
-    reminder: {
-      email: dateFmt
-        ? `Hi ${first},
-
-Your ${svc} is tomorrow — ${dateFmt}, ${arrFmt}.
-
-Address on file: ${j.address ?? 'on file'}
-
-If anything has changed, let us know today.
-
-See you then.
-— RenewShine`
-        : noDate,
-      sms: dateFmt
-        ? `Hi ${first} — your ${svc} is tomorrow, ${dateFmt}, ${arrFmt}.
-
-Address: ${j.address ?? 'on file'}.
-
-Reply YES to confirm or let us know if anything has changed.
-
-— RenewShine`
-        : noDate,
-    },
-
-    invoice: {
-      email: `Hi ${first},
-
-Your ${svc}${dateFmt ? ` on ${dateFmt}` : ''} is complete. Your invoice has been sent to your email on file.
-
-Service: ${svc}${beds}
-Total: ${priceFmt}${j.deposit_paid ? `
-Deposit paid: −$${dep}` : ''}
-Balance due: ${remainFmt}
-
-Payment is due within 24 hours of the service date.
-
-— RenewShine`,
-      sms: j.stripe_payment_link
-        ? `Hi ${first} — your RenewShine invoice.
-
-Service: ${svc}${beds}${dateFmt ? `
-Date: ${dateFmt}` : ''}
-
-Service total: ${priceFmt}${j.deposit_paid ? `
-Deposit paid: -$${dep}` : ''}
-Balance due: ${remainFmt}
-
-Due within 24 hours:
-${j.stripe_payment_link}
-
-— RenewShine`
-        : '',
-    },
-
-    custom: { email: '', sms: '' },
+  return {
+    firstName: first,
+    service: svc,
+    bedBath: beds,
+    roomCallout: getRoomCallout(j.service_type),
+    availabilityWindow: availWindow,
+    total: priceFmt,
+    deposit: `$${dep}`,
+    balance: remainFmt,
+    date: dateFmt,
+    arrivalWindow: arrFmt,
+    address: j.address ?? 'on file',
   }
-
-  return t[id]?.[channel] ?? ''
 }
 
-function getEmailSubject(id: string, j: Job, price: number | null, date: string | null): string {
-  void price
-  const first = j.client_name?.split(' ')[0] ?? ''
-  const svc = getServiceLabel(j.service_type ?? null)
-  const dateFmt = date
-    ? new Date(date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
-    : null
-  const subjects: Record<string, string> = {
-    photos:    `One more step before your quote — RenewShine`,
-    quote_dep: `${first}, your RenewShine quote is ready`,
-    quote_no:  `${first}, your RenewShine quote is ready`,
-    appt:      dateFmt ? `${first}, your ${svc} is confirmed for ${dateFmt}` : `${first}, your ${svc} is confirmed`,
-    reminder:  `Reminder: your ${svc} is tomorrow`,
-    invoice:   `${first} — your RenewShine invoice`,
-    custom:    '',
+// Renders one (templateId, channel) pair using the saved template if present,
+// falling back to DEFAULT_TEMPLATES if the templates fetch hasn't completed
+// or a row is missing. 'custom' always returns blank — it's free-type, not
+// a stored template. 'appt' and 'reminder' require a confirmed date.
+function renderFor(
+  templates: MessageTemplate[],
+  id: string,
+  channel: 'email' | 'sms',
+  j: Job,
+  price: number | null,
+  date: string | null,
+  arrival: string
+): { subject: string; body: string } {
+  if (id === 'custom') return { subject: '', body: '' }
+
+  if ((id === 'appt' || id === 'reminder') && !date) {
+    return { subject: '', body: NO_DATE_MESSAGE }
   }
-  return subjects[id] ?? ''
+
+  const row = templates.find(t => t.templateId === id && t.channel === channel)
+    ?? DEFAULT_TEMPLATES.find(t => t.templateId === id && t.channel === channel)
+
+  if (!row) return { subject: '', body: '' }
+
+  const tokens = buildTemplateTokens(j, price, date, arrival)
+  return {
+    subject: renderTemplate(row.subject ?? '', tokens),
+    body: renderTemplate(row.body, tokens),
+  }
 }
 
 // ─── QuoteCard ────────────────────────────────────────────────────────────────
@@ -409,6 +275,16 @@ export function QuoteCard({ job, defaultOpenPanel }: { job: Job; defaultOpenPane
   })
   const [contactEditBody, setContactEditBody] = React.useState('')
   const [contactSending, setContactSending] = React.useState(false)
+
+  // Live templates from the settings page — falls back to DEFAULT_TEMPLATES
+  // (imported above) until the fetch resolves or if it fails.
+  const [templates, setTemplates] = React.useState<MessageTemplate[]>(DEFAULT_TEMPLATES)
+  React.useEffect(() => {
+    fetch('/api/admin/templates')
+      .then(res => res.ok ? res.json() : null)
+      .then(data => { if (data?.templates) setTemplates(data.templates) })
+      .catch(() => {})
+  }, [])
 
   // Recurring pricing toggle — auto-enabled when job already has a frequency
   const [includeRecurring, setIncludeRecurring] = React.useState<boolean>(() => {
@@ -699,7 +575,8 @@ export function QuoteCard({ job, defaultOpenPanel }: { job: Job; defaultOpenPane
   const firstName = job.client_name?.split(' ')[0] ?? ''
   const templateList = currentChannel === 'email' ? EMAIL_TEMPLATE_LIST : SMS_TEMPLATE_LIST
 
-  const basePreviewBody = getTemplateContent(currentTemplate, currentChannel, job, savedPrice, savedDate, savedArrival)
+  const rendered = renderFor(templates, currentTemplate, currentChannel, job, savedPrice, savedDate, savedArrival)
+  const basePreviewBody = rendered.body
 
   const previewBody = (() => {
     if (currentTemplate === 'quote_dep' && currentChannel === 'sms' && includeRecurring && effectiveRecurringPrice) {
@@ -714,9 +591,7 @@ export function QuoteCard({ job, defaultOpenPanel }: { job: Job; defaultOpenPane
   // SMS display: replace placeholder with a preview URL — real URL injected by route at send time
   const smsDisplayBody = previewBody.replace('[deposit link included]', 'pay.stripe.com/preview')
 
-  const previewSubject = currentChannel === 'email'
-    ? getEmailSubject(currentTemplate, job, savedPrice, savedDate)
-    : null
+  const previewSubject = currentChannel === 'email' ? rendered.subject : null
   const isCustomTemplate = currentTemplate === 'custom'
 
 
