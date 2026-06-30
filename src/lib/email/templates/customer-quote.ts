@@ -21,9 +21,8 @@ export async function customerQuoteTemplate(
     : job.service_type === 'move_out'          ? 'Move-In/Move-Out'
     : job.service_type === 'post_construction' ? 'Post-Construction'
     : 'Cleaning Service'
-  const subject = `Your ${serviceLabel} quote is ready - RenewShine`
   const escapeHtml = (value: string) => value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-  const defaultSubject = `Your ${serviceLabel} quote is ready — RenewShine`
+  const defaultSubject = `Your ${serviceLabel} quote is ready`
 
   // ── Admin override - if Grace typed custom text, that text IS the email.
   // Do not blend it with the auto-generated sections below.
