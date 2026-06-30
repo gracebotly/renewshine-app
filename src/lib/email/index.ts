@@ -31,7 +31,7 @@ export async function sendCustomerSubmittedConfirmation(job: Job): Promise<void>
 
 /** Template 3 — fires when owner clicks "Approve & Send Deposit Link". To: customer. */
 export async function sendCustomerQuote(job: Job, stripeUrl: string, depositAmount?: number, recurringFrequency?: string, recurringPriceOverride?: number, customBodyOverride?: string): Promise<void> {
-  const { subject, html } = customerQuoteTemplate(job, stripeUrl, depositAmount, recurringFrequency, recurringPriceOverride, customBodyOverride)
+  const { subject, html } = await customerQuoteTemplate(job, stripeUrl, depositAmount, recurringFrequency, recurringPriceOverride, customBodyOverride)
   await resend.emails.send({ from: FROM, to: job.client_email, subject, html })
 }
 

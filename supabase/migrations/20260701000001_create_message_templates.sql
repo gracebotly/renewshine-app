@@ -59,26 +59,43 @@ RenewShine'),
 
 We''ve reviewed your request and your quote is ready.
 
-Service: {{service}}{{bedBath}}
+Service: {{serviceDetail}}
 Requested dates: {{availabilityWindow}}
+Preferred time: {{timePreference}}
 Total: {{total}}
-To reserve your date: {{deposit}}
+Deposit to reserve your date: {{deposit}}
 Balance after service: {{balance}}
-
-RenewShine'),
-
-('quote_dep', 'sms', null,
-'Hi {{firstName}}, your {{service}} quote is {{total}}.
-
-Service: {{service}}{{bedBath}}
-Requested dates: {{availabilityWindow}}
-To reserve your date: {{deposit}}
-Balance after service: {{balance}}
-
+{{recurringLine}}
 Reserve here:
 [deposit link included]
 
 RenewShine'),
+
+('quote_dep', 'sms', null,
+'Hi {{firstName}}, we''ve reviewed your request and your quote is ready.
+
+Service: {{serviceDetail}}
+Requested dates: {{availabilityWindow}}
+Preferred time: {{timePreference}}
+Total: {{total}}
+Deposit to reserve your date: {{deposit}}
+Balance after service: {{balance}}
+{{recurringLine}}
+Reserve here:
+[deposit link included]
+
+RenewShine'),
+
+('quote_dep_bullets', 'email', null,
+'Confirmed pricing before service
+Professional equipment and supplies included
+Fully insured cleaning professionals
+Satisfaction guaranteed'),
+
+('quote_dep_next_steps', 'email', null,
+'Reserve your date with the payment above to hold your spot
+We''ll confirm your exact date and send a booking confirmation
+We show up and take care of everything. No surprises.'),
 
 ('quote_no', 'email', '{{firstName}}, your RenewShine quote is ready',
 'Hi {{firstName}},

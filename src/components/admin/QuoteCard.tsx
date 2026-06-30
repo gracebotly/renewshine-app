@@ -149,13 +149,15 @@ function buildTemplateTokens(
   price: number | null,
   date: string | null,
   arrival: string,
-  deposit: number
+  deposit: number,
+  templateId?: string
 ): Record<string, string> {
   const first = j.client_name?.split(' ')[0] ?? 'there'
   const svc = getServiceLabel(j.service_type ?? null)
   const beds = j.bedrooms && j.bathrooms ? ` · ${j.bedrooms} bed / ${j.bathrooms} bath` : ''
   const dep = deposit
-  const remaining = price ? Math.max(price - dep, 0) : null
+  const creditedDeposit = templateId === 'invoice' && !j.deposit_paid ? 0 : dep
+  const remaining = price ? Math.max(price - creditedDeposit, 0) : null
   const priceFmt = price ? `$${price.toLocaleString()}` : '—'
   const remainFmt = remaining !== null ? `$${remaining.toLocaleString()}` : '—'
   const arrFmt = ARRIVAL_MAP[arrival] ?? arrival
@@ -180,9 +182,12 @@ function buildTemplateTokens(
   return {
     firstName: first,
     service: svc,
+    serviceDetail: `${svc}${beds}`,
     bedBath: beds,
     roomCallout: getRoomCallout(j.service_type),
     availabilityWindow: availWindow,
+    timePreference: ARRIVAL_MAP[j.availability_time_pref ?? ''] ?? j.availability_time_pref ?? 'Flexible',
+    recurringLine: '',
     total: priceFmt,
     deposit: `$${dep}`,
     balance: remainFmt,
@@ -217,7 +222,7 @@ function renderFor(
 
   if (!row) return { subject: '', body: '' }
 
-  const tokens = buildTemplateTokens(j, price, date, arrival, deposit)
+  const tokens = buildTemplateTokens(j, price, date, arrival, deposit, id)
   return {
     subject: renderTemplate(row.subject ?? '', tokens),
     body: renderTemplate(row.body, tokens),
@@ -423,6 +428,12 @@ export function QuoteCard({ job, defaultOpenPanel }: { job: Job; defaultOpenPane
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ jobId: job.id, channel: currentChannel, body, subject: previewSubject }),
+        })
+      } else if (currentTemplate === 'invoice' && currentChannel === 'sms') {
+        await fetch('/api/admin/send-invoice-sms', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ jobId: job.id, customSmsBody: body }),
         })
       } else if (currentTemplate === 'appt') {
         if (currentChannel === 'email') {
@@ -995,7 +1006,7 @@ export function QuoteCard({ job, defaultOpenPanel }: { job: Job; defaultOpenPane
               )}
 
               {/* Preview area — or InvoicePanel when invoice template is selected */}
-              {currentTemplate === 'invoice' ? (
+              {currentTemplate === 'invoice' && currentChannel === 'email' ? (
                 <div className="mt-1">
                   <InvoicePanel
                     job={job}

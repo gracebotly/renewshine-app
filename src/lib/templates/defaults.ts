@@ -43,11 +43,15 @@ RenewShine`,
 
 We've reviewed your request and your quote is ready.
 
-Service: {{service}}{{bedBath}}
+Service: {{serviceDetail}}
 Requested dates: {{availabilityWindow}}
+Preferred time: {{timePreference}}
 Total: {{total}}
-To reserve your date: {{deposit}}
+Deposit to reserve your date: {{deposit}}
 Balance after service: {{balance}}
+{{recurringLine}}
+Reserve here:
+[deposit link included]
 
 RenewShine`,
   },
@@ -55,17 +59,36 @@ RenewShine`,
     templateId: 'quote_dep',
     channel: 'sms',
     subject: null,
-    body: `Hi {{firstName}}, your {{service}} quote is {{total}}.
+    body: `Hi {{firstName}}, we've reviewed your request and your quote is ready.
 
-Service: {{service}}{{bedBath}}
+Service: {{serviceDetail}}
 Requested dates: {{availabilityWindow}}
-To reserve your date: {{deposit}}
+Preferred time: {{timePreference}}
+Total: {{total}}
+Deposit to reserve your date: {{deposit}}
 Balance after service: {{balance}}
-
+{{recurringLine}}
 Reserve here:
 [deposit link included]
 
 RenewShine`,
+  },
+  {
+    templateId: 'quote_dep_bullets',
+    channel: 'email',
+    subject: null,
+    body: `Confirmed pricing before service
+Professional equipment and supplies included
+Fully insured cleaning professionals
+Satisfaction guaranteed`,
+  },
+  {
+    templateId: 'quote_dep_next_steps',
+    channel: 'email',
+    subject: null,
+    body: `Reserve your date with the payment above to hold your spot
+We'll confirm your exact date and send a booking confirmation
+We show up and take care of everything. No surprises.`,
   },
   {
     templateId: 'quote_no',
