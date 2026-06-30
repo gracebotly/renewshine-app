@@ -20,7 +20,7 @@ export const TEMPLATE_LABELS: Record<TemplateId, string> = {
 // Tokens available per template — shown as helper text in the settings page.
 export const TEMPLATE_TOKENS: Record<TemplateId, string[]> = {
   photos: ['firstName', 'roomCallout'],
-  quote_dep: ['firstName', 'service', 'bedBath', 'availabilityWindow', 'total', 'deposit', 'balance'],
+  quote_dep: ['firstName', 'service', 'serviceDetail', 'bedBath', 'availabilityWindow', 'timePreference', 'total', 'deposit', 'balance', 'recurringLine'],
   quote_no: ['firstName', 'service', 'bedBath', 'availabilityWindow', 'total'],
   appt: ['firstName', 'service', 'date', 'arrivalWindow'],
   reminder: ['firstName', 'service', 'date', 'arrivalWindow', 'address'],

@@ -59,22 +59,28 @@ RenewShine'),
 
 We''ve reviewed your request and your quote is ready.
 
-Service: {{service}}{{bedBath}}
+Service: {{serviceDetail}}
 Requested dates: {{availabilityWindow}}
+Preferred time: {{timePreference}}
 Total: {{total}}
-To reserve your date: {{deposit}}
+Deposit to reserve your date: {{deposit}}
 Balance after service: {{balance}}
+{{recurringLine}}
+Reserve here:
+[deposit link included]
 
 RenewShine'),
 
 ('quote_dep', 'sms', null,
-'Hi {{firstName}}, your {{service}} quote is {{total}}.
+'Hi {{firstName}}, we''ve reviewed your request and your quote is ready.
 
-Service: {{service}}{{bedBath}}
+Service: {{serviceDetail}}
 Requested dates: {{availabilityWindow}}
-To reserve your date: {{deposit}}
+Preferred time: {{timePreference}}
+Total: {{total}}
+Deposit to reserve your date: {{deposit}}
 Balance after service: {{balance}}
-
+{{recurringLine}}
 Reserve here:
 [deposit link included]
 

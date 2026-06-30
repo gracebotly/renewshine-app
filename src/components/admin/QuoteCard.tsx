@@ -180,9 +180,12 @@ function buildTemplateTokens(
   return {
     firstName: first,
     service: svc,
+    serviceDetail: `${svc}${beds}`,
     bedBath: beds,
     roomCallout: getRoomCallout(j.service_type),
     availabilityWindow: availWindow,
+    timePreference: ARRIVAL_MAP[j.availability_time_pref ?? ''] ?? j.availability_time_pref ?? 'Flexible',
+    recurringLine: '',
     total: priceFmt,
     deposit: `$${dep}`,
     balance: remainFmt,
