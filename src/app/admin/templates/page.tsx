@@ -2,197 +2,215 @@
 
 import * as React from 'react'
 import Link from 'next/link'
-import { ChevronLeft, Copy, Check } from 'lucide-react'
+import { ChevronLeft, Check, RotateCcw } from 'lucide-react'
+import { TEMPLATE_LABELS, TEMPLATE_TOKENS } from '@/lib/templates/types'
+import type { TemplateId, TemplateChannel, MessageTemplate } from '@/lib/templates/types'
+import { DEFAULT_TEMPLATES } from '@/lib/templates/defaults'
 
-const TEMPLATES = [
-  {
-    section: 'Quote & Deposit',
-    items: [
-      {
-        label: 'Quote Sent',
-        message: `Hi [NAME] — your RenewShine quote is ready.
+const TEMPLATE_ORDER: TemplateId[] = ['photos', 'quote_dep', 'quote_no', 'appt', 'reminder', 'invoice']
 
-Service: [SERVICE]
-Total: $[AMOUNT]
-Deposit to confirm: $100
-Remaining after service: $[REMAINING]
+function findTemplate(list: MessageTemplate[], id: TemplateId, channel: TemplateChannel) {
+  return list.find(t => t.templateId === id && t.channel === channel)
+    ?? DEFAULT_TEMPLATES.find(t => t.templateId === id && t.channel === channel)!
+}
 
-To reserve your appointment, submit your deposit here:
-[LINK]
+function ChannelEditor({
+  templateId,
+  channel,
+  template,
+  onSaved,
+}: {
+  templateId: TemplateId
+  channel: TemplateChannel
+  template: MessageTemplate
+  onSaved: (t: MessageTemplate) => void
+}) {
+  const [subject, setSubject] = React.useState(template.subject ?? '')
+  const [body, setBody] = React.useState(template.body)
+  const [saving, setSaving] = React.useState(false)
+  const [resetting, setResetting] = React.useState(false)
+  const [savedFlash, setSavedFlash] = React.useState(false)
+  const [error, setError] = React.useState('')
 
-Your date is not held until the deposit is submitted.
+  // Keep local state in sync if the parent reloads templates (e.g. after reset)
+  React.useEffect(() => {
+    setSubject(template.subject ?? '')
+    setBody(template.body)
+  }, [template])
 
-— RenewShine`,
-      },
-      {
-        label: 'Follow-Up (No Deposit Yet)',
-        message: `Hi [NAME] — following up on your RenewShine quote.
+  const isEmail = channel === 'email'
+  const tokens = TEMPLATE_TOKENS[templateId]
+  const dirty = body !== template.body || (isEmail && subject !== (template.subject ?? ''))
 
-Your requested date window is still available. Submit your deposit to secure your spot:
+  async function handleSave() {
+    setSaving(true)
+    setError('')
+    const res = await fetch('/api/admin/templates', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ templateId, channel, subject: isEmail ? subject : null, body }),
+    })
+    if (res.ok) {
+      onSaved({ templateId, channel, subject: isEmail ? subject : null, body })
+      setSavedFlash(true)
+      setTimeout(() => setSavedFlash(false), 2500)
+    } else {
+      const data = await res.json().catch(() => ({}))
+      setError(data.error ?? 'Failed to save.')
+    }
+    setSaving(false)
+  }
 
-[LINK]
-
-Questions? Reply here anytime.
-
-— RenewShine`,
-      },
-      {
-        label: 'Cash Deposit Confirmed',
-        message: `Hi [NAME] — your deposit has been received and your appointment is confirmed.
-
-Date: [DATE]
-Arrival window: [TIME]
-
-We'll reach out the day before to confirm details.
-
-— RenewShine`,
-      },
-    ],
-  },
-  {
-    section: 'Scheduling',
-    items: [
-      {
-        label: 'Booking Confirmed',
-        message: `Hi [NAME] — your [SERVICE] is confirmed for [DATE].
-
-Arrival window: [TIME]
-Address: [ADDRESS]
-
-A few notes before we arrive:
-• Please have floors and countertops reasonably clear.
-• Let us know any priority areas in advance.
-• We don't move heavy furniture or appliances.
-• Please secure pets if they're uncomfortable around equipment.
-
-We bring all supplies. We'll also call 48 hours before your appointment to confirm details.
-
-— RenewShine`,
-      },
-      {
-        label: '48-Hour Reminder',
-        message: `Hi [NAME] — your RenewShine appointment is coming up on [DAY], [DATE].
-
-Arrival window: [TIME]
-
-Address:
-[ADDRESS]
-
-A few quick reminders:
-- Please clear countertops and bathroom surfaces if possible.
-- If you won't be home, please reply with access instructions.
-- Let us know if anything has changed.
-
-We'll bring all supplies and equipment needed for the service.
-
-Reply YES to confirm or let us know if anything has changed.
-
-— RenewShine`,
-      },
-      {
-        label: 'On My Way',
-        message: `Hi [NAME] — your cleaner is on the way.
-
-Estimated arrival: [TIME]
-
-— RenewShine`,
-      },
-      {
-        label: 'Job Complete — Balance Due',
-        message: `Hi [NAME] — your cleaning is complete.
-
-Remaining balance: $[REMAINING]
-
-Submit payment here:
-[LINK]
-
-Thank you for choosing RenewShine.
-
-— RenewShine`,
-      },
-      {
-        label: 'Review Request',
-        message: `Hi [NAME] — thank you for choosing RenewShine.
-
-If you have a moment, a Google review helps us serve more customers in the area:
-[GOOGLE_REVIEW_LINK]
-
-We appreciate your support.
-
-— RenewShine`,
-      },
-    ],
-  },
-]
-
-function TemplateCard({ label, message }: { label: string; message: string }) {
-  const [copied, setCopied] = React.useState(false)
-
-  const handleCopy = async () => {
-    await navigator.clipboard.writeText(message)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
+  async function handleReset() {
+    setResetting(true)
+    setError('')
+    const res = await fetch('/api/admin/templates/reset', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ templateId, channel }),
+    })
+    if (res.ok) {
+      const def = DEFAULT_TEMPLATES.find(t => t.templateId === templateId && t.channel === channel)!
+      setSubject(def.subject ?? '')
+      setBody(def.body)
+      onSaved(def)
+    } else {
+      setError('Failed to reset.')
+    }
+    setResetting(false)
   }
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-      <div className="mb-3 flex items-center justify-between gap-3">
-        <p className="text-sm font-semibold text-slate-900">{label}</p>
-        <button
-          onClick={handleCopy}
-          className="inline-flex shrink-0 cursor-pointer items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-700 transition-colors duration-200 hover:bg-slate-100"
-        >
-          {copied ? (
-            <>
-              <Check size={12} className="text-emerald-600" />
-              <span className="text-emerald-600">Copied</span>
-            </>
-          ) : (
-            <>
-              <Copy size={12} />
-              Copy
-            </>
+    <div className="rounded-xl border border-slate-200 bg-white overflow-hidden">
+      <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50 px-4 py-2.5">
+        <span className="text-xs font-semibold uppercase tracking-widest text-slate-500">
+          {isEmail ? 'Email' : 'SMS'}
+        </span>
+        <div className="flex items-center gap-3">
+          {savedFlash && (
+            <span className="flex items-center gap-1 text-xs font-medium text-emerald-600">
+              <Check size={12} /> Saved
+            </span>
           )}
-        </button>
+          <button
+            onClick={handleReset}
+            disabled={resetting}
+            className="flex items-center gap-1 text-[11px] text-slate-400 hover:text-slate-600 transition-colors duration-200 cursor-pointer disabled:opacity-50"
+          >
+            <RotateCcw size={11} />
+            {resetting ? 'Resetting…' : 'Reset to default'}
+          </button>
+        </div>
       </div>
-      <pre className="whitespace-pre-wrap rounded-lg bg-slate-50 p-4 text-xs leading-relaxed text-slate-700 select-all">
-        {message}
-      </pre>
+
+      <div className="p-4 space-y-3">
+        {isEmail && (
+          <div className="space-y-1">
+            <label className="text-[10px] font-semibold uppercase tracking-widest text-slate-400">Subject</label>
+            <input
+              type="text"
+              value={subject}
+              onChange={e => setSubject(e.target.value)}
+              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-[#4A7C59]/40 focus:outline-none transition-colors duration-200"
+            />
+          </div>
+        )}
+
+        <div className="space-y-1">
+          <label className="text-[10px] font-semibold uppercase tracking-widest text-slate-400">Body</label>
+          <textarea
+            value={body}
+            onChange={e => setBody(e.target.value)}
+            rows={templateId === 'invoice' && isEmail ? 9 : 7}
+            className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 leading-relaxed focus:border-[#4A7C59]/40 focus:outline-none transition-colors duration-200 resize-none"
+          />
+          {templateId === 'invoice' && isEmail && !body.includes('{{lineItems}}') && (
+            <p className="text-[11px] text-amber-600">
+              This template is missing {'{{lineItems}}'} — the line-items table won&apos;t appear in the sent email without it.
+            </p>
+          )}
+        </div>
+
+        <div className="flex items-center justify-between">
+          <p className="text-[11px] text-slate-400">
+            Available: {tokens.map(t => `{{${t}}}`).join(', ')}
+          </p>
+          <button
+            onClick={handleSave}
+            disabled={saving || !dirty}
+            className="rounded-lg bg-[#4A7C59] px-4 py-1.5 text-xs font-semibold text-white transition-colors duration-200 hover:bg-[#3d6b4a] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+          >
+            {saving ? 'Saving…' : 'Save'}
+          </button>
+        </div>
+
+        {error && <p className="text-xs text-red-600">{error}</p>}
+      </div>
     </div>
   )
 }
 
-export default function TemplatesPage() {
+export default function TemplatesSettingsPage() {
+  const [templates, setTemplates] = React.useState<MessageTemplate[]>(DEFAULT_TEMPLATES)
+  const [loading, setLoading] = React.useState(true)
+
+  React.useEffect(() => {
+    fetch('/api/admin/templates')
+      .then(res => res.ok ? res.json() : null)
+      .then(data => { if (data?.templates) setTemplates(data.templates) })
+      .catch(() => {})
+      .finally(() => setLoading(false))
+  }, [])
+
+  function handleSaved(updated: MessageTemplate) {
+    setTemplates(prev => {
+      const others = prev.filter(t => !(t.templateId === updated.templateId && t.channel === updated.channel))
+      return [...others, updated]
+    })
+  }
+
   return (
-    <div className="min-h-screen bg-slate-50">
-      <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
+    <div className="mx-auto max-w-3xl px-5 py-8 space-y-6">
+      <div className="flex items-center gap-3">
         <Link
           href="/admin"
-          className="mb-6 inline-flex cursor-pointer items-center gap-1.5 text-sm text-slate-600 transition-colors duration-200 hover:text-slate-900"
+          className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 transition-colors duration-200 cursor-pointer"
         >
-          <ChevronLeft size={16} /> Back to Dashboard
+          <ChevronLeft size={16} />
         </Link>
-
-        <div className="mb-8">
-          <h1 className="font-display text-3xl font-bold text-slate-900">SMS Templates</h1>
-          <p className="mt-1 text-slate-600">Tap Copy, paste into your messages app. Fill in the blanks in brackets.</p>
+        <div>
+          <h1 className="text-lg font-semibold text-slate-900">Message Templates</h1>
+          <p className="text-xs text-slate-400 mt-0.5">
+            These are the default Email and SMS copies used in the Contact panel on every job. Edits here apply immediately — they don&apos;t require a deploy.
+          </p>
         </div>
+      </div>
 
-        <div className="space-y-10">
-          {TEMPLATES.map((section) => (
-            <div key={section.section}>
-              <h2 className="mb-4 text-xs font-semibold uppercase tracking-widest text-slate-400">
-                {section.section}
-              </h2>
-              <div className="space-y-4">
-                {section.items.map((item) => (
-                  <TemplateCard key={item.label} label={item.label} message={item.message} />
-                ))}
+      {loading ? (
+        <p className="text-sm text-slate-400">Loading templates…</p>
+      ) : (
+        <div className="space-y-8">
+          {TEMPLATE_ORDER.map(id => (
+            <div key={id} className="space-y-3">
+              <h2 className="text-sm font-semibold text-slate-900">{TEMPLATE_LABELS[id]}</h2>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <ChannelEditor
+                  templateId={id}
+                  channel="email"
+                  template={findTemplate(templates, id, 'email')}
+                  onSaved={handleSaved}
+                />
+                <ChannelEditor
+                  templateId={id}
+                  channel="sms"
+                  template={findTemplate(templates, id, 'sms')}
+                  onSaved={handleSaved}
+                />
               </div>
             </div>
           ))}
         </div>
-      </div>
+      )}
     </div>
   )
 }
