@@ -156,7 +156,8 @@ function buildTemplateTokens(
   deposit: number,
   includeRecurring: boolean,
   recurringFrequencyLabel: string,
-  effectiveRecurringPrice: number | null
+  effectiveRecurringPrice: number | null,
+  templateId: string
 ): Record<string, string> {
   const first = j.client_name?.split(' ')[0] ?? 'there'
   const svc = getServiceLabel(j.service_type ?? null)
@@ -253,7 +254,8 @@ function renderFor(
     deposit,
     includeRecurring,
     recurringFrequencyLabel,
-    effectiveRecurringPrice
+    effectiveRecurringPrice,
+    id
   )
   return {
     subject: renderTemplate(row.subject ?? '', tokens),
