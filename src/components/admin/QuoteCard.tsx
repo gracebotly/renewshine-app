@@ -187,6 +187,13 @@ ${recurringFrequencyLabel}: $${effectiveRecurringPrice.toLocaleString()}/visit`
       })
     : ''
   const availWindow = (() => {
+    // Once a confirmed date is set (Booking panel), show that specific
+    // date/time instead of the customer's original requested range —
+    // that's what should go out once you're quoting against a real slot.
+    if (date) {
+      const confirmed = new Date(date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+      return arrival ? `${confirmed} · ${arrFmt}` : confirmed
+    }
     const s = j.availability_start
       ? new Date(j.availability_start + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
       : null
