@@ -24,29 +24,6 @@ export async function customerQuoteTemplate(
   const escapeHtml = (value: string) => value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
   const defaultSubject = `Your ${serviceLabel} quote is ready`
 
-  // ── Admin override - if Grace typed custom text, that text IS the email.
-  // Do not blend it with the auto-generated sections below.
-  if (customBodyOverride && customBodyOverride.trim()) {
-    const paragraphs = customBodyOverride
-      .replace('[deposit link included]', stripeUrl)
-      .trim()
-      .split(/\n{2,}/)
-      .map(p => `<p style="margin:0 0 14px;font-size:14px;color:#334155;line-height:1.6;white-space:pre-line;">${escapeHtml(p)}</p>`)
-      .join('')
-
-    const overrideContent = `
-      ${badge('Quote ready', 'green')}
-      ${heading(`${firstName}, your quote is ready.`)}
-      ${paragraphs}
-      ${ctaButton('Pay Deposit', stripeUrl)}
-    `
-
-    return {
-      subject: defaultSubject,
-      html: baseTemplate(overrideContent, `${firstName}, your quote is ready. Reserve your date with the payment below.`),
-    }
-  }
-
   const timePrefMap: Record<string, string> = {
     morning:         '8am – 12pm',
     afternoon:       '12pm – 5pm',
@@ -61,24 +38,43 @@ export async function customerQuoteTemplate(
     ? (timePrefMap[job.availability_time_pref] ?? 'Flexible')
     : 'Flexible'
 
-  // Quote email always shows the availability window the customer submitted.
-  // confirmed_date is ONLY used in customer-booked.ts (Template 4, post-deposit).
-  // Do not add hasConfirmedDate logic back here.
-  const availabilityWindowStr = (() => {
-    const start = job.availability_start
-      ? new Date(job.availability_start).toLocaleDateString('en-US', { month: 'long', day: 'numeric' })
+  // ── Schedule state ────────────────────────────────────────────────────────
+  // State A (default): no confirmed date — show the window the customer asked for.
+  // State B: confirmed_date is set — show the real appointment.
+  // Trigger is confirmed_date alone. Price and deposit are irrelevant here.
+  // This mirrors buildTemplateTokens() in QuoteCard.tsx — the two MUST agree.
+  const hasConfirmedDate = Boolean(job.confirmed_date)
+
+  const requestedWindowStr = (() => {
+    const startDate = parseDateOnly(job.availability_start)
+    const endDate = parseDateOnly(job.availability_end)
+    const start = startDate
+      ? startDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })
       : null
-    const end = job.availability_end
-      ? new Date(job.availability_end).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+    const end = endDate
+      ? endDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
       : null
     if (start && end && start !== end) return `${start} – ${end}`
     if (start) return start
     return 'Dates to be confirmed'
   })()
 
-  const appointmentLine = timePref !== 'Flexible'
-    ? `${availabilityWindowStr} · ${timePref}`
-    : availabilityWindowStr
+  const requestedLine = timePref !== 'Flexible'
+    ? `${requestedWindowStr} · ${timePref}`
+    : requestedWindowStr
+
+  const confirmedArrival = job.confirmed_arrival_pref
+    ? (timePrefMap[job.confirmed_arrival_pref] ?? '')
+    : ''
+  const confirmedDateObj = parseDateOnly(job.confirmed_date as unknown as string)
+  const confirmedDateStr = confirmedDateObj
+    ? confirmedDateObj.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
+    : ''
+  const confirmedLine = confirmedArrival && confirmedArrival !== 'Flexible'
+    ? `${confirmedDateStr} · ${confirmedArrival}`
+    : confirmedDateStr
+
+  const scheduleValue = hasConfirmedDate ? confirmedLine : requestedLine
 
   const approvedPrice = job.approved_price ?? 0
   // Use the passed deposit amount, then fall back to job.deposit_amount, then 100
@@ -112,22 +108,56 @@ export async function customerQuoteTemplate(
       ? `${job.bedrooms} Bedroom${job.bedrooms !== 1 ? 's' : ''} · ${job.bathrooms} Bathroom${(job.bathrooms ?? 0) !== 1 ? 's' : ''}`
       : ''
 
-  const templateTokens = {
-    firstName,
-    service: serviceLabel,
-    bedBath: bedroomLine ? ` — ${bedroomLine}` : '',
-    availabilityWindow: appointmentLine,
-    total: totalDisplay,
-    deposit: depositDisplay,
-    balance: remainingDisplay,
-  }
-  const [quoteTemplate, bulletsTemplate, nextStepsTemplate] = await Promise.all([
+  const scheduleTemplateId = hasConfirmedDate
+    ? 'quote_dep_schedule_confirmed'
+    : 'quote_dep_schedule_requested'
+
+  const [quoteTemplate, bulletsTemplate, nextStepsTemplate, scheduleTemplate] = await Promise.all([
     getQuoteEmailTemplate('quote_dep'),
     getQuoteEmailTemplate('quote_dep_bullets'),
     getQuoteEmailTemplate('quote_dep_next_steps'),
+    getQuoteEmailTemplate(scheduleTemplateId),
   ])
-  const subject = renderTemplate(quoteTemplate.subject ?? `Your ${serviceLabel} quote is ready — RenewShine`, templateTokens)
-  const quoteBodyHtml = bodyToParagraphs(renderTemplate(quoteTemplate.body, templateTokens), escapeHtml)
+
+  // Three-line format: inline label / card header / badge (badge optional).
+  // A missing or blank third line renders no badge — do not emit an empty pill.
+  const scheduleLines = (scheduleTemplate.body ?? '').split(/\r?\n/)
+  const scheduleLabel  = (scheduleLines[0] ?? '').trim() || (hasConfirmedDate ? 'Appointment' : 'Requested window')
+  const scheduleHeader = (scheduleLines[1] ?? '').trim() || scheduleLabel
+  const scheduleBadge  = (scheduleLines[2] ?? '').trim()
+
+  const templateTokens = {
+    firstName,
+    service: serviceLabel,
+    serviceDetail: [serviceLabel, bedroomLine].filter(Boolean).join(' • '),
+    bedBath: bedroomLine ? ` — ${bedroomLine}` : '',
+    scheduleLabel,
+    schedule: scheduleValue,
+    // Legacy alias — quote_no and any un-migrated saved rows still reference it.
+    availabilityWindow: scheduleValue,
+    timePreference: timePref,
+    date: confirmedDateStr,
+    arrivalWindow: confirmedArrival,
+    address: job.address ?? 'on file',
+    total: totalDisplay,
+    deposit: depositDisplay,
+    balance: remainingDisplay,
+    recurringLine: freqCfg && recurringPriceNum
+      ? `Recurring rate:\n${freqCfg.label}: $${recurringPriceNum.toLocaleString()}/visit`
+      : '',
+  }
+  const subject = renderTemplate(quoteTemplate.subject ?? defaultSubject, templateTokens)
+  // Per-job override replaces ONLY the prose block — the exact region the admin
+  // textarea displays. Every styled section below (schedule card, service card,
+  // payment summary, trust bullets, CTA, next steps) is preserved.
+  const effectiveQuoteBody = customBodyOverride && customBodyOverride.trim()
+    ? customBodyOverride
+    : renderTemplate(quoteTemplate.body, templateTokens)
+
+  const quoteBodyHtml = bodyToParagraphs(
+    effectiveQuoteBody.replace('[deposit link included]', stripeUrl),
+    escapeHtml
+  )
   const trustBulletRows = splitRenderedLines(renderTemplate(bulletsTemplate.body, templateTokens))
     .map(line => `<tr><td style="padding:3px 0;font-size:13px;color:#0f172a;line-height:1.5;"><span style="color:#4A7C59;font-weight:700;margin-right:8px;">·</span>${escapeHtml(line)}</td></tr>`)
     .join('')
@@ -180,15 +210,15 @@ export async function customerQuoteTemplate(
       style="border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;margin:0 0 24px;">
       <tbody>${lineItemRows}</tbody>
     </table>` : `
-    <p style="margin:0 0 8px;font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.08em;">Your requested window</p>
+    <p style="margin:0 0 8px;font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.08em;">${escapeHtml(scheduleHeader)}</p>
     <table width="100%" cellpadding="0" cellspacing="0" role="presentation"
       style="border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;margin:0 0 24px;">
       <tbody>
         <tr>
-          <td style="padding:16px 18px 12px;">
-            <p style="margin:0 0 4px;font-size:16px;font-weight:700;color:#0f172a;line-height:1.3;">${appointmentLine}</p>
-            <p style="margin:0 0 12px;font-size:13px;color:#64748b;">${job.address ?? ''}</p>
-            <span style="display:inline-block;background:#fef9ec;color:#92600a;font-size:11px;font-weight:600;padding:4px 10px;border-radius:99px;letter-spacing:0.02em;">Exact date confirmed after deposit</span>
+          <td style="padding:16px 18px ${scheduleBadge ? '12px' : '16px'};">
+            <p style="margin:0 0 4px;font-size:16px;font-weight:700;color:#0f172a;line-height:1.3;">${escapeHtml(scheduleValue)}</p>
+            <p style="margin:0${scheduleBadge ? ' 0 12px' : ''};font-size:13px;color:#64748b;">${escapeHtml(job.address ?? '')}</p>
+            ${scheduleBadge ? `<span style="display:inline-block;background:#fef9ec;color:#92600a;font-size:11px;font-weight:600;padding:4px 10px;border-radius:99px;letter-spacing:0.02em;">${escapeHtml(scheduleBadge)}</span>` : ''}
           </td>
         </tr>
       </tbody>
@@ -310,7 +340,26 @@ function bodyToParagraphs(value: string, escapeHtml: (value: string) => string):
     .join('')
 }
 
-async function getQuoteEmailTemplate(templateId: Extract<TemplateId, 'quote_dep' | 'quote_dep_bullets' | 'quote_dep_next_steps'>) {
+// Date-only strings ('2026-07-31') parse as UTC midnight, which renders as the
+// previous day in any negative-offset timezone. Anchor to noon so the calendar
+// date is stable regardless of where this runs.
+function parseDateOnly(value: string | null | undefined): Date | null {
+  if (!value) return null
+  const dayPart = String(value).split(/[T ]/)[0]
+  const d = new Date(`${dayPart}T12:00:00`)
+  return Number.isNaN(d.getTime()) ? null : d
+}
+
+async function getQuoteEmailTemplate(
+  templateId: Extract<
+    TemplateId,
+    | 'quote_dep'
+    | 'quote_dep_bullets'
+    | 'quote_dep_next_steps'
+    | 'quote_dep_schedule_requested'
+    | 'quote_dep_schedule_confirmed'
+  >
+) {
   try {
     const supabase = createServerClient()
     const { data } = await supabase

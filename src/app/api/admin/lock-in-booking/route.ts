@@ -14,7 +14,10 @@ export async function POST(request: Request) {
   const supabase = createServerClient()
   const updates: Partial<Job> = {}
   if (confirmedDate) updates.confirmed_date = confirmedDate
-  if (arrivalTimePref !== undefined) updates.availability_time_pref = (String(arrivalTimePref) || null) as Job['availability_time_pref']
+  // Write to confirmed_arrival_pref, never availability_time_pref.
+  // availability_time_pref is the customer's own submission and is read-only
+  // to the admin panel — overwriting it destroys what they actually asked for.
+  if (arrivalTimePref !== undefined) updates.confirmed_arrival_pref = (String(arrivalTimePref) || null) as Job['confirmed_arrival_pref']
   if (depositAmount !== undefined && depositAmount !== null && depositAmount !== '') {
     const resolvedDeposit = Number(depositAmount)
     if (!Number.isFinite(resolvedDeposit) || resolvedDeposit < 0) {

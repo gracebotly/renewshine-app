@@ -72,6 +72,7 @@ export interface Database {
           availability_start: string | null
           availability_end: string | null
           availability_time_pref: TimePreference | null
+          confirmed_arrival_pref: TimePreference | null
           confirmed_date: string | null
           estimated_price_low: number | null
           estimated_price_high: number | null
@@ -119,6 +120,7 @@ export interface Database {
           availability_start?: string | null
           availability_end?: string | null
           availability_time_pref?: TimePreference | null
+          confirmed_arrival_pref?: TimePreference | null
           confirmed_date?: string | null
           estimated_price_low?: number | null
           estimated_price_high?: number | null
