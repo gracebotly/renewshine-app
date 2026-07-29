@@ -44,8 +44,7 @@ RenewShine`,
 We've reviewed your request and your quote is ready.
 
 Service: {{serviceDetail}}
-Requested dates: {{availabilityWindow}}
-Preferred time: {{timePreference}}
+{{scheduleLabel}}: {{schedule}}
 Total: {{total}}
 Deposit to reserve your date: {{deposit}}
 Balance after service: {{balance}}
@@ -62,8 +61,7 @@ RenewShine`,
     body: `Hi {{firstName}}, we've reviewed your request and your quote is ready.
 
 Service: {{serviceDetail}}
-Requested dates: {{availabilityWindow}}
-Preferred time: {{timePreference}}
+{{scheduleLabel}}: {{schedule}}
 Total: {{total}}
 Deposit to reserve your date: {{deposit}}
 Balance after service: {{balance}}
@@ -89,6 +87,21 @@ Satisfaction guaranteed`,
     body: `Reserve your date with the payment above to hold your spot
 We'll confirm your exact date and send a booking confirmation
 We show up and take care of everything. No surprises.`,
+  },
+  {
+    templateId: 'quote_dep_schedule_requested',
+    channel: 'email',
+    subject: null,
+    body: `Requested window
+Your requested window
+Exact date confirmed after deposit`,
+  },
+  {
+    templateId: 'quote_dep_schedule_confirmed',
+    channel: 'email',
+    subject: null,
+    body: `Appointment
+Your appointment`,
   },
   {
     templateId: 'quote_no',

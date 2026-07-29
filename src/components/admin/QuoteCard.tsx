@@ -186,14 +186,17 @@ ${recurringFrequencyLabel}: $${effectiveRecurringPrice.toLocaleString()}/visit`
         weekday: 'long', month: 'long', day: 'numeric',
       })
     : ''
+  const hasConfirmed = Boolean(date)
+
   const availWindow = (() => {
-    // Once a confirmed date is set (Booking panel), show that specific
-    // date/time instead of the customer's original requested range —
-    // that's what should go out once you're quoting against a real slot.
+    // State B — a confirmed date exists, so quote against the real slot.
     if (date) {
-      const confirmed = new Date(date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-      return arrival ? `${confirmed} · ${arrFmt}` : confirmed
+      const confirmed = new Date(date + 'T12:00:00').toLocaleDateString('en-US', {
+        weekday: 'long', month: 'long', day: 'numeric',
+      })
+      return arrival && arrFmt !== 'Flexible' ? `${confirmed} · ${arrFmt}` : confirmed
     }
+    // State A — the window the customer submitted.
     const s = j.availability_start
       ? new Date(j.availability_start + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
       : null
@@ -211,6 +214,8 @@ ${recurringFrequencyLabel}: $${effectiveRecurringPrice.toLocaleString()}/visit`
     serviceDetail,
     bedBath: beds,
     roomCallout: getRoomCallout(j.service_type),
+    scheduleLabel: hasConfirmed ? 'Appointment' : 'Requested window',
+    schedule: availWindow,
     availabilityWindow: availWindow,
     timePreference: ARRIVAL_MAP[j.availability_time_pref ?? ''] ?? j.availability_time_pref ?? 'Flexible',
     total: priceFmt,
@@ -302,10 +307,10 @@ export function QuoteCard({ job, defaultOpenPanel }: { job: Job; defaultOpenPane
     String(job.deposit_amount ?? 100)
   )
   const [arrivalInput, setArrivalInput] = React.useState(
-    job.availability_time_pref ?? 'morning'
+    job.confirmed_arrival_pref ?? job.availability_time_pref ?? 'morning'
   )
   const [savedArrival, setSavedArrival] = React.useState<string>(
-    job.availability_time_pref ?? 'morning'
+    job.confirmed_arrival_pref ?? job.availability_time_pref ?? 'morning'
   )
   const [priceSaving, setPriceSaving] = React.useState(false)
   const [dateSaving, setDateSaving] = React.useState(false)
@@ -320,7 +325,7 @@ export function QuoteCard({ job, defaultOpenPanel }: { job: Job; defaultOpenPane
     if (defaultOpenPanel && VALID_TEMPLATES.includes(defaultOpenPanel)) return defaultOpenPanel
     return 'photos'
   })
-  const [contactEditBody, setContactEditBody] = React.useState('')
+  const [contactEditBody, setContactEditBody] = React.useState<string | null>(null)
   const [contactSending, setContactSending] = React.useState(false)
 
   // Live templates from the settings page — falls back to DEFAULT_TEMPLATES
@@ -426,7 +431,7 @@ export function QuoteCard({ job, defaultOpenPanel }: { job: Job; defaultOpenPane
     if (contactSending) return
     setContactSending(true)
     setErrorMsg('')
-    const rawBody = contactEditBody.trim()
+    const rawBody = contactEditBody?.trim()
       ? contactEditBody
       : previewBody
     const body = currentTemplate === 'quote_dep' && currentChannel === 'sms'
@@ -456,7 +461,7 @@ export function QuoteCard({ job, defaultOpenPanel }: { job: Job; defaultOpenPane
             confirmedDate: savedDate || null,
             channel: currentChannel,
             customSmsBody: currentChannel === 'sms' ? body : undefined,
-            customEmailBody: currentChannel === 'email' && contactEditBody.trim() ? contactEditBody : undefined,
+            customEmailBody: currentChannel === 'email' && contactEditBody?.trim() ? contactEditBody : undefined,
             recurringFrequency: includeRecurring ? recurringFreq : undefined,
             recurringPriceOverride: includeRecurring && effectiveRecurringPrice ? effectiveRecurringPrice : undefined,
           }),
@@ -665,7 +670,7 @@ export function QuoteCard({ job, defaultOpenPanel }: { job: Job; defaultOpenPane
               approvedPrice: savedPrice ?? job.approved_price,
               depositAmount: savedDeposit,
               confirmedDate: savedDate || null,
-              customEmailBody: contactEditBody.trim() ? contactEditBody : undefined,
+              customEmailBody: contactEditBody?.trim() ? contactEditBody : undefined,
               recurringFrequency: includeRecurring ? recurringFreq : undefined,
               recurringPriceOverride: includeRecurring && effectiveRecurringPrice ? effectiveRecurringPrice : undefined,
             }),
@@ -678,7 +683,7 @@ export function QuoteCard({ job, defaultOpenPanel }: { job: Job; defaultOpenPane
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               subject: previewSubject,
-              body: contactEditBody.trim() ? contactEditBody : previewBody,
+              body: contactEditBody?.trim() ? contactEditBody : previewBody,
             }),
           })
           const data = await res.json()
@@ -980,7 +985,7 @@ export function QuoteCard({ job, defaultOpenPanel }: { job: Job; defaultOpenPane
               {(['email', 'sms'] as const).map(ch => (
                 <button
                   key={ch}
-                  onClick={() => { setCurrentChannel(ch); setContactEditBody(''); setEmailPreviewHtml(null); setShowEmailEditor(false) }}
+                  onClick={() => { setCurrentChannel(ch); setContactEditBody(null); setEmailPreviewHtml(null); setShowEmailEditor(false) }}
                   className={`flex-1 py-2.5 text-xs font-semibold transition-colors duration-150 cursor-pointer ${
                     currentChannel === ch
                       ? 'bg-[#4A7C59] text-white'
@@ -996,7 +1001,7 @@ export function QuoteCard({ job, defaultOpenPanel }: { job: Job; defaultOpenPane
               {/* Template dropdown */}
               <select
                 value={currentTemplate}
-                onChange={e => { setCurrentTemplate(e.target.value); setContactEditBody(''); setEmailPreviewHtml(null); setShowEmailEditor(false) }}
+                onChange={e => { setCurrentTemplate(e.target.value); setContactEditBody(null); setEmailPreviewHtml(null); setShowEmailEditor(false) }}
                 className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-900 focus:border-[#4A7C59]/40 focus:outline-none cursor-pointer"
               >
                 {templateList.map(t => (
@@ -1064,7 +1069,7 @@ export function QuoteCard({ job, defaultOpenPanel }: { job: Job; defaultOpenPane
                     job={job}
                     onClose={() => {
                       setCurrentTemplate('photos')
-                      setContactEditBody('')
+                      setContactEditBody(null)
                     }}
                   />
                 </div>
@@ -1094,7 +1099,7 @@ export function QuoteCard({ job, defaultOpenPanel }: { job: Job; defaultOpenPane
                     )}
                     {!isCustomTemplate && contactEditBody && showEmailEditor && (
                       <button
-                        onClick={() => setContactEditBody('')}
+                        onClick={() => setContactEditBody(null)}
                         className="text-[11px] text-slate-400 hover:text-slate-600 cursor-pointer transition-colors"
                       >
                         Reset
@@ -1140,7 +1145,7 @@ export function QuoteCard({ job, defaultOpenPanel }: { job: Job; defaultOpenPane
                     {/* Plain textarea — manual override mode, or always for Custom Message */}
                     {(showEmailEditor || isCustomTemplate) && (
                       <textarea
-                        value={contactEditBody || previewBody}
+                        value={contactEditBody ?? previewBody}
                         onChange={e => setContactEditBody(e.target.value)}
                         rows={7}
                         maxLength={1000}
@@ -1165,7 +1170,7 @@ export function QuoteCard({ job, defaultOpenPanel }: { job: Job; defaultOpenPane
                       <div className="flex justify-start">
                         <div className="max-w-[88%] rounded-2xl rounded-tl-sm bg-slate-200 px-3 py-2.5">
                           <p className="text-xs text-slate-900 leading-relaxed whitespace-pre-wrap">
-                            {(contactEditBody || smsDisplayBody).replace('[deposit link included]', 'pay.stripe.com/preview')}
+                            {(contactEditBody ?? smsDisplayBody).replace('[deposit link included]', 'pay.stripe.com/preview')}
                           </p>
                           {/* Styled link line within bubble */}
                           {!contactEditBody && currentTemplate === 'quote_dep' && (
@@ -1176,9 +1181,9 @@ export function QuoteCard({ job, defaultOpenPanel }: { job: Job; defaultOpenPane
                         </div>
                       </div>
                       <p className="text-[10px] text-slate-400 text-center">
-                        {(contactEditBody || smsDisplayBody).length} chars
-                        {(contactEditBody || smsDisplayBody).length > 160 && (
-                          <span className="text-amber-500"> · {Math.ceil((contactEditBody || smsDisplayBody).length / 160)} segments</span>
+                        {(contactEditBody ?? smsDisplayBody).length} chars
+                        {(contactEditBody ?? smsDisplayBody).length > 160 && (
+                          <span className="text-amber-500"> · {Math.ceil((contactEditBody ?? smsDisplayBody).length / 160)} segments</span>
                         )}
                       </p>
                     </div>
@@ -1186,7 +1191,7 @@ export function QuoteCard({ job, defaultOpenPanel }: { job: Job; defaultOpenPane
                     {/* Editable textarea below bubble */}
                     <div className="border-t border-slate-100">
                       <textarea
-                        value={contactEditBody || smsDisplayBody}
+                        value={contactEditBody ?? smsDisplayBody}
                         onChange={e => setContactEditBody(e.target.value)}
                         rows={4}
                         maxLength={1000}
@@ -1202,7 +1207,7 @@ export function QuoteCard({ job, defaultOpenPanel }: { job: Job; defaultOpenPane
                   <span className="text-[10px] text-slate-400" />
                   <button
                     onClick={handleSendTemplate}
-                    disabled={contactSending || (!previewBody.trim() && !contactEditBody.trim())}
+                    disabled={contactSending || (!previewBody.trim() && !contactEditBody?.trim())}
                     className="flex items-center gap-1.5 rounded-lg bg-[#4A7C59] px-3.5 py-1.5 text-xs font-semibold text-white transition-colors duration-200 hover:bg-[#3d6b4a] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
                   >
                     {contactSending ? 'Sending…' : currentChannel === 'email' ? 'Send email' : 'Send SMS'}
