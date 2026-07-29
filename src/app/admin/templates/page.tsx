@@ -7,12 +7,14 @@ import { TEMPLATE_LABELS, TEMPLATE_TOKENS } from '@/lib/templates/types'
 import type { TemplateId, TemplateChannel, MessageTemplate } from '@/lib/templates/types'
 import { DEFAULT_TEMPLATES } from '@/lib/templates/defaults'
 
-const TEMPLATE_ORDER: TemplateId[] = ['photos', 'quote_dep', 'quote_dep_bullets', 'quote_dep_next_steps', 'quote_no', 'appt', 'reminder', 'invoice']
+const TEMPLATE_ORDER: TemplateId[] = ['photos', 'quote_dep', 'quote_dep_bullets', 'quote_dep_next_steps', 'quote_dep_schedule_requested', 'quote_dep_schedule_confirmed', 'quote_no', 'appt', 'reminder', 'invoice']
 const CHANNELS_BY_TEMPLATE: Record<TemplateId, TemplateChannel[]> = {
   photos: ['email', 'sms'],
   quote_dep: ['email', 'sms'],
   quote_dep_bullets: ['email'],
   quote_dep_next_steps: ['email'],
+  quote_dep_schedule_requested: ['email'],
+  quote_dep_schedule_confirmed: ['email'],
   quote_no: ['email', 'sms'],
   appt: ['email', 'sms'],
   reminder: ['email', 'sms'],
