@@ -5,7 +5,7 @@ import {
   ctaButton,
   divider,
 } from '@/lib/email/templates/base'
-import { renderTemplate } from '@/lib/templates/render'
+import { renderTemplate } from './tokens'
 import type { EmailBlock, EmailDocument, LinkTarget } from './types'
 import type { RenderContext } from './context'
 

@@ -108,11 +108,6 @@ export const DEFAULT_DOCUMENTS: Record<string, MessageDocument> = {
       },
       { id: 'p1', type: 'paragraph', text: 'Hi {{firstName}},' },
       {
-        id: 'p2',
-        type: 'paragraph',
-        text: 'One quick step before your quote.',
-      },
-      {
         id: 'p3',
         type: 'paragraph',
         text: 'Before we confirm a price, our team reviews photos of every space. Please send a few photos or a short walkthrough video{{roomCallout}} to hello@renewshine.co, or text them to (771) 253-9204.',
@@ -173,7 +168,7 @@ export const DEFAULT_DOCUMENTS: Record<string, MessageDocument> = {
       {
         id: 'p3',
         type: 'paragraph',
-        text: 'Service: {{service}}{{bedBath}}\nRequested dates: {{availabilityWindow}}\nTotal: {{total}}',
+        text: 'Service: {{service}}{{bedBath}}\nRequested dates: {{schedule}}\nTotal: {{total}}',
       },
       {
         id: 'p4',
@@ -197,7 +192,7 @@ export const DEFAULT_DOCUMENTS: Record<string, MessageDocument> = {
       {
         id: 'l3',
         type: 'textLine',
-        text: 'Requested dates: {{availabilityWindow}}',
+        text: 'Requested dates: {{schedule}}',
       },
       { id: 'b2', type: 'blankLine' },
       {
@@ -214,23 +209,15 @@ export const DEFAULT_DOCUMENTS: Record<string, MessageDocument> = {
     subject: '{{firstName}}, your {{service}} is confirmed for {{date}}',
     blocks: [
       { id: 'heading', type: 'heading', text: 'Your {{service}} is confirmed' },
-      { id: 'p1', type: 'paragraph', text: 'Hi {{firstName}},' },
+      { id: 'greeting', type: 'paragraph', text: 'Hi {{firstName}},' },
       {
-        id: 'p2',
-        type: 'paragraph',
-        text: 'Your {{service}} is confirmed for {{date}}, {{arrivalWindow}}.',
+        id: 'schedule',
+        type: 'scheduleCard',
+        header: 'Your appointment',
+        pill: 'Your appointment',
+        headerConfirmed: 'Your appointment',
       },
-      {
-        id: 'p3',
-        type: 'paragraph',
-        text: "Before we arrive:\n- Clear countertops of small appliances, dishes, and personal items so our team can clean every surface.\n- Secure pets in a separate room or outside the home during the visit.\n- Let us know in advance about any fragile, high-value, or sentimental items.\n- If you won't be home, share your access details such as a door code, lockbox, or key location.",
-      },
-      {
-        id: 'p4',
-        type: 'paragraph',
-        text: "We bring all supplies and equipment. You'll get a reminder text the day before your appointment.",
-      },
-      { id: 'p5', type: 'paragraph', text: 'RenewShine' },
+      { id: 'signoff', type: 'paragraph', text: 'RenewShine' },
     ],
   },
   'appt:sms': {
@@ -242,22 +229,22 @@ export const DEFAULT_DOCUMENTS: Record<string, MessageDocument> = {
         type: 'textLine',
         text: 'Hi {{firstName}}, your {{service}} is confirmed for {{date}}, {{arrivalWindow}}.',
       },
-      { id: 'b1', type: 'blankLine' },
       {
         id: 'l2',
         type: 'textLine',
         text: 'Please clear countertops of small items and secure pets before we arrive. We bring all supplies and equipment.',
       },
-      { id: 'b2', type: 'blankLine' },
       {
         id: 'l3',
         type: 'textLine',
         text: "You'll get a reminder text the day before.",
       },
-      { id: 'b3', type: 'blankLine' },
       { id: 'sig', type: 'textLine', text: 'RenewShine' },
     ],
   },
+  // Reminder wording uses the shared context labels ('Flexible'), not the
+  // route's old local map ('Morning to Afternoon'). Deliberate — one source
+  // of truth for time windows across every message.
   'reminder:email': {
     channel: 'email',
     subject: 'Reminder: your {{service}} is tomorrow',

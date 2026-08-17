@@ -1,4 +1,4 @@
-import { renderTemplate } from '@/lib/templates/render'
+import { renderTemplate } from './tokens'
 import type { LinkTarget, SmsBlock, SmsDocument } from './types'
 import type { RenderContext } from './context'
 

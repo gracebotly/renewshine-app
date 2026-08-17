@@ -2,9 +2,17 @@ import { createServerClient } from '@/lib/supabase/server'
 import { requireAdmin } from '@/lib/require-admin'
 import { sendSms } from '@/lib/sms'
 import { baseTemplate } from '@/lib/email/templates/base'
+import type { Job } from '@/types/database'
+import { loadDocument } from '@/lib/documents/load'
+import { buildRenderContext } from '@/lib/documents/context'
+import { renderEmailDocument } from '@/lib/documents/render-email'
+import { renderSmsDocument } from '@/lib/documents/render-sms'
+import { sendRenderedEmail } from '@/lib/email'
 
 export async function POST(request: Request) {
-  try { await requireAdmin() } catch (err) {
+  try {
+    await requireAdmin()
+  } catch (err) {
     if (err instanceof Response) return err
     return Response.json({ error: 'Unauthorized' }, { status: 401 })
   }
@@ -13,26 +21,54 @@ export async function POST(request: Request) {
   if (!jobId) return Response.json({ error: 'jobId required' }, { status: 400 })
 
   const supabase = createServerClient()
-  const { data: job, error } = await supabase.from('jobs').select('*').eq('id', jobId).single()
-  if (error || !job) return Response.json({ error: 'Job not found' }, { status: 404 })
+  const { data: job, error } = await supabase
+    .from('jobs')
+    .select('*')
+    .eq('id', jobId)
+    .single()
+  if (error || !job)
+    return Response.json({ error: 'Job not found' }, { status: 404 })
 
-  if (channel === 'sms') {
-    if (!job.client_phone) return Response.json({ error: 'No phone on file' }, { status: 400 })
-    const message = body || `Hi ${job.client_name.split(' ')[0]} — your quote is ready. Reply to confirm and I'll get you scheduled. — Grace, RenewShine`
+  const doc = await loadDocument(job as Job, 'quote_no', channel)
+  const ctx = buildRenderContext({ job: job as Job })
+
+  if (doc && doc.channel === 'sms') {
+    if (!job.client_phone)
+      return Response.json({ error: 'No phone on file' }, { status: 400 })
+    await sendSms(job.client_phone, renderSmsDocument(doc, ctx)).catch(
+      console.error
+    )
+  } else if (doc && doc.channel === 'email') {
+    if (!job.client_email)
+      return Response.json({ error: 'No email on file' }, { status: 400 })
+    const rendered = renderEmailDocument(doc, ctx)
+    await sendRenderedEmail(job.client_email, rendered.subject, rendered.html)
+  } else if (channel === 'sms') {
+    if (!job.client_phone)
+      return Response.json({ error: 'No phone on file' }, { status: 400 })
+    const message =
+      body ||
+      `Hi ${job.client_name.split(' ')[0]} — your quote is ready. Reply to confirm and I'll get you scheduled. — Grace, RenewShine`
     await sendSms(job.client_phone, message).catch(console.error)
   } else {
-    if (!job.client_email) return Response.json({ error: 'No email on file' }, { status: 400 })
-    const emailBody = typeof body === 'string' && body.trim()
-      ? body
-      : `Hi ${job.client_name?.split(' ')[0] ?? 'there'} — your quote is ready. Reply to confirm and I'll get you scheduled. — Grace, RenewShine`
+    if (!job.client_email)
+      return Response.json({ error: 'No email on file' }, { status: 400 })
+    const emailBody =
+      typeof body === 'string' && body.trim()
+        ? body
+        : `Hi ${job.client_name?.split(' ')[0] ?? 'there'} — your quote is ready. Reply to confirm and I'll get you scheduled. — Grace, RenewShine`
     const content = emailBody
       .trim()
       .split(/\n{2,}/)
-      .map((p: string) => `<p style="margin:0 0 14px;font-size:14px;color:#334155;line-height:1.6;">${p}</p>`)
+      .map(
+        (p: string) =>
+          `<p style="margin:0 0 14px;font-size:14px;color:#334155;line-height:1.6;">${p}</p>`
+      )
       .join('')
-    const emailSubject = typeof subject === 'string' && subject.trim()
-      ? subject.trim()
-      : `${job.client_name?.split(' ')[0] ?? ''}, your RenewShine quote is ready`
+    const emailSubject =
+      typeof subject === 'string' && subject.trim()
+        ? subject.trim()
+        : `${job.client_name?.split(' ')[0] ?? ''}, your RenewShine quote is ready`
 
     const { Resend } = await import('resend')
     const resend = new Resend(process.env.RESEND_API_KEY!)

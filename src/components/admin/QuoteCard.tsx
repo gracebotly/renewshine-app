@@ -521,15 +521,16 @@ export function QuoteCard({ job, defaultOpenPanel }: { job: Job; defaultOpenPane
       : rawBody
     try {
       if (currentTemplate === 'photos' || currentTemplate === 'custom') {
+        const isCustom = currentTemplate === 'custom'
         await fetch('/api/admin/send-contact', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             jobId: job.id,
             method: currentChannel === 'email' ? 'email' : 'sms',
-            template: currentChannel === 'email' ? 'custom_formatted' : undefined,
-            customBody: body,
-            subject: currentChannel === 'email' ? previewSubject : undefined,
+            template: isCustom ? (currentChannel === 'email' ? 'custom_formatted' : undefined) : 'need_photos',
+            customBody: isCustom ? body : undefined,
+            subject: isCustom && currentChannel === 'email' ? previewSubject : undefined,
           }),
         })
       } else if (currentTemplate === 'quote_dep') {
@@ -551,7 +552,7 @@ export function QuoteCard({ job, defaultOpenPanel }: { job: Job; defaultOpenPane
         await fetch('/api/admin/send-quote-no-deposit', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ jobId: job.id, channel: currentChannel, body, subject: previewSubject }),
+          body: JSON.stringify({ jobId: job.id, channel: currentChannel }),
         })
       } else if (currentTemplate === 'invoice' && currentChannel === 'sms') {
         await fetch('/api/admin/send-invoice-sms', {
@@ -566,39 +567,20 @@ export function QuoteCard({ job, defaultOpenPanel }: { job: Job; defaultOpenPane
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ jobId: job.id, confirmedDate: savedDate, timePref: savedArrival }),
           })
-          await fetch('/api/admin/send-contact', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ jobId: job.id, method: 'email', template: 'appointment_confirmed' }),
-          })
           setAppointmentConfirmed(true)
         } else {
           await fetch('/api/admin/send-contact', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ jobId: job.id, method: 'sms', customBody: body }),
+            body: JSON.stringify({ jobId: job.id, method: 'sms', template: 'appointment_confirmed' }),
           })
         }
       } else if (currentTemplate === 'reminder') {
-        if (currentChannel === 'sms') {
-          await fetch('/api/admin/send-reminder', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ jobId: job.id }),
-          })
-        } else {
-          await fetch('/api/admin/send-contact', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              jobId: job.id,
-              method: 'email',
-              template: 'custom_formatted',
-              customBody: body,
-              subject: previewSubject,
-            }),
-          })
-        }
+        await fetch('/api/admin/send-reminder', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ jobId: job.id, channel: currentChannel }),
+        })
       }
       setSuccessMsg('Sent ✓')
       setTimeout(() => setSuccessMsg(''), 4000)
