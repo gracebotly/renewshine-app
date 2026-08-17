@@ -1,6 +1,10 @@
 import { createServerClient } from '@/lib/supabase/server'
 import { stripe } from '@/lib/stripe/client'
-import { sendCustomerInvoice } from '@/lib/email'
+import { sendRenderedEmail } from '@/lib/email'
+import type { Job } from '@/types/database'
+import { loadDocument } from '@/lib/documents/load'
+import { buildRenderContext } from '@/lib/documents/context'
+import { renderEmailDocument } from '@/lib/documents/render-email'
 import { requireAdmin } from '@/lib/require-admin'
 
 export interface InvoiceLineItem {
@@ -23,10 +27,19 @@ export async function POST(request: Request) {
     return Response.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const { jobId, lineItems, dueDate, businessName, preparedForAddress, notes, depositCredit: depositCreditOverride, arrivalTime } = await request.json() as {
+  const {
+    jobId,
+    lineItems,
+    dueDate,
+    businessName,
+    preparedForAddress,
+    notes,
+    depositCredit: depositCreditOverride,
+    arrivalTime,
+  } = (await request.json()) as {
     jobId: string
     lineItems: InvoiceLineItem[]
-    dueDate: string       // ISO date string — always required, sent by client
+    dueDate: string // ISO date string — always required, sent by client
     businessName?: string
     preparedForAddress?: string
     notes?: string
@@ -35,7 +48,10 @@ export async function POST(request: Request) {
   }
 
   if (!jobId || !lineItems || lineItems.length === 0) {
-    return Response.json({ error: 'jobId and at least one line item are required' }, { status: 400 })
+    return Response.json(
+      { error: 'jobId and at least one line item are required' },
+      { status: 400 }
+    )
   }
 
   if (!dueDate) {
@@ -44,10 +60,16 @@ export async function POST(request: Request) {
 
   for (const item of lineItems) {
     if (!item.description?.trim()) {
-      return Response.json({ error: 'Each line item must have a description' }, { status: 400 })
+      return Response.json(
+        { error: 'Each line item must have a description' },
+        { status: 400 }
+      )
     }
     if (!item.amount || item.amount <= 0) {
-      return Response.json({ error: 'Each line item must have a positive amount' }, { status: 400 })
+      return Response.json(
+        { error: 'Each line item must have a positive amount' },
+        { status: 400 }
+      )
     }
   }
 
@@ -64,11 +86,19 @@ export async function POST(request: Request) {
   }
 
   const total = lineItems.reduce((sum, item) => sum + item.amount, 0)
-  const depositPaid = typeof depositCreditOverride === 'number' ? depositCreditOverride : (job.deposit_paid ? (job.deposit_amount ?? 100) : 0)
+  const depositPaid =
+    typeof depositCreditOverride === 'number'
+      ? depositCreditOverride
+      : job.deposit_paid
+        ? (job.deposit_amount ?? 100)
+        : 0
   const amountDue = Math.max(total - depositPaid, 0)
 
   if (amountDue <= 0) {
-    return Response.json({ error: 'Amount due must be greater than $0' }, { status: 400 })
+    return Response.json(
+      { error: 'Amount due must be greater than $0' },
+      { status: 400 }
+    )
   }
 
   const invoiceNumber = generateInvoiceNumber(job.created_at, job.id)
@@ -121,37 +151,32 @@ export async function POST(request: Request) {
     year: 'numeric',
   })
 
-  // Format service date if available
-  const serviceDateStr = job.confirmed_date
-    ? new Date(job.confirmed_date).toLocaleDateString('en-US', {
-        weekday: 'long',
-        month: 'long',
-        day: 'numeric',
-        year: 'numeric',
-      })
-    : null
-
-  // Send branded invoice email via Resend
+  // Send branded invoice email via the saved document.
   try {
-    await sendCustomerInvoice({
-      clientName: job.client_name,
-      clientEmail: job.client_email,
-      businessName: businessName?.trim() || job.business_name || null,
-      address: preparedForAddress?.trim() || job.address || null,
+    const doc = await loadDocument(job as Job, 'invoice', 'email')
+    const ctx = buildRenderContext({
+      job: job as Job,
+      invoiceLines: lineItems,
       invoiceNumber,
-      lineItems,
-      total,
-      depositPaid,
-      amountDue,
+      invoiceDepositCredit: depositPaid,
       dueDate: dueDateStr,
-      paymentUrl: paymentLink.url,
-      serviceDate: serviceDateStr,
-      arrivalTime: arrivalTime?.trim() || null,
-      notes: notes?.trim() || null,
+      businessName,
+      preparedForAddress,
+      arrivalTime,
+      invoiceNotes: notes,
+      paymentLink: paymentLink.url,
     })
+    if (doc && doc.channel === 'email') {
+      const { subject, html } = renderEmailDocument(doc, ctx)
+      await sendRenderedEmail(job.client_email, subject, html)
+    }
   } catch (emailError) {
     console.error('Invoice email failed (non-blocking):', emailError)
   }
 
-  return Response.json({ paymentUrl: paymentLink.url, invoiceNumber, amountDue })
+  return Response.json({
+    paymentUrl: paymentLink.url,
+    invoiceNumber,
+    amountDue,
+  })
 }

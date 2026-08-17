@@ -96,6 +96,7 @@ export interface Database {
           dropped_at_label: string | null
           quote_line_items: Json | null
           email_draft_overrides?: Json | null
+          message_documents?: Json | null
           is_archived?: boolean | null
         }
         Insert: {
@@ -144,9 +145,30 @@ export interface Database {
           dropped_at_label?: string | null
           quote_line_items?: Json | null
           email_draft_overrides?: Json | null
+          message_documents?: Json | null
           is_archived?: boolean | null
         }
         Update: Partial<Database['public']['Tables']['jobs']['Row']>
+        Relationships: []
+      }
+      message_documents: {
+        Row: {
+          id: string
+          message_key: string
+          channel: 'email' | 'sms'
+          subject: string | null
+          blocks: Json
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          message_key: string
+          channel: 'email' | 'sms'
+          subject?: string | null
+          blocks: Json
+          updated_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['message_documents']['Row']>
         Relationships: []
       }
       job_activity: {

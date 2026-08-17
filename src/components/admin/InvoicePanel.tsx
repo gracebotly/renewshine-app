@@ -1,6 +1,7 @@
 'use client'
 
 import * as React from 'react'
+import type { MessageDocument } from '@/lib/documents/types'
 
 interface LineItem {
   description: string
@@ -70,6 +71,15 @@ export function InvoicePanel({ job, onClose }: { job: any; onClose?: () => void 
   const [previewHtml, setPreviewHtml] = React.useState('')
   const [previewLoading, setPreviewLoading] = React.useState(false)
   const [customizing, setCustomizing] = React.useState(false)
+  const [invoiceDoc, setInvoiceDoc] = React.useState<MessageDocument | null>(null)
+
+  // The preview renders through the same document the send uses.
+  React.useEffect(() => {
+    fetch('/api/admin/documents')
+      .then(res => (res.ok ? res.json() : null))
+      .then(data => { if (data?.documents) setInvoiceDoc(data.documents['invoice:email'] ?? null) })
+      .catch(() => {})
+  }, [])
 
   // Deposit credit — pre-fill from DB but fully overridable
   const [applyDeposit, setApplyDeposit] = React.useState<boolean>(job.deposit_paid === true)
@@ -113,6 +123,10 @@ export function InvoicePanel({ job, onClose }: { job: any; onClose?: () => void 
   }
 
   async function handlePreview() {
+    if (!invoiceDoc) {
+      setError('Invoice document is still loading. Try again in a moment.')
+      return
+    }
     const parsed = lineItems
       .map((i) => ({
         description: i.description.trim(),
@@ -129,12 +143,12 @@ export function InvoicePanel({ job, onClose }: { job: any; onClose?: () => void 
     setPreviewHtml('')
     setShowPreview(true)
     try {
-      const res = await fetch('/api/admin/preview-email', {
+      const res = await fetch('/api/admin/preview-document', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          type: 'invoice',
           jobId: job.id,
+          document: invoiceDoc,
           lineItems: parsed,
           dueDate,
           businessName: businessName || undefined,
@@ -494,7 +508,7 @@ export function InvoicePanel({ job, onClose }: { job: any; onClose?: () => void 
 
       <button
         onClick={handlePreview}
-        disabled={subtotal === 0}
+        disabled={subtotal === 0 || !invoiceDoc}
         className="w-full cursor-pointer rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition-colors duration-200 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
       >
         Preview email before sending
