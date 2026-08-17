@@ -7,7 +7,7 @@ import { TEMPLATE_LABELS, TEMPLATE_TOKENS } from '@/lib/templates/types'
 import type { TemplateId, TemplateChannel, MessageTemplate } from '@/lib/templates/types'
 import { DEFAULT_TEMPLATES } from '@/lib/templates/defaults'
 
-const TEMPLATE_ORDER: TemplateId[] = ['photos', 'quote_dep', 'quote_dep_bullets', 'quote_dep_next_steps', 'quote_dep_schedule_requested', 'quote_dep_schedule_confirmed', 'quote_no', 'appt', 'reminder', 'invoice']
+const TEMPLATE_ORDER: TemplateId[] = ['photos', 'quote_dep', 'quote_dep_bullets', 'quote_dep_next_steps', 'quote_dep_schedule_requested', 'quote_dep_schedule_confirmed', 'quote_dep_chrome', 'quote_no', 'appt', 'reminder', 'invoice']
 const CHANNELS_BY_TEMPLATE: Record<TemplateId, TemplateChannel[]> = {
   photos: ['email', 'sms'],
   quote_dep: ['email', 'sms'],
@@ -15,6 +15,7 @@ const CHANNELS_BY_TEMPLATE: Record<TemplateId, TemplateChannel[]> = {
   quote_dep_next_steps: ['email'],
   quote_dep_schedule_requested: ['email'],
   quote_dep_schedule_confirmed: ['email'],
+  quote_dep_chrome: ['email'],
   quote_no: ['email', 'sms'],
   appt: ['email', 'sms'],
   reminder: ['email', 'sms'],
@@ -133,7 +134,7 @@ function ChannelEditor({
           <textarea
             value={body}
             onChange={e => setBody(e.target.value)}
-            rows={templateId === 'invoice' && isEmail ? 9 : 7}
+            rows={templateId === 'quote_dep_chrome' ? 16 : templateId === 'invoice' && isEmail ? 9 : 7}
             className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 leading-relaxed focus:border-[#4A7C59]/40 focus:outline-none transition-colors duration-200 resize-none"
           />
           {templateId === 'invoice' && isEmail && !body.includes('{{lineItems}}') && (

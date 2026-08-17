@@ -5,6 +5,7 @@ export type TemplateId =
   | 'quote_dep_next_steps'
   | 'quote_dep_schedule_requested'
   | 'quote_dep_schedule_confirmed'
+  | 'quote_dep_chrome'
   | 'quote_no'
   | 'appt'
   | 'reminder'
@@ -25,6 +26,7 @@ export const TEMPLATE_LABELS: Record<TemplateId, string> = {
   quote_dep_next_steps: 'Quote next steps',
   quote_dep_schedule_requested: 'Quote schedule — requested window',
   quote_dep_schedule_confirmed: 'Quote schedule — confirmed date',
+  quote_dep_chrome: 'Quote labels & headings',
   quote_no: 'Quote — no deposit',
   appt: 'Appointment confirmation',
   reminder: 'Day-before reminder',
@@ -39,6 +41,7 @@ export const TEMPLATE_TOKENS: Record<TemplateId, string[]> = {
   quote_dep_next_steps: ['firstName', 'service', 'bedBath', 'availabilityWindow', 'total', 'deposit', 'balance'],
   quote_dep_schedule_requested: [],
   quote_dep_schedule_confirmed: [],
+  quote_dep_chrome: ['firstName', 'service', 'total', 'deposit', 'balance'],
   quote_no: ['firstName', 'service', 'bedBath', 'availabilityWindow', 'total'],
   appt: ['firstName', 'service', 'date', 'arrivalWindow'],
   reminder: ['firstName', 'service', 'date', 'arrivalWindow', 'address'],
@@ -69,3 +72,17 @@ export const LINE_ITEMS_MARKER = '{{lineItems}}'
 //
 // The confirmed variant intentionally ships with no line 3. Blank or missing
 // line 3 renders no badge at all rather than an empty pill.
+
+// quote_dep_chrome
+//
+// Every label, heading, badge, and button caption in the quote-deposit email.
+// Format is one "key: value" pair per line. The key is everything before the
+// first colon; the value is everything after it, so a value may itself contain
+// colons. Unknown keys are ignored. A missing or blank value falls back to the
+// literal that shipped in customer-quote.ts — the email can never render a
+// blank heading or an unlabeled price row.
+//
+// Valid keys:
+//   badge, heading, preheader, locationsHeader, serviceHeader, paymentHeader,
+//   totalLabel, dueTodayLabel, dueTodayNote, balanceLabel, balanceNote,
+//   disclaimer, trustHeader, ctaLabel, nextStepsHeader
