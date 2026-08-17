@@ -57,7 +57,14 @@ export type EmailBlock =
       balanceNote: string
       disclaimer: string
     }
-  | { id: string; type: 'invoiceTable'; header: string }
+  | {
+      id: string
+      type: 'invoiceTable'
+      header: string
+      subtotalLabel?: string
+      depositLabel?: string
+      dueLabel?: string
+    }
   | { id: string; type: 'bulletList'; header: string; lines: string[] }
   | { id: string; type: 'numberedSteps'; header: string; lines: string[] }
   | {
@@ -160,7 +167,14 @@ export function createEmailBlock(type: EmailBlock['type']): EmailBlock {
         disclaimer: '',
       }
     case 'invoiceTable':
-      return { id, type, header: 'Invoice details' }
+      return {
+        id,
+        type,
+        header: 'Invoice details',
+        subtotalLabel: 'Subtotal',
+        depositLabel: 'Deposit credit',
+        dueLabel: 'Amount due',
+      }
     case 'bulletList':
       return {
         id,
@@ -309,7 +323,14 @@ export function sanitizeDocument(value: unknown): MessageDocument | null {
         case 'detailsCard':
           return { id, type: 'detailsCard', header: str(raw.header) }
         case 'invoiceTable':
-          return { id, type: 'invoiceTable', header: str(raw.header) }
+          return {
+            id,
+            type: 'invoiceTable',
+            header: str(raw.header),
+            subtotalLabel: optStr(raw.subtotalLabel),
+            depositLabel: optStr(raw.depositLabel),
+            dueLabel: optStr(raw.dueLabel),
+          }
         case 'paymentCard':
           return {
             id,

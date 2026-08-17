@@ -44,7 +44,13 @@ export async function GET() {
       else if (DEFAULT_DOCUMENTS[dk]) documents[dk] = DEFAULT_DOCUMENTS[dk]
     }
   }
-  return Response.json({ documents })
+  const { data: sampleJob } = await supabase
+    .from('jobs')
+    .select('id')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  return Response.json({ documents, sampleJobId: sampleJob?.id ?? null })
 }
 
 export async function POST(request: Request) {

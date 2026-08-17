@@ -179,7 +179,6 @@ export function BlockEditor({
           </div>
         )
       case 'detailsCard':
-      case 'invoiceTable':
         return (
           <div className="space-y-2">
             <FieldRow label="Header">
@@ -190,9 +189,45 @@ export function BlockEditor({
               />
             </FieldRow>
             <p className="text-[10px] text-slate-500">
-              {block.type === 'detailsCard'
-                ? 'Service, bed/bath, and add-ons come from the job.'
-                : 'Line items and amounts come from the job.'}
+              Service, bed/bath, and add-ons come from the job.
+            </p>
+          </div>
+        )
+      case 'invoiceTable':
+        return (
+          <div className="space-y-2">
+            <FieldRow label="Header">
+              <input
+                className={inputClass}
+                value={block.header}
+                onChange={(e) => patch(index, { header: e.target.value })}
+              />
+            </FieldRow>
+            <FieldRow label="Subtotal label">
+              <input
+                className={inputClass}
+                value={block.subtotalLabel ?? ''}
+                onChange={(e) =>
+                  patch(index, { subtotalLabel: e.target.value })
+                }
+              />
+            </FieldRow>
+            <FieldRow label="Deposit label">
+              <input
+                className={inputClass}
+                value={block.depositLabel ?? ''}
+                onChange={(e) => patch(index, { depositLabel: e.target.value })}
+              />
+            </FieldRow>
+            <FieldRow label="Amount due label">
+              <input
+                className={inputClass}
+                value={block.dueLabel ?? ''}
+                onChange={(e) => patch(index, { dueLabel: e.target.value })}
+              />
+            </FieldRow>
+            <p className="text-[10px] text-slate-500">
+              Line items, amounts, and totals come from the invoice panel.
             </p>
           </div>
         )

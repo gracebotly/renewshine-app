@@ -3,187 +3,103 @@
 import * as React from 'react'
 import Link from 'next/link'
 import { ChevronLeft, Check, RotateCcw } from 'lucide-react'
-import { TEMPLATE_LABELS, TEMPLATE_TOKENS } from '@/lib/templates/types'
-import type { TemplateId, TemplateChannel, MessageTemplate } from '@/lib/templates/types'
-import { DEFAULT_TEMPLATES } from '@/lib/templates/defaults'
+import { BlockEditor } from '@/components/admin/BlockEditor'
+import { DEFAULT_DOCUMENTS } from '@/lib/documents/defaults'
+import {
+  MESSAGE_KEYS,
+  MESSAGE_LABELS,
+  documentKey,
+} from '@/lib/documents/types'
+import type {
+  DocumentChannel,
+  MessageDocument,
+  MessageKey,
+} from '@/lib/documents/types'
 
-const TEMPLATE_ORDER: TemplateId[] = ['photos', 'quote_dep', 'quote_dep_bullets', 'quote_dep_next_steps', 'quote_dep_schedule_requested', 'quote_dep_schedule_confirmed', 'quote_dep_chrome', 'quote_no', 'appt', 'reminder', 'invoice']
-const CHANNELS_BY_TEMPLATE: Record<TemplateId, TemplateChannel[]> = {
-  photos: ['email', 'sms'],
-  quote_dep: ['email', 'sms'],
-  quote_dep_bullets: ['email'],
-  quote_dep_next_steps: ['email'],
-  quote_dep_schedule_requested: ['email'],
-  quote_dep_schedule_confirmed: ['email'],
-  quote_dep_chrome: ['email'],
-  quote_no: ['email', 'sms'],
-  appt: ['email', 'sms'],
-  reminder: ['email', 'sms'],
-  invoice: ['email', 'sms'],
-}
-
-function findTemplate(list: MessageTemplate[], id: TemplateId, channel: TemplateChannel) {
-  return list.find(t => t.templateId === id && t.channel === channel)
-    ?? DEFAULT_TEMPLATES.find(t => t.templateId === id && t.channel === channel)!
-}
-
-function ChannelEditor({
-  templateId,
-  channel,
-  template,
-  onSaved,
-}: {
-  templateId: TemplateId
-  channel: TemplateChannel
-  template: MessageTemplate
-  onSaved: (t: MessageTemplate) => void
-}) {
-  const [subject, setSubject] = React.useState(template.subject ?? '')
-  const [body, setBody] = React.useState(template.body)
-  const [saving, setSaving] = React.useState(false)
-  const [resetting, setResetting] = React.useState(false)
-  const [savedFlash, setSavedFlash] = React.useState(false)
-  const [error, setError] = React.useState('')
-
-  // Keep local state in sync if the parent reloads templates (e.g. after reset)
-  React.useEffect(() => {
-    setSubject(template.subject ?? '')
-    setBody(template.body)
-  }, [template])
-
-  const isEmail = channel === 'email'
-  const tokens = TEMPLATE_TOKENS[templateId]
-  const dirty = body !== template.body || (isEmail && subject !== (template.subject ?? ''))
-
-  async function handleSave() {
-    setSaving(true)
-    setError('')
-    const res = await fetch('/api/admin/templates', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ templateId, channel, subject: isEmail ? subject : null, body }),
-    })
-    if (res.ok) {
-      onSaved({ templateId, channel, subject: isEmail ? subject : null, body })
-      setSavedFlash(true)
-      setTimeout(() => setSavedFlash(false), 2500)
-    } else {
-      const data = await res.json().catch(() => ({}))
-      setError(data.error ?? 'Failed to save.')
-    }
-    setSaving(false)
-  }
-
-  async function handleReset() {
-    setResetting(true)
-    setError('')
-    const res = await fetch('/api/admin/templates/reset', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ templateId, channel }),
-    })
-    if (res.ok) {
-      const def = DEFAULT_TEMPLATES.find(t => t.templateId === templateId && t.channel === channel)!
-      setSubject(def.subject ?? '')
-      setBody(def.body)
-      onSaved(def)
-    } else {
-      setError('Failed to reset.')
-    }
-    setResetting(false)
-  }
-
-  return (
-    <div className="rounded-xl border border-slate-200 bg-white overflow-hidden">
-      <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50 px-4 py-2.5">
-        <span className="text-xs font-semibold uppercase tracking-widest text-slate-500">
-          {isEmail ? 'Email' : 'SMS'}
-        </span>
-        <div className="flex items-center gap-3">
-          {savedFlash && (
-            <span className="flex items-center gap-1 text-xs font-medium text-emerald-600">
-              <Check size={12} /> Saved
-            </span>
-          )}
-          <button
-            onClick={handleReset}
-            disabled={resetting}
-            className="flex items-center gap-1 text-[11px] text-slate-400 hover:text-slate-600 transition-colors duration-200 cursor-pointer disabled:opacity-50"
-          >
-            <RotateCcw size={11} />
-            {resetting ? 'Resetting…' : 'Reset to default'}
-          </button>
-        </div>
-      </div>
-
-      <div className="p-4 space-y-3">
-        {isEmail && (
-          <div className="space-y-1">
-            <label className="text-[10px] font-semibold uppercase tracking-widest text-slate-400">Subject</label>
-            <input
-              type="text"
-              value={subject}
-              onChange={e => setSubject(e.target.value)}
-              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-[#4A7C59]/40 focus:outline-none transition-colors duration-200"
-            />
-          </div>
-        )}
-
-        <div className="space-y-1">
-          <label className="text-[10px] font-semibold uppercase tracking-widest text-slate-400">Body</label>
-          <textarea
-            value={body}
-            onChange={e => setBody(e.target.value)}
-            rows={templateId === 'quote_dep_chrome' ? 16 : templateId === 'invoice' && isEmail ? 9 : 7}
-            className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 leading-relaxed focus:border-[#4A7C59]/40 focus:outline-none transition-colors duration-200 resize-none"
-          />
-          {templateId === 'invoice' && isEmail && !body.includes('{{lineItems}}') && (
-            <p className="text-[11px] text-amber-600">
-              This template is missing {'{{lineItems}}'} — the line-items table won&apos;t appear in the sent email without it.
-            </p>
-          )}
-        </div>
-
-        <div className="flex items-center justify-between">
-          <p className="text-[11px] text-slate-400">
-            Available: {tokens.map(t => `{{${t}}}`).join(', ')}
-          </p>
-          <button
-            onClick={handleSave}
-            disabled={saving || !dirty}
-            className="rounded-lg bg-[#4A7C59] px-4 py-1.5 text-xs font-semibold text-white transition-colors duration-200 hover:bg-[#3d6b4a] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-          >
-            {saving ? 'Saving…' : 'Save'}
-          </button>
-        </div>
-
-        {error && <p className="text-xs text-red-600">{error}</p>}
-      </div>
-    </div>
-  )
+function cloneDocument(doc: MessageDocument): MessageDocument {
+  return JSON.parse(JSON.stringify(doc)) as MessageDocument
 }
 
 export default function TemplatesSettingsPage() {
-  const [templates, setTemplates] = React.useState<MessageTemplate[]>(DEFAULT_TEMPLATES)
-  const [loading, setLoading] = React.useState(true)
+  const [documents, setDocuments] = React.useState<
+    Record<string, MessageDocument>
+  >({})
+  const [key, setKey] = React.useState<MessageKey>('photos')
+  const [channel, setChannel] = React.useState<DocumentChannel>('email')
+  const [doc, setDoc] = React.useState<MessageDocument | null>(null)
+  const [sampleJobId, setSampleJobId] = React.useState<string | null>(null)
+  const [previewHtml, setPreviewHtml] = React.useState('')
+  const [previewText, setPreviewText] = React.useState('')
+  const [saving, setSaving] = React.useState(false)
+  const [saved, setSaved] = React.useState(false)
+  const [error, setError] = React.useState('')
 
   React.useEffect(() => {
-    fetch('/api/admin/templates')
-      .then(res => res.ok ? res.json() : null)
-      .then(data => { if (data?.templates) setTemplates(data.templates) })
-      .catch(() => {})
-      .finally(() => setLoading(false))
+    // The preview needs a real job for context. Any recent one works — this is a
+    // sample render, not a send. With no jobs, show the editor without a preview.
+    fetch('/api/admin/documents')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data?.documents) setDocuments(data.documents)
+        setSampleJobId(data?.sampleJobId ?? null)
+      })
+      .catch(() => setError('Failed to load documents.'))
   }, [])
 
-  function handleSaved(updated: MessageTemplate) {
-    setTemplates(prev => {
-      const others = prev.filter(t => !(t.templateId === updated.templateId && t.channel === updated.channel))
-      return [...others, updated]
-    })
+  const dk = documentKey(key, channel)
+  React.useEffect(() => {
+    const source = documents[dk] ?? DEFAULT_DOCUMENTS[dk]
+    setDoc(source ? cloneDocument(source) : null)
+  }, [dk, documents])
+
+  React.useEffect(() => {
+    if (!doc || !sampleJobId) {
+      setPreviewHtml('')
+      setPreviewText('')
+      return
+    }
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch('/api/admin/preview-document', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ jobId: sampleJobId, document: doc }),
+        })
+        const data = await res.json()
+        setPreviewHtml(data.html ?? '')
+        setPreviewText(data.text ?? '')
+      } catch {
+        setPreviewHtml('')
+        setPreviewText('')
+      }
+    }, 400)
+    return () => clearTimeout(timer)
+  }, [doc, sampleJobId])
+
+  async function handleSave() {
+    if (!doc) return
+    setSaving(true)
+    setError('')
+    const res = await fetch('/api/admin/documents', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key, channel, document: doc }),
+    }).catch(() => null)
+    if (res?.ok) {
+      setDocuments((prev) => ({ ...prev, [dk]: cloneDocument(doc) }))
+      setSaved(true)
+      setTimeout(() => setSaved(false), 2500)
+    } else setError('Failed to save document.')
+    setSaving(false)
+  }
+
+  function handleReset() {
+    const builtIn = DEFAULT_DOCUMENTS[dk]
+    if (builtIn) setDoc(cloneDocument(builtIn))
   }
 
   return (
-    <div className="mx-auto max-w-3xl px-5 py-8 space-y-6">
+    <div className="mx-auto max-w-6xl px-5 py-8 space-y-6">
       <div className="flex items-center gap-3">
         <Link
           href="/admin"
@@ -192,33 +108,87 @@ export default function TemplatesSettingsPage() {
           <ChevronLeft size={16} />
         </Link>
         <div>
-          <h1 className="text-lg font-semibold text-slate-900">Message Templates</h1>
-          <p className="text-xs text-slate-400 mt-0.5">
-            These are the default Email and SMS copies used in the Contact panel on every job. Edits here apply immediately — they don&apos;t require a deploy.
+          <h1 className="text-lg font-semibold text-slate-900">
+            Message Templates
+          </h1>
+          <p className="text-xs text-slate-500 mt-0.5">
+            Edit the default email and SMS documents used for future jobs.
           </p>
         </div>
       </div>
 
-      {loading ? (
-        <p className="text-sm text-slate-400">Loading templates…</p>
-      ) : (
-        <div className="space-y-8">
-          {TEMPLATE_ORDER.map(id => (
-            <div key={id} className="space-y-3">
-              <h2 className="text-sm font-semibold text-slate-900">{TEMPLATE_LABELS[id]}</h2>
-              <div className="grid gap-3 sm:grid-cols-2">
-                {CHANNELS_BY_TEMPLATE[id].map(channel => (
-                  <ChannelEditor
-                    key={channel}
-                    templateId={id}
-                    channel={channel}
-                    template={findTemplate(templates, id, channel)}
-                    onSaved={handleSaved}
-                  />
-                ))}
+      <div className="flex flex-wrap gap-2">
+        {MESSAGE_KEYS.map((messageKey) => (
+          <button
+            key={messageKey}
+            onClick={() => setKey(messageKey)}
+            className={`rounded-lg border px-3 py-2 text-xs font-medium cursor-pointer transition-colors duration-200 ${key === messageKey ? 'border-[#4A7C59] bg-[#e8f3ec] text-[#3d6b4a]' : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'}`}
+          >
+            {MESSAGE_LABELS[messageKey]}
+          </button>
+        ))}
+      </div>
+
+      <div className="flex overflow-hidden rounded-lg border border-slate-200 max-w-xs">
+        {(['email', 'sms'] as const).map((ch) => (
+          <button
+            key={ch}
+            onClick={() => setChannel(ch)}
+            className={`flex-1 py-2.5 text-xs font-semibold cursor-pointer transition-colors duration-200 ${channel === ch ? 'bg-[#4A7C59] text-white' : 'bg-white text-slate-600 hover:bg-slate-50'}`}
+          >
+            {ch === 'email' ? 'Email' : 'SMS'}
+          </button>
+        ))}
+      </div>
+
+      {doc && (
+        <div className="grid gap-5 xl:grid-cols-2">
+          <div className="space-y-3">
+            <BlockEditor document={doc} onChange={setDoc} />
+            <div className="flex items-center justify-between">
+              <button
+                onClick={handleReset}
+                className="inline-flex items-center gap-1.5 text-xs text-slate-600 hover:text-slate-900 cursor-pointer transition-colors duration-200"
+              >
+                <RotateCcw size={13} /> Reset to built-in
+              </button>
+              <div className="flex items-center gap-3">
+                {saved && (
+                  <span className="inline-flex items-center gap-1 text-xs text-emerald-600">
+                    <Check size={13} /> Saved
+                  </span>
+                )}
+                <button
+                  onClick={handleSave}
+                  disabled={saving}
+                  className="rounded-lg bg-[#4A7C59] px-4 py-2 text-xs font-semibold text-white hover:bg-[#3d6b4a] cursor-pointer transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {saving ? 'Saving…' : 'Save'}
+                </button>
               </div>
             </div>
-          ))}
+            {error && <p className="text-xs text-red-600">{error}</p>}
+          </div>
+          <div className="min-h-64 rounded-xl border border-slate-200 bg-slate-50 p-3">
+            {!sampleJobId ? (
+              <p className="text-sm text-slate-500">
+                Add a job to enable sample previews.
+              </p>
+            ) : doc.channel === 'email' && previewHtml ? (
+              <iframe
+                srcDoc={previewHtml}
+                className="h-[680px] w-full rounded-lg bg-white"
+                title="Document preview"
+                sandbox="allow-same-origin"
+              />
+            ) : (
+              <div className="rounded-lg bg-white p-4">
+                <p className="whitespace-pre-wrap text-sm leading-relaxed text-slate-900">
+                  {previewText || 'Generating preview…'}
+                </p>
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>

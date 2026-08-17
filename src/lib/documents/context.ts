@@ -23,6 +23,7 @@ export interface RenderContext {
   invoiceSubtotal: number
   invoiceDepositCredit: number
   invoiceAmountDue: number
+  invoiceNotes: string
   urls: Record<LinkTarget, string>
 }
 
@@ -36,6 +37,11 @@ export interface BuildContextInput {
   invoiceLines?: InvoiceLine[]
   invoiceNumber?: string
   invoiceDepositCredit?: number
+  dueDate?: string
+  businessName?: string
+  preparedForAddress?: string
+  arrivalTime?: string
+  invoiceNotes?: string
 }
 
 const TIME_PREF_MAP: Record<string, string> = {
@@ -187,6 +193,7 @@ export function buildRenderContext(input: BuildContextInput): RenderContext {
     invoiceSubtotal,
     invoiceDepositCredit,
     invoiceAmountDue,
+    invoiceNotes: input.invoiceNotes ?? '',
     urls: {
       deposit_link: input.depositLink ?? job.stripe_payment_link ?? '#',
       payment_link: input.paymentLink ?? job.stripe_payment_link ?? '#',
@@ -214,6 +221,13 @@ export function buildRenderContext(input: BuildContextInput): RenderContext {
           : '',
       invoiceNumber: input.invoiceNumber ?? '',
       amountDue: money(invoiceAmountDue),
+      dueDate: input.dueDate ?? '',
+      businessName: input.businessName ?? '',
+      preparedFor: input.preparedForAddress ?? job.address ?? '',
+      arrivalTime: input.arrivalTime ?? '',
+      notes: input.invoiceNotes ?? '',
+      subtotal: money(invoiceSubtotal),
+      depositCredit: money(invoiceDepositCredit),
     },
   }
 }

@@ -30,8 +30,9 @@ function resolveUrl(
   return ctx.urls[target] ?? '#'
 }
 function paragraphHtml(text: string, ctx: RenderContext): string {
-  return renderTemplate(text, ctx.tokens)
-    .trim()
+  const rendered = renderTemplate(text, ctx.tokens).trim()
+  if (!rendered) return ''
+  return rendered
     .split(/\n{2,}/)
     .map(
       (p) =>
@@ -132,27 +133,52 @@ function renderBlock(block: EmailBlock, ctx: RenderContext): string {
     case 'invoiceTable': {
       if (ctx.invoiceLines.length === 0 && ctx.quoteLineItems.length === 0)
         return ''
-      const rows =
+      const money = (value: number) =>
+        `$${value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+      const subtotalLabel = block.subtotalLabel?.trim() || 'Subtotal'
+      const depositLabel = block.depositLabel?.trim() || 'Deposit credit'
+      const dueLabel = block.dueLabel?.trim() || 'Amount due'
+      const items =
         ctx.invoiceLines.length > 0
-          ? ctx.invoiceLines.map(
-              (l) => `
+          ? ctx.invoiceLines.map((l) => ({
+              description: l.description,
+              amount: l.amount,
+            }))
+          : ctx.quoteLineItems.map((l) => ({
+              description: l.label,
+              amount: l.price,
+            }))
+      const itemRows = items
+        .map(
+          (l) => `
     <tr style="border-bottom:1px solid #f1f5f9;">
       <td style="padding:10px 18px;font-size:13px;color:#0f172a;line-height:1.5;">${escapeHtml(l.description)}</td>
-      <td style="padding:10px 18px;text-align:right;font-size:13px;font-weight:600;color:#0f172a;font-family:'Courier New',monospace;white-space:nowrap;">$${l.amount.toLocaleString()}</td>
+      <td style="padding:10px 18px;text-align:right;font-size:13px;font-weight:600;color:#0f172a;font-family:'Courier New',monospace;white-space:nowrap;">${money(l.amount)}</td>
     </tr>`
-            )
-          : ctx.quoteLineItems.map(
-              (l) => `
-    <tr style="border-bottom:1px solid #f1f5f9;">
-      <td style="padding:10px 18px;font-size:13px;color:#0f172a;line-height:1.5;">${escapeHtml(l.label)}</td>
-      <td style="padding:10px 18px;text-align:right;font-size:13px;font-weight:600;color:#0f172a;font-family:'Courier New',monospace;white-space:nowrap;">$${l.price.toLocaleString()}</td>
-    </tr>`
-            )
+        )
+        .join('')
+      const depositRow =
+        ctx.invoiceDepositCredit > 0
+          ? `
+        <tr>
+          <td style="padding:12px 18px;font-size:13px;color:#64748b;">${t(depositLabel, ctx)}</td>
+          <td style="padding:12px 18px;text-align:right;font-size:13px;font-weight:600;color:#64748b;font-family:'Courier New',monospace;">−${money(ctx.invoiceDepositCredit)}</td>
+        </tr>`
+          : ''
       return `
     ${sectionLabel(t(block.header, ctx))}
     <table width="100%" cellpadding="0" cellspacing="0" role="presentation"
       style="border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;margin:0 0 24px;">
-      <tbody>${rows.join('')}</tbody>
+      <tbody>${itemRows}
+        <tr style="border-bottom:1px solid #e2e8f0;">
+          <td style="padding:12px 18px;font-size:13px;color:#64748b;">${t(subtotalLabel, ctx)}</td>
+          <td style="padding:12px 18px;text-align:right;font-size:13px;font-weight:600;color:#64748b;font-family:'Courier New',monospace;">${money(ctx.invoiceSubtotal)}</td>
+        </tr>${depositRow}
+        <tr style="background:#f0f9f4;border-top:1px solid #e2e8f0;">
+          <td style="padding:12px 18px;font-size:13px;font-weight:600;color:#1A2E1F;">${t(dueLabel, ctx)}</td>
+          <td style="padding:12px 18px;text-align:right;font-size:15px;font-weight:700;color:#1A2E1F;font-family:'Courier New',monospace;">${money(ctx.invoiceAmountDue)}</td>
+        </tr>
+      </tbody>
     </table>`
     }
     case 'bulletList': {

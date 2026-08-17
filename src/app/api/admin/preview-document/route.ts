@@ -21,6 +21,13 @@ export async function POST(request: Request) {
     confirmedDate?: string | null
     recurringFrequency?: string
     recurringPriceOverride?: number
+    lineItems?: { description: string; amount: number }[]
+    dueDate?: string
+    businessName?: string
+    preparedForAddress?: string
+    arrivalTime?: string
+    notes?: string
+    depositCredit?: number
   }
   if (!body.jobId)
     return Response.json({ error: 'jobId is required' }, { status: 400 })
@@ -40,8 +47,23 @@ export async function POST(request: Request) {
     approved_price: Number(body.approvedPrice) || job.approved_price || 0,
     confirmed_date: body.confirmedDate ?? job.confirmed_date,
   } as Job
+  const dueDate = body.dueDate
+    ? new Date(body.dueDate).toLocaleDateString('en-US', {
+        month: 'long',
+        day: 'numeric',
+        year: 'numeric',
+      })
+    : ''
   const ctx = buildRenderContext({
     job: previewJob,
+    invoiceLines: body.lineItems,
+    invoiceNumber: 'RS-PREVIEW',
+    invoiceDepositCredit: body.depositCredit,
+    dueDate,
+    businessName: body.businessName,
+    preparedForAddress: body.preparedForAddress,
+    arrivalTime: body.arrivalTime,
+    invoiceNotes: body.notes,
     depositOverride:
       Number(body.depositAmount) > 0 ? Number(body.depositAmount) : undefined,
     recurringFrequency: body.recurringFrequency,

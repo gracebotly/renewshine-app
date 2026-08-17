@@ -1,5 +1,6 @@
 import { createServerClient } from '@/lib/supabase/server'
 import { requireAdmin } from '@/lib/require-admin'
+import type { Json } from '@/types/database'
 import {
   MESSAGE_KEYS,
   documentKey,
@@ -54,7 +55,7 @@ export async function POST(request: Request) {
   else delete next[dk]
   const { error: updateError } = await supabase
     .from('jobs')
-    .update({ message_documents: next })
+    .update({ message_documents: next as unknown as Json })
     .eq('id', jobId)
   if (updateError) {
     console.error('save-job-document failed:', updateError)

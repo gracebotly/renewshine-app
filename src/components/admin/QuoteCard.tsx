@@ -4,9 +4,6 @@ import * as React from 'react'
 import { ChevronDown, Pencil, Table } from 'lucide-react'
 import type { Job } from '@/types/database'
 import { InvoicePanel } from '@/components/admin/InvoicePanel'
-import { renderTemplate } from '@/lib/templates/render'
-import { DEFAULT_TEMPLATES } from '@/lib/templates/defaults'
-import type { MessageTemplate } from '@/lib/templates/types'
 import { BlockEditor } from './BlockEditor'
 import type { MessageDocument, MessageKey } from '@/lib/documents/types'
 
@@ -140,141 +137,6 @@ const SMS_TEMPLATE_LIST = [
 
 const VALID_TEMPLATES = ['photos', 'quote_dep', 'quote_no', 'appt', 'reminder', 'invoice', 'custom']
 
-function getRoomCallout(serviceType: string | null): string {
-  if (serviceType === 'standard' || serviceType === 'deep')
-    return ' of the kitchen, bathrooms, bedrooms, and living areas'
-  if (serviceType === 'move_out')
-    return ' of the property — the kitchen, bathrooms, and any areas needing extra attention'
-  return ''
-}
-
-const NO_DATE_MESSAGE = '(Set a confirmed date in the Booking card first)'
-
-function buildTemplateTokens(
-  j: Job,
-  price: number | null,
-  date: string | null,
-  arrival: string,
-  deposit: number,
-  includeRecurring: boolean,
-  recurringFrequencyLabel: string,
-  effectiveRecurringPrice: number | null,
-  templateId: string
-): Record<string, string> {
-  const first = j.client_name?.split(' ')[0] ?? 'there'
-  const svc = getServiceLabel(j.service_type ?? null)
-  const bedroomCount = typeof j.bedrooms === 'number' && j.bedrooms > 0 ? j.bedrooms : null
-  const bathroomCount = typeof j.bathrooms === 'number' && j.bathrooms > 0 ? j.bathrooms : null
-  const bedLabel = bedroomCount ? `${bedroomCount} Bedroom${bedroomCount === 1 ? '' : 's'}` : ''
-  const bathLabel = bathroomCount ? `${bathroomCount} Bathroom${bathroomCount === 1 ? '' : 's'}` : ''
-  const roomDetails = [bedLabel, bathLabel].filter(Boolean)
-  const serviceDetail = [svc, ...roomDetails].join(' • ')
-  const beds = bedroomCount && bathroomCount ? ` · ${bedroomCount} bed / ${bathroomCount} bath` : ''
-  const dep = deposit
-  const creditedDeposit = templateId === 'invoice' && !j.deposit_paid ? 0 : dep
-  const remaining = price ? Math.max(price - creditedDeposit, 0) : null
-  const priceFmt = price ? `$${price.toLocaleString()}` : '—'
-  const remainFmt = remaining !== null ? `$${remaining.toLocaleString()}` : '—'
-  const arrFmt = ARRIVAL_MAP[arrival] ?? arrival
-  const timePrefFmt = j.availability_time_pref
-    ? (BOOKING_TIME_PREFERENCE_MAP[j.availability_time_pref] ?? j.availability_time_pref)
-    : ''
-  const recurringLine = includeRecurring && effectiveRecurringPrice
-    ? `Recurring rate:
-${recurringFrequencyLabel}: $${effectiveRecurringPrice.toLocaleString()}/visit`
-    : ''
-  const dateFmt = date
-    ? new Date(date + 'T12:00:00').toLocaleDateString('en-US', {
-        weekday: 'long', month: 'long', day: 'numeric',
-      })
-    : ''
-  const hasConfirmed = Boolean(date)
-
-  const availWindow = (() => {
-    // State B — a confirmed date exists, so quote against the real slot.
-    if (date) {
-      const confirmed = new Date(date + 'T12:00:00').toLocaleDateString('en-US', {
-        weekday: 'long', month: 'long', day: 'numeric',
-      })
-      return arrival && arrFmt !== 'Flexible' ? `${confirmed} · ${arrFmt}` : confirmed
-    }
-    // State A — the window the customer submitted.
-    const s = j.availability_start
-      ? new Date(j.availability_start + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-      : null
-    const e = j.availability_end
-      ? new Date(j.availability_end + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-      : null
-    if (s && e && s !== e) return `${s} – ${e}`
-    if (s) return s
-    return 'Dates to be confirmed'
-  })()
-
-  return {
-    firstName: first,
-    service: svc,
-    serviceDetail,
-    bedBath: beds,
-    roomCallout: getRoomCallout(j.service_type),
-    scheduleLabel: hasConfirmed ? 'Appointment' : 'Requested window',
-    schedule: availWindow,
-    availabilityWindow: availWindow,
-    timePreference: ARRIVAL_MAP[j.availability_time_pref ?? ''] ?? j.availability_time_pref ?? 'Flexible',
-    total: priceFmt,
-    deposit: `$${dep}`,
-    balance: remainFmt,
-    recurringLine,
-    date: dateFmt,
-    arrivalWindow: arrFmt,
-    address: j.address ?? 'on file',
-  }
-}
-
-// Renders one (templateId, channel) pair using the saved template if present,
-// falling back to DEFAULT_TEMPLATES if the templates fetch hasn't completed
-// or a row is missing. 'custom' always returns blank — it's free-type, not
-// a stored template. 'appt' and 'reminder' require a confirmed date.
-function renderFor(
-  templates: MessageTemplate[],
-  id: string,
-  channel: 'email' | 'sms',
-  j: Job,
-  price: number | null,
-  date: string | null,
-  arrival: string,
-  deposit: number,
-  includeRecurring: boolean,
-  recurringFrequencyLabel: string,
-  effectiveRecurringPrice: number | null
-): { subject: string; body: string } {
-  if (id === 'custom') return { subject: '', body: '' }
-
-  if ((id === 'appt' || id === 'reminder') && !date) {
-    return { subject: '', body: NO_DATE_MESSAGE }
-  }
-
-  const row = templates.find(t => t.templateId === id && t.channel === channel)
-    ?? DEFAULT_TEMPLATES.find(t => t.templateId === id && t.channel === channel)
-
-  if (!row) return { subject: '', body: '' }
-
-  const tokens = buildTemplateTokens(
-    j,
-    price,
-    date,
-    arrival,
-    deposit,
-    includeRecurring,
-    recurringFrequencyLabel,
-    effectiveRecurringPrice,
-    id
-  )
-  return {
-    subject: renderTemplate(row.subject ?? '', tokens),
-    body: renderTemplate(row.body, tokens),
-  }
-}
-
 // ─── QuoteCard ────────────────────────────────────────────────────────────────
 
 export function QuoteCard({ job, defaultOpenPanel }: { job: Job; defaultOpenPanel?: string }) {
@@ -338,16 +200,6 @@ export function QuoteCard({ job, defaultOpenPanel }: { job: Job; defaultOpenPane
 
   const [contactSending, setContactSending] = React.useState(false)
 
-  // Live templates from the settings page — falls back to DEFAULT_TEMPLATES
-  // (imported above) until the fetch resolves or if it fails.
-  const [templates, setTemplates] = React.useState<MessageTemplate[]>(DEFAULT_TEMPLATES)
-  React.useEffect(() => {
-    fetch('/api/admin/templates')
-      .then(res => res.ok ? res.json() : null)
-      .then(data => { if (data?.templates) setTemplates(data.templates) })
-      .catch(() => {})
-  }, [])
-
   // Recurring pricing toggle — auto-enabled when job already has a frequency
   const [includeRecurring, setIncludeRecurring] = React.useState<boolean>(() => {
     const f = job.service_frequency
@@ -360,7 +212,6 @@ export function QuoteCard({ job, defaultOpenPanel }: { job: Job; defaultOpenPane
   const [customRecurringPrice, setCustomRecurringPrice] = React.useState<string>('')
 
   const FREQ_MULT: Record<string, number> = { weekly: 0.80, biweekly: 0.85, monthly: 0.90 }
-  const FREQ_LABEL: Record<string, string> = { weekly: 'Weekly', biweekly: 'Bi-weekly', monthly: 'Monthly' }
   const recurringPrice = savedPrice && includeRecurring
     ? Math.round(savedPrice * (FREQ_MULT[recurringFreq] ?? 0.85))
     : null
@@ -513,12 +364,7 @@ export function QuoteCard({ job, defaultOpenPanel }: { job: Job; defaultOpenPane
     if (contactSending) return
     setContactSending(true)
     setErrorMsg('')
-    const rawBody = contactEditBody?.trim()
-      ? contactEditBody
-      : previewBody
-    const body = currentTemplate === 'quote_dep' && currentChannel === 'sms'
-      ? rawBody.replace('pay.stripe.com/preview', '[deposit link included]')
-      : rawBody
+    const body = contactEditBody ?? ''
     try {
       if (currentTemplate === 'photos' || currentTemplate === 'custom') {
         const isCustom = currentTemplate === 'custom'
@@ -530,7 +376,6 @@ export function QuoteCard({ job, defaultOpenPanel }: { job: Job; defaultOpenPane
             method: currentChannel === 'email' ? 'email' : 'sms',
             template: isCustom ? (currentChannel === 'email' ? 'custom_formatted' : undefined) : 'need_photos',
             customBody: isCustom ? body : undefined,
-            subject: isCustom && currentChannel === 'email' ? previewSubject : undefined,
           }),
         })
       } else if (currentTemplate === 'quote_dep') {
@@ -558,7 +403,7 @@ export function QuoteCard({ job, defaultOpenPanel }: { job: Job; defaultOpenPane
         await fetch('/api/admin/send-invoice-sms', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ jobId: job.id, customSmsBody: body }),
+          body: JSON.stringify({ jobId: job.id }),
         })
       } else if (currentTemplate === 'appt') {
         if (currentChannel === 'email') {
@@ -673,41 +518,6 @@ export function QuoteCard({ job, defaultOpenPanel }: { job: Job; defaultOpenPane
   const firstName = job.client_name?.split(' ')[0] ?? ''
   const templateList = currentChannel === 'email' ? EMAIL_TEMPLATE_LIST : SMS_TEMPLATE_LIST
 
-  const rendered = renderFor(
-    templates,
-    currentTemplate,
-    currentChannel,
-    job,
-    savedPrice,
-    savedDate,
-    savedArrival,
-    savedDeposit,
-    includeRecurring,
-    FREQ_LABEL[recurringFreq] ?? recurringFreq,
-    effectiveRecurringPrice
-  )
-  const basePreviewBody = rendered.body
-
-  const previewBody = (() => {
-    if (currentTemplate === 'quote_dep' && currentChannel === 'sms' && includeRecurring && effectiveRecurringPrice) {
-      // Anchor to [deposit link included] instead of the prose "Reserve here:" label —
-      // the placeholder is a protected token (see src/lib/templates/types.ts,
-      // DEPOSIT_LINK_PLACEHOLDER) that can't be edited away from the settings page,
-      // while the surrounding prose can. Anchoring to editable prose silently breaks
-      // this injection the moment that wording changes.
-      if (basePreviewBody.includes('[deposit link included]') && !basePreviewBody.includes('Recurring rate:')) {
-        const recurringLine = `Recurring rate:\n${FREQ_LABEL[recurringFreq]}: $${effectiveRecurringPrice.toLocaleString()}/visit`
-        return basePreviewBody.replace(
-          '[deposit link included]',
-          `${recurringLine}\n[deposit link included]`
-        )
-      }
-    }
-    return basePreviewBody
-  })()
-
-
-  const previewSubject = currentChannel === 'email' ? rendered.subject : null
   const isCustomTemplate = currentTemplate === 'custom'
 
   React.useEffect(() => {

@@ -2,13 +2,11 @@ import { Resend } from 'resend'
 import type { Job } from '@/types/database'
 import { ownerNewJobTemplate } from './templates/owner-new-job'
 import { customerSubmittedTemplate } from './templates/customer-submitted'
-import { customerQuoteTemplate } from './templates/customer-quote'
 import { customerBookedTemplate } from './templates/customer-booked'
 import { ownerBookedTemplate } from './templates/owner-booked'
 import { customerQuoteReminderTemplate } from './templates/customer-quote-reminder'
 import { customerDeclinedTemplate } from './templates/customer-declined'
 import { customerAbandonedTemplate } from './templates/customer-abandoned'
-import { customerInvoiceTemplate, type InvoiceEmailData } from './templates/customer-invoice'
 import { customerContactPhotosTemplate } from './templates/customer-contact-photos'
 import { customerQuoteReadyTemplate } from './templates/customer-quote-ready'
 
@@ -26,12 +24,6 @@ export async function sendOwnerNewJobAlert(job: Job): Promise<void> {
 /** Template 2 — fires when customer submits booking form. To: customer. */
 export async function sendCustomerSubmittedConfirmation(job: Job): Promise<void> {
   const { subject, html } = customerSubmittedTemplate(job)
-  await resend.emails.send({ from: FROM, to: job.client_email, subject, html })
-}
-
-/** Template 3 — fires when owner clicks "Approve & Send Deposit Link". To: customer. */
-export async function sendCustomerQuote(job: Job, stripeUrl: string, depositAmount?: number, recurringFrequency?: string, recurringPriceOverride?: number, customBodyOverride?: string): Promise<void> {
-  const { subject, html } = await customerQuoteTemplate(job, stripeUrl, depositAmount, recurringFrequency, recurringPriceOverride, customBodyOverride)
   await resend.emails.send({ from: FROM, to: job.client_email, subject, html })
 }
 
@@ -97,14 +89,6 @@ export async function sendAbandonedFormReminder(
   const { subject, html } = customerAbandonedTemplate({ firstName, clientEmail, resumeUrl })
   await resend.emails.send({ from: FROM, to: clientEmail, subject, html })
 }
-
-
-/** Custom invoice — fires when owner clicks "Send Invoice" in admin. To: customer. */
-export async function sendCustomerInvoice(data: InvoiceEmailData): Promise<void> {
-  const { subject, html } = await customerInvoiceTemplate(data)
-  await resend.emails.send({ from: FROM, to: data.clientEmail, subject, html })
-}
-
 
 
 export async function sendContactPhotos(job: Job): Promise<void> {

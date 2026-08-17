@@ -1,11 +1,6 @@
 import { createServerClient } from '@/lib/supabase/server'
 import { stripe } from '@/lib/stripe/client'
-import {
-  sendCustomerQuote,
-  sendQuoteReminder,
-  sendExpiredLinkRecovery,
-  sendRenderedEmail,
-} from '@/lib/email'
+import { sendExpiredLinkRecovery, sendRenderedEmail } from '@/lib/email'
 import type { Job } from '@/types/database'
 import { loadDocument } from '@/lib/documents/load'
 import { buildRenderContext } from '@/lib/documents/context'
@@ -37,8 +32,6 @@ export async function POST(request: Request) {
     confirmedDate,
     regenerate,
     channel = 'email',
-    customSmsBody,
-    customEmailBody,
     recurringFrequency,
     recurringPriceOverride,
   } = await request.json()
@@ -171,53 +164,19 @@ export async function POST(request: Request) {
       if (channel === 'sms') {
         // SMS deposit link — premium, personal, direct
         if (job.client_phone) {
-          const firstName = job.client_name.split(' ')[0]
-          const serviceLabels: Record<string, string> = {
-            standard: 'Standard Clean',
-            deep: 'Deep Clean',
-            move_out: 'Move-In / Move-Out',
-            post_construction: 'Post-Construction',
-          }
-          const serviceLabel =
-            serviceLabels[job.service_type ?? ''] ?? 'cleaning service'
-          const total = Number(approvedPrice)
-          const deposit = resolvedDeposit
-          const remaining = Math.max(total - deposit, 0)
-
           const doc = await loadDocument(updatedJob as Job, 'quote_dep', 'sms')
-          let finalSmsBody: string
-
-          if (doc && doc.channel === 'sms') {
-            const ctx = buildRenderContext({
-              job: updatedJob as Job,
-              depositOverride: resolvedDeposit,
-              recurringFrequency: recurringFrequency as string | undefined,
-              recurringPriceOverride: recurringPriceOverride
-                ? Number(recurringPriceOverride)
-                : undefined,
-              depositLink: paymentLink.url,
-            })
-            finalSmsBody = renderSmsDocument(doc, ctx)
-          } else {
-            // Legacy fallback — removed in Prompt 3.
-            const smsBody =
-              (customSmsBody as string | undefined)?.trim() ||
-              `Hi ${firstName}, your RenewShine ${serviceLabel} quote is $${total.toLocaleString()}.
-
-` +
-                `To lock in your date, complete your $${deposit} deposit here:
-${paymentLink.url}
-
-` +
-                `Remaining balance of $${remaining.toLocaleString()} is due after the clean.
-
-` +
-                `RenewShine`
-            finalSmsBody = smsBody.replace(
-              '[deposit link included]',
-              paymentLink.url
-            )
-          }
+          if (!doc || doc.channel !== 'sms')
+            throw new Error('Quote SMS document unavailable')
+          const ctx = buildRenderContext({
+            job: updatedJob as Job,
+            depositOverride: resolvedDeposit,
+            recurringFrequency: recurringFrequency as string | undefined,
+            recurringPriceOverride: recurringPriceOverride
+              ? Number(recurringPriceOverride)
+              : undefined,
+            depositLink: paymentLink.url,
+          })
+          const finalSmsBody = renderSmsDocument(doc, ctx)
           await sendSms(job.client_phone, finalSmsBody)
 
           // Log to inbox thread — same pattern as send-contact/route.ts
@@ -297,17 +256,6 @@ ${paymentLink.url}
             })
             const { subject, html } = renderEmailDocument(doc, ctx)
             await sendRenderedEmail(updatedJob.client_email, subject, html)
-          } else {
-            await sendCustomerQuote(
-              updatedJob,
-              paymentLink.url,
-              resolvedDeposit,
-              recurringFrequency as string | undefined,
-              recurringPriceOverride
-                ? Number(recurringPriceOverride)
-                : undefined,
-              customEmailBody as string | undefined
-            )
           }
         }
       }
