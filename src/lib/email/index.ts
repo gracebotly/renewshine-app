@@ -116,3 +116,12 @@ export async function sendContactQuoteReady(job: Job): Promise<void> {
   const { subject, html } = customerQuoteReadyTemplate(job)
   await resend.emails.send({ from: FROM, to: job.client_email, replyTo: REPLY_TO, subject, html })
 }
+
+
+export async function sendRenderedEmail(to: string, subject: string, html: string): Promise<void> {
+  try {
+    await resend.emails.send({ from: FROM, to, subject, html })
+  } catch (err) {
+    console.error('sendRenderedEmail failed (non-blocking):', err)
+  }
+}

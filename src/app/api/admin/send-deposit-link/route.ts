@@ -1,6 +1,10 @@
 import { createServerClient } from '@/lib/supabase/server'
 import { stripe } from '@/lib/stripe/client'
-import { sendCustomerQuote, sendQuoteReminder, sendExpiredLinkRecovery } from '@/lib/email'
+import { sendCustomerQuote, sendQuoteReminder, sendExpiredLinkRecovery, sendRenderedEmail } from '@/lib/email'
+import type { Job } from '@/types/database'
+import { loadDocument } from '@/lib/documents/load'
+import { buildRenderContext } from '@/lib/documents/context'
+import { renderEmailDocument } from '@/lib/documents/render-email'
 import { notifyQuoteSent } from '@/lib/slack'
 import { requireAdmin } from '@/lib/require-admin'
 import { sendSms } from '@/lib/sms'
@@ -207,14 +211,27 @@ ${paymentLink.url}
         if (regenerate) {
           await sendExpiredLinkRecovery(updatedJob, paymentLink.url)
         } else {
-          await sendCustomerQuote(
-            updatedJob,
-            paymentLink.url,
-            resolvedDeposit,
-            recurringFrequency as string | undefined,
-            recurringPriceOverride ? Number(recurringPriceOverride) : undefined,
-            customEmailBody as string | undefined
-          )
+          const doc = await loadDocument(updatedJob as Job, 'quote_dep', 'email')
+          if (doc && doc.channel === 'email') {
+            const ctx = buildRenderContext({
+              job: updatedJob as Job,
+              depositOverride: resolvedDeposit,
+              recurringFrequency: recurringFrequency as string | undefined,
+              recurringPriceOverride: recurringPriceOverride ? Number(recurringPriceOverride) : undefined,
+              depositLink: paymentLink.url,
+            })
+            const { subject, html } = renderEmailDocument(doc, ctx)
+            await sendRenderedEmail(updatedJob.client_email, subject, html)
+          } else {
+            await sendCustomerQuote(
+              updatedJob,
+              paymentLink.url,
+              resolvedDeposit,
+              recurringFrequency as string | undefined,
+              recurringPriceOverride ? Number(recurringPriceOverride) : undefined,
+              customEmailBody as string | undefined
+            )
+          }
         }
       }
     }

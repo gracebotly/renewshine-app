@@ -1,6 +1,10 @@
 import { customerQuoteTemplate } from '@/lib/email/templates/customer-quote'
 import { requireAdmin } from '@/lib/require-admin'
 import { createServerClient } from '@/lib/supabase/server'
+import type { Job } from '@/types/database'
+import { loadDocument } from '@/lib/documents/load'
+import { buildRenderContext } from '@/lib/documents/context'
+import { renderEmailDocument } from '@/lib/documents/render-email'
 
 export async function POST(request: Request) {
   try {
@@ -37,6 +41,20 @@ export async function POST(request: Request) {
       : (job as any).quote_line_items ?? [],
   }
 
+  const doc = await loadDocument(previewJob as Job, 'quote_dep', 'email')
+
+  if (doc && doc.channel === 'email') {
+    const ctx = buildRenderContext({
+      job: previewJob as Job,
+      recurringFrequency: recurringFrequency as string | undefined,
+      recurringPriceOverride: recurringPriceOverride ? Number(recurringPriceOverride) : undefined,
+      depositLink: '#preview-stripe-link',
+    })
+    const { html } = renderEmailDocument(doc, ctx)
+    return Response.json({ html, source: 'document' })
+  }
+
+  // Legacy fallback — removed in Prompt 3 once the document path is proven.
   const { html } = await customerQuoteTemplate(
     previewJob as any,
     '#preview-stripe-link',
@@ -46,5 +64,5 @@ export async function POST(request: Request) {
     customEmailBody as string | undefined
   )
 
-  return Response.json({ html })
+  return Response.json({ html, source: 'legacy' })
 }
