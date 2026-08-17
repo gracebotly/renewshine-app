@@ -104,6 +104,26 @@ Exact date confirmed after deposit`,
 Your appointment`,
   },
   {
+    templateId: 'quote_dep_chrome',
+    channel: 'email',
+    subject: null,
+    body: `badge: Quote ready
+heading: {{firstName}}, your quote is ready.
+preheader: {{firstName}}, your {{service}} quote is ready. Reserve your date with the payment below.
+locationsHeader: Your service locations
+serviceHeader: Your service details
+paymentHeader: Payment summary
+totalLabel: Total service
+dueTodayLabel: Due today
+dueTodayNote: (deposit)
+balanceLabel: Remaining balance
+balanceNote: (after service)
+disclaimer: No hidden fees. Fully insured cleaning professionals. If anything differs from the photos provided, we'll discuss it with you before any additional work is performed.
+trustHeader: Why homeowners choose RenewShine
+ctaLabel: Pay Deposit
+nextStepsHeader: What happens next`,
+  },
+  {
     templateId: 'quote_no',
     channel: 'email',
     subject: '{{firstName}}, your RenewShine quote is ready',

@@ -325,7 +325,20 @@ export function QuoteCard({ job, defaultOpenPanel }: { job: Job; defaultOpenPane
     if (defaultOpenPanel && VALID_TEMPLATES.includes(defaultOpenPanel)) return defaultOpenPanel
     return 'photos'
   })
-  const [contactEditBody, setContactEditBody] = React.useState<string | null>(null)
+  // Per-job saved drafts, keyed "<templateId>:<channel>". Hydrated from the job
+  // row so an edit survives a page refresh.
+  const [draftOverrides, setDraftOverrides] = React.useState<Record<string, string>>(() => {
+    const raw = (job as { email_draft_overrides?: unknown }).email_draft_overrides
+    return raw && typeof raw === 'object' ? (raw as Record<string, string>) : {}
+  })
+  const [contactEditBody, setContactEditBody] = React.useState<string | null>(() => {
+    const initialTemplate =
+      defaultOpenPanel && VALID_TEMPLATES.includes(defaultOpenPanel) ? defaultOpenPanel : 'photos'
+    const initialChannel = job.preferred_contact === 'text' ? 'sms' : 'email'
+    const raw = (job as { email_draft_overrides?: unknown }).email_draft_overrides
+    const map = raw && typeof raw === 'object' ? (raw as Record<string, string>) : {}
+    return map[`${initialTemplate}:${initialChannel}`] ?? null
+  })
   const [contactSending, setContactSending] = React.useState(false)
 
   // Live templates from the settings page — falls back to DEFAULT_TEMPLATES
@@ -366,6 +379,26 @@ export function QuoteCard({ job, defaultOpenPanel }: { job: Job; defaultOpenPane
   const [emailPreviewHtml, setEmailPreviewHtml] = React.useState<string | null>(null)
   const [emailPreviewLoading, setEmailPreviewLoading] = React.useState(false)
   const [showEmailEditor, setShowEmailEditor] = React.useState(false)
+  const draftKey = `${currentTemplate}:${currentChannel}`
+
+  // Persists (or clears) the draft for the current template + channel.
+  // Fire-and-forget: a failed save must never block sending.
+  const persistDraft = React.useCallback(
+    (key: string, value: string | null) => {
+      setDraftOverrides(prev => {
+        const next = { ...prev }
+        if (value && value.trim()) next[key] = value
+        else delete next[key]
+        return next
+      })
+      fetch('/api/admin/save-email-draft', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ jobId: job.id, key, body: value }),
+      }).catch(err => console.error('save-email-draft failed:', err))
+    },
+    [job.id]
+  )
 
   const handleSavePrice = async () => {
     const val = parseFloat(priceInput)
@@ -985,7 +1018,12 @@ export function QuoteCard({ job, defaultOpenPanel }: { job: Job; defaultOpenPane
               {(['email', 'sms'] as const).map(ch => (
                 <button
                   key={ch}
-                  onClick={() => { setCurrentChannel(ch); setContactEditBody(null); setEmailPreviewHtml(null); setShowEmailEditor(false) }}
+                  onClick={() => {
+                    setCurrentChannel(ch)
+                    setContactEditBody(draftOverrides[`${currentTemplate}:${ch}`] ?? null)
+                    setEmailPreviewHtml(null)
+                    setShowEmailEditor(false)
+                  }}
                   className={`flex-1 py-2.5 text-xs font-semibold transition-colors duration-150 cursor-pointer ${
                     currentChannel === ch
                       ? 'bg-[#4A7C59] text-white'
@@ -1001,7 +1039,13 @@ export function QuoteCard({ job, defaultOpenPanel }: { job: Job; defaultOpenPane
               {/* Template dropdown */}
               <select
                 value={currentTemplate}
-                onChange={e => { setCurrentTemplate(e.target.value); setContactEditBody(null); setEmailPreviewHtml(null); setShowEmailEditor(false) }}
+                onChange={e => {
+                  const nextTemplate = e.target.value
+                  setCurrentTemplate(nextTemplate)
+                  setContactEditBody(draftOverrides[`${nextTemplate}:${currentChannel}`] ?? null)
+                  setEmailPreviewHtml(null)
+                  setShowEmailEditor(false)
+                }}
                 className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-900 focus:border-[#4A7C59]/40 focus:outline-none cursor-pointer"
               >
                 {templateList.map(t => (
@@ -1069,7 +1113,7 @@ export function QuoteCard({ job, defaultOpenPanel }: { job: Job; defaultOpenPane
                     job={job}
                     onClose={() => {
                       setCurrentTemplate('photos')
-                      setContactEditBody(null)
+                      setContactEditBody(draftOverrides[`photos:${currentChannel}`] ?? null)
                     }}
                   />
                 </div>
@@ -1094,12 +1138,15 @@ export function QuoteCard({ job, defaultOpenPanel }: { job: Job; defaultOpenPane
                             : 'bg-slate-100 text-slate-500 hover:bg-[#e8f3ec] hover:text-[#4A7C59]'
                         }`}
                       >
-                        {emailPreviewLoading ? 'Loading…' : showEmailEditor ? 'See email' : 'Edit text'}
+                        {emailPreviewLoading ? 'Loading…' : showEmailEditor ? 'Hide editor' : 'Edit text'}
                       </button>
                     )}
                     {!isCustomTemplate && contactEditBody && showEmailEditor && (
                       <button
-                        onClick={() => setContactEditBody(null)}
+                        onClick={() => {
+                          setContactEditBody(null)
+                          persistDraft(draftKey, null)
+                        }}
                         className="text-[11px] text-slate-400 hover:text-slate-600 cursor-pointer transition-colors"
                       >
                         Reset
@@ -1111,7 +1158,7 @@ export function QuoteCard({ job, defaultOpenPanel }: { job: Job; defaultOpenPane
                 {/* ── EMAIL CHANNEL ── */}
                 {currentChannel === 'email' && (
                   <>
-                    {/* Subject line — shown only in plain-text edit mode; the iframe has its own subject inside the email itself */}
+                    {/* Subject line — shown while editing; the iframe renders its own */}
                     {previewSubject && showEmailEditor && (
                       <div className="border-b border-slate-100 px-3 py-2">
                         <span className="text-[10px] text-slate-400">Subject: </span>
@@ -1119,8 +1166,35 @@ export function QuoteCard({ job, defaultOpenPanel }: { job: Job; defaultOpenPane
                       </div>
                     )}
 
-                    {/* Default: the real rendered email, exactly what the customer receives */}
-                    {!showEmailEditor && !isCustomTemplate && emailPreviewHtml && (
+                    {/* Editor — sits ABOVE the live preview, never replaces it.
+                        Saves on blur so a refresh keeps the edit. */}
+                    {(showEmailEditor || isCustomTemplate) && (
+                      <div className="border-b border-slate-100">
+                        <textarea
+                          value={contactEditBody ?? previewBody}
+                          onChange={e => setContactEditBody(e.target.value)}
+                          onBlur={() => {
+                            if (isCustomTemplate) return
+                            const value = contactEditBody
+                            if (value === null) return
+                            persistDraft(draftKey, value.trim() === previewBody.trim() ? null : value)
+                          }}
+                          rows={7}
+                          maxLength={1000}
+                          placeholder={isCustomTemplate ? 'Type your message…' : undefined}
+                          className="w-full bg-white px-3 py-2.5 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none resize-none leading-relaxed"
+                        />
+                        {!isCustomTemplate && (
+                          <p className="px-3 pb-2 text-[10px] text-slate-500">
+                            Edits the body text only. Headings, labels, and the button caption live in
+                            Settings → Templates → Quote labels &amp; headings.
+                          </p>
+                        )}
+                      </div>
+                    )}
+
+                    {/* The real rendered email — always visible on the email channel */}
+                    {!isCustomTemplate && emailPreviewHtml && (
                       <div className="bg-slate-50 p-2">
                         <p className="text-[10px] text-slate-400 mb-1.5 px-1">
                           Exact email the customer will receive
@@ -1129,29 +1203,21 @@ export function QuoteCard({ job, defaultOpenPanel }: { job: Job; defaultOpenPane
                           <iframe
                             srcDoc={emailPreviewHtml}
                             className="w-full"
-                            style={{ height: '520px', border: 'none', display: 'block' }}
+                            style={{
+                              height: showEmailEditor ? '400px' : '520px',
+                              border: 'none',
+                              display: 'block',
+                            }}
                             title="Email preview"
                             sandbox="allow-same-origin"
                           />
                         </div>
                       </div>
                     )}
-                    {!showEmailEditor && !isCustomTemplate && !emailPreviewHtml && (
+                    {!isCustomTemplate && !emailPreviewHtml && (
                       <div className="p-4 text-center text-xs text-slate-400">
                         {emailPreviewLoading ? 'Loading preview…' : 'Preview unavailable.'}
                       </div>
-                    )}
-
-                    {/* Plain textarea — manual override mode, or always for Custom Message */}
-                    {(showEmailEditor || isCustomTemplate) && (
-                      <textarea
-                        value={contactEditBody ?? previewBody}
-                        onChange={e => setContactEditBody(e.target.value)}
-                        rows={7}
-                        maxLength={1000}
-                        placeholder={isCustomTemplate ? 'Type your message…' : undefined}
-                        className="w-full bg-white px-3 py-2.5 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none resize-none leading-relaxed"
-                      />
                     )}
                   </>
                 )}
@@ -1193,6 +1259,11 @@ export function QuoteCard({ job, defaultOpenPanel }: { job: Job; defaultOpenPane
                       <textarea
                         value={contactEditBody ?? smsDisplayBody}
                         onChange={e => setContactEditBody(e.target.value)}
+                        onBlur={() => {
+                          const value = contactEditBody
+                          if (value === null) return
+                          persistDraft(draftKey, value.trim() === smsDisplayBody.trim() ? null : value)
+                        }}
                         rows={4}
                         maxLength={1000}
                         placeholder={isCustomTemplate ? 'Type your message…' : 'Edit message above…'}

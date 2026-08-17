@@ -95,6 +95,7 @@ export interface Database {
           last_completed_step: number | null
           dropped_at_label: string | null
           quote_line_items: Json | null
+          email_draft_overrides?: Json | null
           is_archived?: boolean | null
         }
         Insert: {
@@ -142,6 +143,7 @@ export interface Database {
           last_completed_step?: number | null
           dropped_at_label?: string | null
           quote_line_items?: Json | null
+          email_draft_overrides?: Json | null
           is_archived?: boolean | null
         }
         Update: Partial<Database['public']['Tables']['jobs']['Row']>

@@ -112,11 +112,12 @@ export async function customerQuoteTemplate(
     ? 'quote_dep_schedule_confirmed'
     : 'quote_dep_schedule_requested'
 
-  const [quoteTemplate, bulletsTemplate, nextStepsTemplate, scheduleTemplate] = await Promise.all([
+  const [quoteTemplate, bulletsTemplate, nextStepsTemplate, scheduleTemplate, chromeTemplate] = await Promise.all([
     getQuoteEmailTemplate('quote_dep'),
     getQuoteEmailTemplate('quote_dep_bullets'),
     getQuoteEmailTemplate('quote_dep_next_steps'),
     getQuoteEmailTemplate(scheduleTemplateId),
+    getQuoteEmailTemplate('quote_dep_chrome'),
   ])
 
   // Three-line format: inline label / card header / badge (badge optional).
@@ -147,6 +148,14 @@ export async function customerQuoteTemplate(
       : '',
   }
   const subject = renderTemplate(quoteTemplate.subject ?? defaultSubject, templateTokens)
+  // Editable label copy. `c(key, fallback)` returns the admin-saved value when
+  // present and non-blank, otherwise the literal this file shipped with. All
+  // values are HTML-escaped at the call site — never interpolate raw.
+  const chrome = parseChromeLines(chromeTemplate.body ?? '', templateTokens)
+  const c = (key: string, fallback: string) => {
+    const v = chrome[key]
+    return v && v.trim() ? v.trim() : fallback
+  }
   // Per-job override replaces ONLY the prose block — the exact region the admin
   // textarea displays. Every styled section below (schedule card, service card,
   // payment summary, trust bullets, CTA, next steps) is preserved.
@@ -205,7 +214,7 @@ export async function customerQuoteTemplate(
 
   // ── Section: Appointment ─────────────────────────────────────────────────
   const appointmentSection = hasLineItems ? `
-    <p style="margin:0 0 8px;font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.08em;">Your service locations</p>
+    <p style="margin:0 0 8px;font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.08em;">${escapeHtml(c('locationsHeader', 'Your service locations'))}</p>
     <table width="100%" cellpadding="0" cellspacing="0" role="presentation"
       style="border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;margin:0 0 24px;">
       <tbody>${lineItemRows}</tbody>
@@ -226,7 +235,7 @@ export async function customerQuoteTemplate(
 
   // ── Section: Service details ──────────────────────────────────────────────
   const serviceSection = `
-    <p style="margin:0 0 8px;font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.08em;">Your service details</p>
+    <p style="margin:0 0 8px;font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.08em;">${escapeHtml(c('serviceHeader', 'Your service details'))}</p>
     <table width="100%" cellpadding="0" cellspacing="0" role="presentation"
       style="border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;margin:0 0 24px;">
       <tbody>
@@ -242,13 +251,13 @@ export async function customerQuoteTemplate(
 
   // ── Section: Payment summary card ────────────────────────────────────────
   const paymentSection = `
-    <p style="margin:0 0 8px;font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.08em;">Payment summary</p>
+    <p style="margin:0 0 8px;font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.08em;">${escapeHtml(c('paymentHeader', 'Payment summary'))}</p>
     <table width="100%" cellpadding="0" cellspacing="0" role="presentation"
       style="border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;margin:0 0 8px;">
       <tbody>
         <tr style="border-bottom:1px solid #e2e8f0;">
           <td style="padding:14px 18px;">
-            <p style="margin:0 0 2px;font-size:12px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:0.05em;">Total service</p>
+            <p style="margin:0 0 2px;font-size:12px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:0.05em;">${escapeHtml(c('totalLabel', 'Total service'))}</p>
             <p style="margin:0;font-size:26px;font-weight:700;color:#0f172a;font-family:'Courier New',monospace;letter-spacing:-0.5px;">${totalDisplay}</p>
           </td>
         </tr>
@@ -256,7 +265,7 @@ export async function customerQuoteTemplate(
           <td style="padding:12px 18px;">
             <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
               <tr>
-                <td style="font-size:13px;font-weight:600;color:#1A2E1F;">Due today <span style="font-weight:400;color:#4A7C59;">(deposit)</span></td>
+                <td style="font-size:13px;font-weight:600;color:#1A2E1F;">${escapeHtml(c('dueTodayLabel', 'Due today'))} <span style="font-weight:400;color:#4A7C59;">${escapeHtml(c('dueTodayNote', '(deposit)'))}</span></td>
                 <td style="text-align:right;font-size:15px;font-weight:700;color:#1A2E1F;font-family:'Courier New',monospace;">${depositDisplay}</td>
               </tr>
             </table>
@@ -266,7 +275,7 @@ export async function customerQuoteTemplate(
           <td style="padding:12px 18px;">
             <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
               <tr>
-                <td style="font-size:13px;color:#64748b;">Remaining balance <span style="color:#94a3b8;">(after service)</span></td>
+                <td style="font-size:13px;color:#64748b;">${escapeHtml(c('balanceLabel', 'Remaining balance'))} <span style="color:#94a3b8;">${escapeHtml(c('balanceNote', '(after service)'))}</span></td>
                 <td style="text-align:right;font-size:13px;font-weight:600;color:#64748b;font-family:'Courier New',monospace;">${remainingDisplay}</td>
               </tr>
             </table>
@@ -274,12 +283,12 @@ export async function customerQuoteTemplate(
         </tr>
       </tbody>
     </table>
-    <p style="margin:0 0 24px;font-size:12px;color:#94a3b8;line-height:1.6;">No hidden fees. Fully insured cleaning professionals. If anything differs from the photos provided, we'll discuss it with you before any additional work is performed.</p>`
+    <p style="margin:0 0 24px;font-size:12px;color:#94a3b8;line-height:1.6;">${escapeHtml(c('disclaimer', "No hidden fees. Fully insured cleaning professionals. If anything differs from the photos provided, we'll discuss it with you before any additional work is performed."))}</p>`
 
   // ── Section: What happens next ───────────────────────────────────────────
   const nextStepsSection = `
     ${divider}
-    <p style="margin:0 0 12px;font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.08em;">What happens next</p>
+    <p style="margin:0 0 12px;font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.08em;">${escapeHtml(c('nextStepsHeader', 'What happens next'))}</p>
     <table width="100%" cellpadding="0" cellspacing="0" role="presentation"
       style="background:#f8faf9;border:1px solid #d1e7d9;border-radius:8px;margin:0 0 20px;">
       <tbody>${nextStepRows}
@@ -289,8 +298,8 @@ export async function customerQuoteTemplate(
 
   // ── Full email body ───────────────────────────────────────────────────────
   const content = `
-    ${badge('Quote ready', 'green')}
-    ${heading(`${firstName}, your quote is ready.`)}
+    ${badge(escapeHtml(c('badge', 'Quote ready')), 'green')}
+    ${heading(escapeHtml(c('heading', `${firstName}, your quote is ready.`)))}
     ${quoteBodyHtml}
 
     ${appointmentSection}
@@ -302,7 +311,7 @@ export async function customerQuoteTemplate(
       style="background:#f8faf9;border:1px solid #d1e7d9;border-radius:8px;margin:0 0 20px;padding:16px 20px;">
       <tr>
         <td>
-          <p style="margin:0 0 10px;font-size:11px;font-weight:700;color:#4A7C59;text-transform:uppercase;letter-spacing:0.08em;">Why homeowners choose RenewShine</p>
+          <p style="margin:0 0 10px;font-size:11px;font-weight:700;color:#4A7C59;text-transform:uppercase;letter-spacing:0.08em;">${escapeHtml(c('trustHeader', 'Why homeowners choose RenewShine'))}</p>
           <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
             ${trustBulletRows}
           </table>
@@ -310,7 +319,7 @@ export async function customerQuoteTemplate(
       </tr>
     </table>
 
-    ${ctaButton('Pay Deposit', stripeUrl)}
+    ${ctaButton(escapeHtml(c('ctaLabel', 'Pay Deposit')), stripeUrl)}
 
     ${nextStepsSection}
   `
@@ -319,7 +328,12 @@ export async function customerQuoteTemplate(
     subject,
     html: baseTemplate(
       content,
-      `${firstName}, your ${serviceLabel} quote is ready. Reserve your date with the payment below.`
+      escapeHtml(
+        c(
+          'preheader',
+          `${firstName}, your ${serviceLabel} quote is ready. Reserve your date with the payment below.`
+        )
+      )
     ),
   }
 }
@@ -330,6 +344,23 @@ function splitRenderedLines(value: string): string[] {
     .split(/\r?\n/)
     .map(line => line.trim().replace(/^[-•*]\s*/, ''))
     .filter(Boolean)
+}
+
+// Parses the quote_dep_chrome body: one "key: value" pair per line. Splits on
+// the FIRST colon only, so values may contain colons. Blank lines and lines
+// with no colon are skipped. {{tokens}} in values are rendered.
+function parseChromeLines(body: string, tokens: Record<string, string>): Record<string, string> {
+  const out: Record<string, string> = {}
+  for (const raw of body.split(/\r?\n/)) {
+    const line = raw.trim()
+    if (!line) continue
+    const idx = line.indexOf(':')
+    if (idx < 1) continue
+    const key = line.slice(0, idx).trim()
+    const value = line.slice(idx + 1).trim()
+    if (key) out[key] = renderTemplate(value, tokens)
+  }
+  return out
 }
 
 function bodyToParagraphs(value: string, escapeHtml: (value: string) => string): string {
@@ -358,6 +389,7 @@ async function getQuoteEmailTemplate(
     | 'quote_dep_next_steps'
     | 'quote_dep_schedule_requested'
     | 'quote_dep_schedule_confirmed'
+    | 'quote_dep_chrome'
   >
 ) {
   try {
