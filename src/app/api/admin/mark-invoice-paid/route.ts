@@ -23,7 +23,12 @@ export async function POST(request: Request) {
     .single()
 
   if (!job) return Response.json({ error: 'Job not found' }, { status: 404 })
-  if (job.status === 'completed') return Response.json({ success: true })
+  // Guard on the balance, not the status. A job is marked `completed` after the clean and
+  // before the invoice is sent, so a status check would make this route a silent no-op on
+  // exactly the jobs that need it.
+  if (job.remaining_amount !== null && Number(job.remaining_amount) === 0) {
+    return Response.json({ success: true })
+  }
 
   const { error: updateError } = await supabase
     .from('jobs')
