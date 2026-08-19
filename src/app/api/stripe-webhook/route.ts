@@ -88,9 +88,13 @@ export async function POST(request: Request) {
       return Response.json({ received: true })
     }
 
-    // Idempotency — split by payment type so balance payments aren't blocked by deposit_paid flag
+    // Idempotency — split by payment type so balance payments aren't blocked by deposit_paid flag.
+    // Invoice: guard on remaining_amount ONLY. Never guard on status — jobs are marked
+    // `completed` after the clean and before the invoice is sent, so a status check would
+    // swallow every legitimate balance payment. remaining_amount is set to 0 by the first
+    // successful run below, which is what protects against Stripe retries.
     const alreadyProcessed = paymentType === 'invoice'
-      ? (Number(job.remaining_amount) === 0 || job.status === 'completed')
+      ? job.remaining_amount !== null && Number(job.remaining_amount) === 0
       : job.deposit_paid === true
 
     if (alreadyProcessed) {
