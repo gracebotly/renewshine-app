@@ -1,3 +1,4 @@
+import { Suspense } from 'react'
 import type { Metadata } from 'next'
 import { BookingForm } from '@/components/booking/BookingForm'
 
@@ -16,7 +17,9 @@ export const metadata: Metadata = {
 export default function BookingPage() {
   return (
     <main className="min-h-screen bg-[#F5F3EF]">
-      <BookingForm />
+      <Suspense fallback={<div className="min-h-[60vh]" />}>
+        <BookingForm />
+      </Suspense>
     </main>
   )
 }

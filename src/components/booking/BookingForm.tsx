@@ -2,7 +2,7 @@
 
 import * as React from 'react'
 import * as Checkbox from '@radix-ui/react-checkbox'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { AlertTriangle, Building2, Check, CheckCircle, ChevronLeft, ChevronRight, HardHat, Home, Loader2, Minus, Plus } from 'lucide-react'
 import { AvailabilityPicker, type SchedulingMode } from '@/components/booking/AvailabilityPicker'
 import { MediaUpload } from '@/components/booking/MediaUpload'
@@ -68,6 +68,9 @@ function TileButton({
 
 export function BookingForm() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const resumeToken = searchParams.get('r')
+  const [resuming, setResuming] = React.useState(Boolean(resumeToken))
 
   // ── Flow + tab switch ──────────────────────────────────────────────────────
   const [flowType, setFlowType] = React.useState<FlowType>('residential')
@@ -270,6 +273,55 @@ export function BookingForm() {
     setErrors({})
     setSubmitError('')
   }
+
+  // ── Resume from an external lead (Facebook, etc.) ──────────────────────────
+  // A `?r=<uuid>` param means this person already gave us their contact details
+  // on another platform. Prefill Step 1 and drop them straight on Step 2.
+  React.useEffect(() => {
+    if (!resumeToken) return
+    let cancelled = false
+
+    const loadResume = async () => {
+      try {
+        const response = await fetch(`/api/resume-booking/${resumeToken}`)
+        if (!response.ok) {
+          // 404 (bad token) or 410 (already submitted) — fall through to a
+          // normal blank form rather than showing an error.
+          return
+        }
+        const data = await response.json()
+        if (cancelled) return
+
+        setSharedName(data.clientName ?? '')
+        setSharedEmail(data.clientEmail ?? '')
+        setSharedPhone(formatPhone(data.clientPhone ?? ''))
+        setResName(data.clientName ?? '')
+        setResEmail(data.clientEmail ?? '')
+        setResPhone(formatPhone(data.clientPhone ?? ''))
+        setSmsOptIn(true)
+        setSharedSmsOptIn(true)
+
+        if (data.serviceType && data.serviceType !== 'post_construction') {
+          setServiceType(data.serviceType as ServiceType)
+        }
+
+        // Adopting the existing job id stops savePartialLead() creating a
+        // duplicate row, and routes final submit through /api/update-job/[id].
+        setPartialJobId(data.jobId)
+        setBookingTypeLocked(true)
+        setResStep(2)
+      } catch {
+        // Non-blocking — a failed resume just means a blank form.
+      } finally {
+        if (!cancelled) setResuming(false)
+      }
+    }
+
+    loadResume()
+    return () => {
+      cancelled = true
+    }
+  }, [resumeToken])
 
   // ── Partial save — fires when Step 1 is complete and user clicks Next ──────
   const savePartialLead = async (
@@ -679,6 +731,17 @@ export function BookingForm() {
     : 'None'
 
   // ── Render ─────────────────────────────────────────────────────────────────
+  if (resuming) {
+    return (
+      <div className="flex min-h-[60vh] items-center justify-center">
+        <div className="flex items-center gap-3 text-slate-600">
+          <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" />
+          <span className="font-sans text-sm">Loading your details…</span>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-[#F5F3EF]"><div className="w-full max-w-2xl mx-auto px-0 sm:px-4 pt-0 sm:pt-8 pb-16"><div className="bg-white sm:rounded-2xl sm:shadow-sm sm:border sm:border-slate-100 overflow-hidden flex h-full flex-col">
 

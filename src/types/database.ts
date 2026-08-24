@@ -1,7 +1,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // RenewShine — Supabase Database Types
 // Matches the live schema in project nueoothgsydbdrseinyu
-// Last synced: 2026-04-21
+// Last synced: 2026-08-24
 // Update this file whenever the schema changes.
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -43,6 +43,8 @@ export type TimePreference =
 export type PetOption    = 'none' | 'cat' | 'dog' | 'other'
 export type HomeEntry    = 'home' | 'lockbox' | 'fob' | 'other'
 export type ConditionOption = 'maintained' | 'some_buildup' | 'heavy_buildup' | 'reset'
+
+export type JobSource = 'website' | 'facebook' | 'instagram' | 'phone' | 'referral'
 
 export interface Database {
   public: {
@@ -94,6 +96,9 @@ export interface Database {
           preferred_contact: 'email' | 'phone' | 'text' | null
           last_completed_step: number | null
           dropped_at_label: string | null
+          source: JobSource
+          external_lead_id: string | null
+          resume_token: string | null
           quote_line_items: Json | null
           email_draft_overrides?: Json | null
           message_documents?: Json | null
@@ -143,6 +148,9 @@ export interface Database {
           preferred_contact?: 'email' | 'phone' | 'text' | null
           last_completed_step?: number | null
           dropped_at_label?: string | null
+          source?: JobSource
+          external_lead_id?: string | null
+          resume_token?: string | null
           quote_line_items?: Json | null
           email_draft_overrides?: Json | null
           message_documents?: Json | null
