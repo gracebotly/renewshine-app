@@ -6,6 +6,7 @@ import type { Job } from '@/types/database'
 import { loadDocument } from '@/lib/documents/load'
 import { buildRenderContext } from '@/lib/documents/context'
 import { renderSmsDocument } from '@/lib/documents/render-sms'
+import { logActivity, logActivityFailure } from '@/lib/activity'
 
 export async function POST(request: Request) {
   try {
@@ -96,7 +97,13 @@ export async function POST(request: Request) {
   })
   const smsBody = renderSmsDocument(doc, ctx)
 
-  await sendSms(job.client_phone, smsBody)
+  try {
+    await sendSms(job.client_phone, smsBody)
+    await logActivity(jobId, 'sms', `Invoice sent · SMS · $${amountDue} due`)
+  } catch (err) {
+    await logActivityFailure(jobId, 'sms', 'Invoice · SMS', err)
+    return Response.json({ error: 'Send failed' }, { status: 500 })
+  }
 
   return Response.json({ success: true })
 }

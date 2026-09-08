@@ -9,6 +9,7 @@ import { renderSmsDocument } from '@/lib/documents/render-sms'
 import { notifyQuoteSent } from '@/lib/slack'
 import { requireAdmin } from '@/lib/require-admin'
 import { sendSms } from '@/lib/sms'
+import { logActivity, logActivityFailure } from '@/lib/activity'
 
 function toE164(phone: string): string {
   const digits = phone.replace(/\D/g, '')
@@ -159,85 +160,86 @@ export async function POST(request: Request) {
     .single()
 
   // Send via the requested channel
-  try {
-    if (updatedJob) {
-      if (channel === 'sms') {
-        // SMS deposit link — premium, personal, direct
-        if (job.client_phone) {
-          const doc = await loadDocument(updatedJob as Job, 'quote_dep', 'sms')
-          if (!doc || doc.channel !== 'sms')
-            throw new Error('Quote SMS document unavailable')
-          const ctx = buildRenderContext({
-            job: updatedJob as Job,
-            depositOverride: resolvedDeposit,
-            recurringFrequency: recurringFrequency as string | undefined,
-            recurringPriceOverride: recurringPriceOverride
-              ? Number(recurringPriceOverride)
-              : undefined,
-            depositLink: paymentLink.url,
+  if (updatedJob) {
+    if (channel === 'sms') {
+      // SMS deposit link — premium, personal, direct
+      if (job.client_phone) {
+        const doc = await loadDocument(updatedJob as Job, 'quote_dep', 'sms')
+        if (!doc || doc.channel !== 'sms')
+          throw new Error('Quote SMS document unavailable')
+        const ctx = buildRenderContext({
+          job: updatedJob as Job,
+          depositOverride: resolvedDeposit,
+          recurringFrequency: recurringFrequency as string | undefined,
+          recurringPriceOverride: recurringPriceOverride
+            ? Number(recurringPriceOverride)
+            : undefined,
+          depositLink: paymentLink.url,
+        })
+        const finalSmsBody = renderSmsDocument(doc, ctx)
+        await sendSms(job.client_phone, finalSmsBody)
+
+        // Log to inbox thread — same pattern as send-contact/route.ts
+        const normalizedPhone = toE164(job.client_phone)
+        const preview = `You: ${finalSmsBody.slice(0, 90)}`
+        const { data: existingConv } = await supabase
+          .from('sms_conversations')
+          .select('id')
+          .or(
+            `contact_phone.eq.${job.client_phone},contact_phone.eq.${normalizedPhone}`
+          )
+          .maybeSingle()
+
+        if (existingConv) {
+          await supabase.from('sms_messages').insert({
+            conversation_id: existingConv.id,
+            direction: 'outbound',
+            body: finalSmsBody,
           })
-          const finalSmsBody = renderSmsDocument(doc, ctx)
-          await sendSms(job.client_phone, finalSmsBody)
-
-          // Log to inbox thread — same pattern as send-contact/route.ts
-          const normalizedPhone = toE164(job.client_phone)
-          const preview = `You: ${finalSmsBody.slice(0, 90)}`
-          const { data: existingConv } = await supabase
+          await supabase
             .from('sms_conversations')
+            .update({
+              last_message_at: new Date().toISOString(),
+              last_message_preview: preview,
+              status: 'waiting_on_customer',
+              unread_count: 0,
+            })
+            .eq('id', existingConv.id)
+        } else {
+          const { data: newConv } = await supabase
+            .from('sms_conversations')
+            .insert({
+              contact_phone: normalizedPhone,
+              contact_name: job.client_name,
+              last_message_at: new Date().toISOString(),
+              last_message_preview: preview,
+              status: 'waiting_on_customer',
+              lead_source: 'website',
+              notes: null,
+              tags: [],
+            })
             .select('id')
-            .or(
-              `contact_phone.eq.${job.client_phone},contact_phone.eq.${normalizedPhone}`
-            )
-            .maybeSingle()
-
-          if (existingConv) {
+            .single()
+          if (newConv) {
             await supabase.from('sms_messages').insert({
-              conversation_id: existingConv.id,
+              conversation_id: newConv.id,
               direction: 'outbound',
               body: finalSmsBody,
             })
-            await supabase
-              .from('sms_conversations')
-              .update({
-                last_message_at: new Date().toISOString(),
-                last_message_preview: preview,
-                status: 'waiting_on_customer',
-                unread_count: 0,
-              })
-              .eq('id', existingConv.id)
-          } else {
-            const { data: newConv } = await supabase
-              .from('sms_conversations')
-              .insert({
-                contact_phone: normalizedPhone,
-                contact_name: job.client_name,
-                last_message_at: new Date().toISOString(),
-                last_message_preview: preview,
-                status: 'waiting_on_customer',
-                lead_source: 'website',
-                notes: null,
-                tags: [],
-              })
-              .select('id')
-              .single()
-            if (newConv) {
-              await supabase.from('sms_messages').insert({
-                conversation_id: newConv.id,
-                direction: 'outbound',
-                body: finalSmsBody,
-              })
-            }
           }
-        } else {
-          console.warn(
-            'send-deposit-link: SMS channel requested but no client_phone on job',
-            jobId
-          )
         }
       } else {
-        // Email channel (default)
+        console.warn(
+          'send-deposit-link: SMS channel requested but no client_phone on job',
+          jobId
+        )
+      }
+    } else {
+      // Email channel (default)
+      try {
         if (regenerate) {
           await sendExpiredLinkRecovery(updatedJob, paymentLink.url)
+          await logActivity(jobId, 'email', 'Quote + deposit link sent · Email')
         } else {
           const doc = await loadDocument(
             updatedJob as Job,
@@ -256,12 +258,23 @@ export async function POST(request: Request) {
             })
             const { subject, html } = renderEmailDocument(doc, ctx)
             await sendRenderedEmail(updatedJob.client_email, subject, html)
+            await logActivity(
+              jobId,
+              'email',
+              'Quote + deposit link sent · Email'
+            )
           }
         }
+      } catch (err) {
+        await logActivityFailure(
+          jobId,
+          'email',
+          'Quote + deposit link · Email',
+          err
+        )
+        return Response.json({ error: 'Send failed' }, { status: 500 })
       }
     }
-  } catch (sendError) {
-    console.error('send-deposit-link send failed (non-blocking):', sendError)
   }
 
   // Fire quote-approved webhook — n8n uses this to start the 24hr/48hr deposit follow-up sequence

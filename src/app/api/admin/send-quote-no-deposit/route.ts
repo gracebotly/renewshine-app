@@ -8,6 +8,7 @@ import { buildRenderContext } from '@/lib/documents/context'
 import { renderEmailDocument } from '@/lib/documents/render-email'
 import { renderSmsDocument } from '@/lib/documents/render-sms'
 import { sendRenderedEmail } from '@/lib/email'
+import { logActivity, logActivityFailure } from '@/lib/activity'
 
 export async function POST(request: Request) {
   try {
@@ -32,53 +33,73 @@ export async function POST(request: Request) {
   const doc = await loadDocument(job as Job, 'quote_no', channel)
   const ctx = buildRenderContext({ job: job as Job })
 
-  if (doc && doc.channel === 'sms') {
-    if (!job.client_phone)
-      return Response.json({ error: 'No phone on file' }, { status: 400 })
-    await sendSms(job.client_phone, renderSmsDocument(doc, ctx)).catch(
-      console.error
-    )
-  } else if (doc && doc.channel === 'email') {
-    if (!job.client_email)
-      return Response.json({ error: 'No email on file' }, { status: 400 })
-    const rendered = renderEmailDocument(doc, ctx)
-    await sendRenderedEmail(job.client_email, rendered.subject, rendered.html)
-  } else if (channel === 'sms') {
-    if (!job.client_phone)
-      return Response.json({ error: 'No phone on file' }, { status: 400 })
-    const message =
-      body ||
-      `Hi ${job.client_name.split(' ')[0]} — your quote is ready. Reply to confirm and I'll get you scheduled. — Grace, RenewShine`
-    await sendSms(job.client_phone, message).catch(console.error)
-  } else {
-    if (!job.client_email)
-      return Response.json({ error: 'No email on file' }, { status: 400 })
-    const emailBody =
-      typeof body === 'string' && body.trim()
-        ? body
-        : `Hi ${job.client_name?.split(' ')[0] ?? 'there'} — your quote is ready. Reply to confirm and I'll get you scheduled. — Grace, RenewShine`
-    const content = emailBody
-      .trim()
-      .split(/\n{2,}/)
-      .map(
-        (p: string) =>
-          `<p style="margin:0 0 14px;font-size:14px;color:#334155;line-height:1.6;">${p}</p>`
-      )
-      .join('')
-    const emailSubject =
-      typeof subject === 'string' && subject.trim()
-        ? subject.trim()
-        : `${job.client_name?.split(' ')[0] ?? ''}, your RenewShine quote is ready`
+  const activityType: 'email' | 'sms' =
+    (doc && doc.channel === 'sms') || (!doc && channel === 'sms')
+      ? 'sms'
+      : 'email'
+  const channelLabel = activityType === 'sms' ? 'SMS' : 'Email'
 
-    const { Resend } = await import('resend')
-    const resend = new Resend(process.env.RESEND_API_KEY!)
-    await resend.emails.send({
-      from: 'RenewShine Team <hello@renewshine.co>',
-      to: job.client_email,
-      replyTo: 'hello@renewshine.co',
-      subject: emailSubject,
-      html: baseTemplate(content, emailSubject),
-    })
+  try {
+    if (doc && doc.channel === 'sms') {
+      if (!job.client_phone)
+        return Response.json({ error: 'No phone on file' }, { status: 400 })
+      await sendSms(job.client_phone, renderSmsDocument(doc, ctx))
+    } else if (doc && doc.channel === 'email') {
+      if (!job.client_email)
+        return Response.json({ error: 'No email on file' }, { status: 400 })
+      const rendered = renderEmailDocument(doc, ctx)
+      await sendRenderedEmail(job.client_email, rendered.subject, rendered.html)
+    } else if (channel === 'sms') {
+      if (!job.client_phone)
+        return Response.json({ error: 'No phone on file' }, { status: 400 })
+      const message =
+        body ||
+        `Hi ${job.client_name.split(' ')[0]} — your quote is ready. Reply to confirm and I'll get you scheduled. — Grace, RenewShine`
+      await sendSms(job.client_phone, message)
+    } else {
+      if (!job.client_email)
+        return Response.json({ error: 'No email on file' }, { status: 400 })
+      const emailBody =
+        typeof body === 'string' && body.trim()
+          ? body
+          : `Hi ${job.client_name?.split(' ')[0] ?? 'there'} — your quote is ready. Reply to confirm and I'll get you scheduled. — Grace, RenewShine`
+      const content = emailBody
+        .trim()
+        .split(/\n{2,}/)
+        .map(
+          (p: string) =>
+            `<p style="margin:0 0 14px;font-size:14px;color:#334155;line-height:1.6;">${p}</p>`
+        )
+        .join('')
+      const emailSubject =
+        typeof subject === 'string' && subject.trim()
+          ? subject.trim()
+          : `${job.client_name?.split(' ')[0] ?? ''}, your RenewShine quote is ready`
+
+      const { Resend } = await import('resend')
+      const resend = new Resend(process.env.RESEND_API_KEY!)
+      await resend.emails.send({
+        from: 'RenewShine Team <hello@renewshine.co>',
+        to: job.client_email,
+        replyTo: 'hello@renewshine.co',
+        subject: emailSubject,
+        html: baseTemplate(content, emailSubject),
+      })
+    }
+
+    await logActivity(
+      jobId,
+      activityType,
+      `Quote sent, no deposit · ${channelLabel}`
+    )
+  } catch (err) {
+    await logActivityFailure(
+      jobId,
+      activityType,
+      `Quote, no deposit · ${channelLabel}`,
+      err
+    )
+    return Response.json({ error: 'Send failed' }, { status: 500 })
   }
 
   return Response.json({ ok: true })
