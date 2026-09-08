@@ -603,6 +603,12 @@ export default async function JobDetailPage({
                     isActivity?: boolean
                   }
 
+                  // Find the real timestamp for a stage by matching a logged
+                  // activity row. Returns null when no record exists — the stage
+                  // then renders without a time rather than inventing one.
+                  const realTime = (match: RegExp): string | null =>
+                    activityLog.find(a => match.test(a.label))?.created_at ?? null
+
                   const stages: TimelineItem[] = [
                     {
                       label: 'Request submitted',
@@ -612,67 +618,85 @@ export default async function JobDetailPage({
                     },
                     {
                       label: 'Marked under review',
-                      timestamp: ['under_review', 'approved', 'scheduled', 'completed'].includes(job.status)
-                        ? job.created_at : null,
+                      timestamp: realTime(/under review|marked under review/i),
                       color: 'bg-amber-400',
                       show: !['new', 'cancelled'].includes(job.status),
                     },
                     {
                       label: 'Quote sent',
-                      timestamp: job.confirmed_date,
+                      timestamp: realTime(/quote .*sent|deposit link sent/i),
                       color: 'bg-blue-400',
                       show: !!job.stripe_payment_link || ['approved', 'scheduled', 'completed'].includes(job.status),
                     },
                     {
                       label: 'Deposit paid — scheduled',
-                      timestamp: job.deposit_paid ? job.confirmed_date : null,
+                      timestamp: realTime(/deposit paid/i),
                       color: 'bg-emerald-500',
                       show: job.deposit_paid,
                     },
                     {
                       label: 'Job completed',
-                      timestamp: job.status === 'completed' ? job.confirmed_date : null,
+                      timestamp: realTime(/job completed|marked complete/i),
                       color: 'bg-emerald-700',
                       show: job.status === 'completed',
                     },
                     {
                       label: 'Declined',
-                      timestamp: job.status === 'cancelled' ? job.created_at : null,
+                      timestamp: realTime(/declined|cancelled/i),
                       color: 'bg-red-400',
                       show: job.status === 'cancelled',
                     },
                     {
                       label: 'Archived',
-                      timestamp: job.status === 'cancelled' ? job.created_at : null,
+                      timestamp: realTime(/archived/i),
                       color: 'bg-slate-400',
                       show: !!(job as typeof job & { is_archived?: boolean }).is_archived,
                     },
                   ]
 
-                  // Dynamic activity entries from job_activity table
-                  const activityItems: TimelineItem[] = activityLog.map(a => ({
-                    label: a.label,
-                    timestamp: a.created_at,
-                    color: a.type === 'email'
-                      ? 'bg-blue-300'
-                      : a.type === 'sms'
-                      ? 'bg-[#4A7C59]'
-                      : a.type === 'status_change'
-                      ? 'bg-slate-400'
-                      : 'bg-amber-300',
-                    show: true,
-                    isActivity: true,
-                  }))
+                  // Dynamic activity entries from job_activity table.
+                  // Skip rows already surfaced as a named stage above, so a single
+                  // event never renders twice.
+                  const stageMatchers = [
+                    /under review|marked under review/i,
+                    /quote .*sent|deposit link sent/i,
+                    /deposit paid/i,
+                    /job completed|marked complete/i,
+                    /declined|cancelled/i,
+                    /archived/i,
+                  ]
+                  const activityItems: TimelineItem[] = activityLog
+                    .filter(a => !stageMatchers.some(m => m.test(a.label)))
+                    .map(a => ({
+                      label: a.label,
+                      timestamp: a.created_at,
+                      color: a.type === 'email'
+                        ? 'bg-blue-300'
+                        : a.type === 'sms'
+                        ? 'bg-[#4A7C59]'
+                        : a.type === 'status_change'
+                        ? 'bg-slate-400'
+                        : 'bg-amber-300',
+                      show: true,
+                      isActivity: true,
+                    }))
 
                   // Merge: status stages first, then activity entries interspersed by timestamp
                   const allItems = [
                     ...stages.filter(s => s.show),
                     ...activityItems,
-                  ].sort((a, b) => {
-                    if (!a.timestamp) return -1
-                    if (!b.timestamp) return 1
-                    return new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
-                  })
+                  ].map((item, index) => ({ item, index }))
+                    .sort((a, b) => {
+                      const at = a.item.timestamp ? new Date(a.item.timestamp).getTime() : null
+                      const bt = b.item.timestamp ? new Date(b.item.timestamp).getTime() : null
+                      // Both dated — true chronological order.
+                      if (at !== null && bt !== null) return at - bt
+                      // Neither dated — preserve the declared stage order.
+                      if (at === null && bt === null) return a.index - b.index
+                      // Mixed — keep the declared order rather than guessing.
+                      return a.index - b.index
+                    })
+                    .map(({ item }) => item)
 
                   return allItems.map((item, i, arr) => (
                     <div key={`${item.label}-${i}`} className="flex gap-3">
