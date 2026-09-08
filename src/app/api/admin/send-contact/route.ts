@@ -11,28 +11,13 @@ import { renderEmailDocument } from '@/lib/documents/render-email'
 import { renderSmsDocument } from '@/lib/documents/render-sms'
 import { sendSms } from '@/lib/sms'
 import { requireAdmin } from '@/lib/require-admin'
+import { logActivity } from '@/lib/activity'
 
 function toE164(phone: string): string {
   const digits = phone.replace(/\D/g, '')
   if (digits.length === 10) return `+1${digits}`
   if (digits.length === 11 && digits.startsWith('1')) return `+${digits}`
   return phone
-}
-
-async function logActivity(
-  supabase: ReturnType<typeof createServerClient>,
-  jobId: string,
-  type: 'email' | 'sms' | 'external',
-  label: string,
-  body?: string
-) {
-  try {
-    await supabase
-      .from('job_activity')
-      .insert({ job_id: jobId, type, label, body })
-  } catch {
-    // Non-blocking — never let activity logging fail a send
-  }
 }
 
 export async function POST(request: Request) {
@@ -80,7 +65,6 @@ export async function POST(request: Request) {
       }
       contactNote = 'Email sent — photos requested'
       await logActivity(
-        supabase,
         jobId,
         'email',
         'Email sent — photos requested'
@@ -88,14 +72,13 @@ export async function POST(request: Request) {
     } else if (template === 'quote_ready') {
       await sendContactQuoteReady(job)
       contactNote = 'Email sent — quote shared'
-      await logActivity(supabase, jobId, 'email', 'Email sent — quote shared')
+      await logActivity(jobId, 'email', 'Email sent — quote shared')
     } else if (template === 'appointment_confirmed') {
       // Fires the full sendCustomerBooked HTML template (prep notes, 48hr call, etc.)
       const { sendCustomerBooked } = await import('@/lib/email')
       await sendCustomerBooked(job)
       contactNote = 'Email sent — appointment confirmation with prep notes'
       await logActivity(
-        supabase,
         jobId,
         'email',
         'Email sent — appointment confirmation'
@@ -138,7 +121,6 @@ export async function POST(request: Request) {
       })
       contactNote = `Formatted email sent: "${customBody.trim().slice(0, 80)}"`
       await logActivity(
-        supabase,
         jobId,
         'email',
         `Email sent — ${customSubject}`,
@@ -156,7 +138,6 @@ export async function POST(request: Request) {
       })
       contactNote = `Custom email sent: "${customBody.trim().slice(0, 80)}"`
       await logActivity(
-        supabase,
         jobId,
         'email',
         'Email sent — Message from RenewShine regarding your booking',
@@ -206,7 +187,7 @@ export async function POST(request: Request) {
 
     const smsSid = await sendSms(job.client_phone, body)
     contactNote = `SMS sent: "${body.slice(0, 80)}"`
-    await logActivity(supabase, jobId, 'sms', 'SMS sent', body)
+    await logActivity(jobId, 'sms', 'SMS sent', body)
 
     const normalizedPhone = toE164(job.client_phone ?? '')
     const { data: existingConv } = await supabase
@@ -271,7 +252,7 @@ export async function POST(request: Request) {
       labels[method as keyof typeof labels] ??
       customBody?.trim() ??
       'Contacted outside the app'
-    await logActivity(supabase, jobId, 'external', contactNote)
+    await logActivity(jobId, 'external', contactNote)
   }
 
   await supabase

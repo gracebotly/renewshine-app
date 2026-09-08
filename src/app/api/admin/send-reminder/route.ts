@@ -7,6 +7,7 @@ import { loadDocument } from '@/lib/documents/load'
 import { buildRenderContext } from '@/lib/documents/context'
 import { renderEmailDocument } from '@/lib/documents/render-email'
 import { renderSmsDocument } from '@/lib/documents/render-sms'
+import { logActivity, logActivityFailure } from '@/lib/activity'
 
 export async function POST(request: Request) {
   try {
@@ -48,39 +49,56 @@ export async function POST(request: Request) {
   const doc = await loadDocument(job as Job, 'reminder', channel)
   const ctx = buildRenderContext({ job: job as Job })
 
-  if (doc && doc.channel === 'sms') {
-    await sendSms(job.client_phone!, renderSmsDocument(doc, ctx))
-  } else if (doc && doc.channel === 'email') {
-    const { subject, html } = renderEmailDocument(doc, ctx)
-    await sendRenderedEmail(job.client_email, subject, html)
-  } else {
-    // Legacy fallback — retained until 3B proves the document path.
-    const firstName = job.client_name.split(' ')[0]
-    const timePrefMap: Record<string, string> = {
-      early_morning: '8am–10am',
-      mid_morning: '10am–12pm',
-      noon: '12pm–2pm',
-      early_afternoon: '2pm–4pm',
-      late_afternoon: '4pm–6pm',
-      flexible: 'Morning to Afternoon',
-      morning: '8am–12pm',
-      afternoon: '12pm–5pm',
-    }
-    const timeWindow = job.availability_time_pref
-      ? (timePrefMap[job.availability_time_pref] ?? 'your scheduled window')
-      : 'your scheduled window'
-    const message = `Hi ${firstName} 👋 Reminder: your RenewShine clean is tomorrow. Arrival window: ${timeWindow}. Address: ${job.address ?? 'on file'}. Questions? Just reply. See you then! — RenewShine`
-    if (channel === 'sms') {
-      await sendSms(job.client_phone!, message).catch((err) =>
-        console.error('send-reminder SMS failed:', err)
-      )
+  const activityType = channel === 'sms' ? 'sms' : 'email'
+  const channelLabel = channel === 'sms' ? 'SMS' : 'Email'
+
+  try {
+    if (doc && doc.channel === 'sms') {
+      await sendSms(job.client_phone!, renderSmsDocument(doc, ctx))
+    } else if (doc && doc.channel === 'email') {
+      const { subject, html } = renderEmailDocument(doc, ctx)
+      await sendRenderedEmail(job.client_email, subject, html)
     } else {
-      await sendRenderedEmail(
-        job.client_email,
-        'Reminder: your RenewShine clean is tomorrow',
-        message
-      )
+      // Legacy fallback — retained until 3B proves the document path.
+      const firstName = job.client_name.split(' ')[0]
+      const timePrefMap: Record<string, string> = {
+        early_morning: '8am–10am',
+        mid_morning: '10am–12pm',
+        noon: '12pm–2pm',
+        early_afternoon: '2pm–4pm',
+        late_afternoon: '4pm–6pm',
+        flexible: 'Morning to Afternoon',
+        morning: '8am–12pm',
+        afternoon: '12pm–5pm',
+      }
+      const timeWindow = job.availability_time_pref
+        ? (timePrefMap[job.availability_time_pref] ?? 'your scheduled window')
+        : 'your scheduled window'
+      const message = `Hi ${firstName} 👋 Reminder: your RenewShine clean is tomorrow. Arrival window: ${timeWindow}. Address: ${job.address ?? 'on file'}. Questions? Just reply. See you then! — RenewShine`
+      if (channel === 'sms') {
+        await sendSms(job.client_phone!, message)
+      } else {
+        await sendRenderedEmail(
+          job.client_email,
+          'Reminder: your RenewShine clean is tomorrow',
+          message
+        )
+      }
     }
+
+    await logActivity(
+      jobId,
+      activityType,
+      `Day-before reminder sent · ${channelLabel}`
+    )
+  } catch (err) {
+    await logActivityFailure(
+      jobId,
+      activityType,
+      `Day-before reminder · ${channelLabel}`,
+      err
+    )
+    return Response.json({ error: 'Send failed' }, { status: 500 })
   }
 
   return Response.json({ sent: true })

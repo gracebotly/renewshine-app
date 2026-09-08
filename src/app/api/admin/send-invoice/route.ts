@@ -6,6 +6,7 @@ import { loadDocument } from '@/lib/documents/load'
 import { buildRenderContext } from '@/lib/documents/context'
 import { renderEmailDocument } from '@/lib/documents/render-email'
 import { requireAdmin } from '@/lib/require-admin'
+import { logActivity, logActivityFailure } from '@/lib/activity'
 
 export interface InvoiceLineItem {
   description: string
@@ -169,9 +170,15 @@ export async function POST(request: Request) {
     if (doc && doc.channel === 'email') {
       const { subject, html } = renderEmailDocument(doc, ctx)
       await sendRenderedEmail(job.client_email, subject, html)
+      await logActivity(
+        jobId,
+        'email',
+        `Invoice ${invoiceNumber} sent · Email · $${amountDue} due`
+      )
     }
   } catch (emailError) {
     console.error('Invoice email failed (non-blocking):', emailError)
+    await logActivityFailure(jobId, 'email', `Invoice ${invoiceNumber} · Email`, emailError)
   }
 
   return Response.json({

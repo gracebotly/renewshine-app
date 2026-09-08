@@ -6,6 +6,7 @@ import { loadDocument } from '@/lib/documents/load'
 import { buildRenderContext } from '@/lib/documents/context'
 import { renderEmailDocument } from '@/lib/documents/render-email'
 import { sendCustomerBooked, sendRenderedEmail } from '@/lib/email'
+import { logActivity, logActivityFailure } from '@/lib/activity'
 
 export async function POST(request: NextRequest) {
   try {
@@ -51,14 +52,21 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  const doc = await loadDocument(updatedJob as Job, 'appt', 'email')
-  if (doc && doc.channel === 'email') {
-    const ctx = buildRenderContext({ job: updatedJob as Job })
-    const { subject, html } = renderEmailDocument(doc, ctx)
-    await sendRenderedEmail(updatedJob.client_email, subject, html)
-  } else {
-    // Legacy fallback — retained until 3B proves the document path.
-    await sendCustomerBooked(updatedJob as Job)
+  try {
+    const doc = await loadDocument(updatedJob as Job, 'appt', 'email')
+    if (doc && doc.channel === 'email') {
+      const ctx = buildRenderContext({ job: updatedJob as Job })
+      const { subject, html } = renderEmailDocument(doc, ctx)
+      await sendRenderedEmail(updatedJob.client_email, subject, html)
+    } else {
+      // Legacy fallback — retained until 3B proves the document path.
+      await sendCustomerBooked(updatedJob as Job)
+    }
+
+    await logActivity(jobId, 'email', 'Appointment confirmation sent · Email')
+  } catch (err) {
+    await logActivityFailure(jobId, 'email', 'Appointment confirmation · Email', err)
+    return Response.json({ error: 'Send failed' }, { status: 500 })
   }
 
   return Response.json({ ok: true, confirmedDate })
