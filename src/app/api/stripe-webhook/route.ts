@@ -3,6 +3,7 @@ import { createServerClient } from '@/lib/supabase/server'
 import { sendOwnerBooked } from '@/lib/email'
 import { notifyDepositPaid } from '@/lib/slack'
 import { sendPushNotification } from '@/lib/push'
+import { logActivity } from '@/lib/activity'
 
 // Required: raw body for Stripe signature verification
 export const runtime = 'nodejs'
@@ -170,6 +171,12 @@ Job status → completed
 🔗 ${jobUrl}`
         ).catch(() => {})
 
+        await logActivity(
+          resolvedJobId,
+          'status_change',
+          `Balance paid · $${amountPaid} · Stripe`
+        )
+
       } else {
         // Push for deposit
         sendPushNotification({
@@ -193,6 +200,12 @@ Job status → completed
 💵 Remaining balance: $${updatedJob.remaining_amount ?? 0}
 🔗 ${jobUrl}`
         ).catch(() => {})
+
+        await logActivity(
+          resolvedJobId,
+          'status_change',
+          `Deposit paid · $${updatedJob.deposit_amount ?? 100} · Stripe`
+        )
       }
     }
 

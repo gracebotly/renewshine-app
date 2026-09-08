@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
 import { sendSms } from '@/lib/sms'
 import { put } from '@vercel/blob'
+import { logActivity, logActivityFailure } from '@/lib/activity'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -54,8 +55,36 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'message or media required' }, { status: 400 })
   }
 
+  const normalizedTo = to.replace(/\D/g, '')
+  const e164To = normalizedTo.length === 10
+    ? `+1${normalizedTo}`
+    : normalizedTo.length === 11 && normalizedTo.startsWith('1')
+      ? `+${normalizedTo}`
+      : to
+
+  const { data: matchingJob } = await supabase
+    .from('jobs')
+    .select('id')
+    .or(`client_phone.eq.${to},client_phone.eq.${e164To}`)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
   // Send via Twilio (MMS if mediaUrls present, SMS otherwise)
-  const smsSid = await sendSms(to, message.trim(), mediaUrls.length > 0 ? mediaUrls : undefined)
+  let smsSid: string | null
+  try {
+    smsSid = await sendSms(to, message.trim(), mediaUrls.length > 0 ? mediaUrls : undefined)
+    if (!smsSid) throw new Error('SMS send failed')
+
+    if (matchingJob) {
+      await logActivity(matchingJob.id, 'sms', 'You replied · SMS', message.trim())
+    }
+  } catch (err) {
+    if (matchingJob) {
+      await logActivityFailure(matchingJob.id, 'sms', 'Your reply · SMS', err)
+    }
+    return Response.json({ error: 'Send failed' }, { status: 500 })
+  }
 
   // Store in Supabase
   const preview = message.trim()
