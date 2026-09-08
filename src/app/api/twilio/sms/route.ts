@@ -3,6 +3,7 @@ import { createServerClient } from '@/lib/supabase/server'
 import { validateTwilioSignature } from '@/lib/validate-twilio'
 import { sendSms } from '@/lib/sms'
 import { sendPushNotification } from '@/lib/push'
+import { logActivity } from '@/lib/activity'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -211,7 +212,7 @@ async function storeInInbox({
   // Jobs may store phone as (202) 555-1234 or +12025551234 — try both
   const { data: matchingJob } = await supabase
     .from('jobs')
-    .select('client_name')
+    .select('id, client_name')
     .or(`client_phone.eq.${from},client_phone.eq.${normalizedFrom}`)
     .order('created_at', { ascending: false })
     .limit(1)
@@ -272,6 +273,15 @@ async function storeInInbox({
     media_url:       allMediaUrls[0] ?? null,   // backward compat
     media_urls:      allMediaUrls,               // new multi-media column
   })
+
+  if (matchingJob) {
+    await logActivity(
+      matchingJob.id,
+      'sms',
+      'Customer replied · SMS',
+      body
+    )
+  }
 
   const displayName = conv.contact_name ?? from
 
