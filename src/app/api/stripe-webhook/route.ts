@@ -1,6 +1,6 @@
 import { stripe } from '@/lib/stripe/client'
 import { createServerClient } from '@/lib/supabase/server'
-import { sendOwnerBooked } from '@/lib/email'
+import { sendOwnerBooked, sendOwnerBalancePaid } from '@/lib/email'
 import { notifyDepositPaid } from '@/lib/slack'
 import { sendPushNotification } from '@/lib/push'
 import { logActivity } from '@/lib/activity'
@@ -40,7 +40,7 @@ export async function POST(request: Request) {
 
     // PRIMARY: jobId from session.metadata — populated when PaymentLink has top-level metadata
     const jobId: string | null = session.metadata?.jobId ?? null
-    const paymentType: string = session.metadata?.type ?? 'deposit'
+    let paymentType: string = session.metadata?.type ?? ''
 
     // FALLBACK: if metadata missing (e.g. older Payment Links without metadata),
     // look up the job by the Stripe payment_link URL stored in our database
@@ -89,6 +89,16 @@ export async function POST(request: Request) {
       return Response.json({ received: true })
     }
 
+    // If metadata did not say what this payment is, infer it from the job.
+    // A paid deposit with a balance still owed means this is the balance payment.
+    if (!paymentType) {
+      paymentType =
+        job.deposit_paid === true && Number(job.remaining_amount ?? 0) > 0
+          ? 'invoice'
+          : 'deposit'
+      console.log('Webhook: metadata.type missing — inferred', paymentType, 'for job', resolvedJobId)
+    }
+
     // Idempotency — split by payment type so balance payments aren't blocked by deposit_paid flag.
     // Invoice: guard on remaining_amount ONLY. Never guard on status — jobs are marked
     // `completed` after the clean and before the invoice is sent, so a status check would
@@ -100,6 +110,13 @@ export async function POST(request: Request) {
 
     if (alreadyProcessed) {
       console.log('Webhook: payment already recorded for job', resolvedJobId, '— skipping')
+      // Leave a visible trace — a real charge that changes nothing must never be silent.
+      await logActivity(
+        resolvedJobId,
+        'status_change',
+        `Stripe payment received but not applied · ${paymentType}`,
+        `Checkout session ${session.id} completed, but the job already showed this payment as recorded. Check Stripe if this looks wrong.`
+      ).catch(() => {})
       return Response.json({ received: true })
     }
 
@@ -154,6 +171,13 @@ export async function POST(request: Request) {
 
       if (paymentType === 'invoice') {
         const amountPaid = Number(job.remaining_amount) // capture before update zeroed it
+
+        try {
+          await sendOwnerBalancePaid(updatedJob, amountPaid)
+          console.log('Webhook: owner balance-paid email sent for job', resolvedJobId)
+        } catch (emailError) {
+          console.error('Webhook: owner balance-paid email failed (non-blocking):', emailError)
+        }
 
         // Push — reaches Grace on mobile immediately
         sendPushNotification({

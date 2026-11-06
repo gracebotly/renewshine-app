@@ -86,6 +86,19 @@ export async function POST(request: Request) {
     return Response.json({ error: 'Job not found' }, { status: 404 })
   }
 
+  // Block re-invoicing a job whose balance is already paid. Resending would
+  // reset remaining_amount and create a second payable link.
+  if (
+    job.status === 'completed' &&
+    job.remaining_amount !== null &&
+    Number(job.remaining_amount) === 0
+  ) {
+    return Response.json(
+      { error: 'Balance already paid. This job shows $0 remaining.' },
+      { status: 409 }
+    )
+  }
+
   const total = lineItems.reduce((sum, item) => sum + item.amount, 0)
   const depositPaid =
     typeof depositCreditOverride === 'number'
