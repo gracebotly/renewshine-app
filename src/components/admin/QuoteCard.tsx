@@ -400,11 +400,17 @@ export function QuoteCard({ job, defaultOpenPanel }: { job: Job; defaultOpenPane
           body: JSON.stringify({ jobId: job.id, channel: currentChannel }),
         })
       } else if (currentTemplate === 'invoice' && currentChannel === 'sms') {
-        await fetch('/api/admin/send-invoice-sms', {
+        const invoiceRes = await fetch('/api/admin/send-invoice-sms', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ jobId: job.id }),
         })
+        if (!invoiceRes.ok) {
+          const data = await invoiceRes.json().catch(() => ({}))
+          setErrorMsg(data.error ?? 'Failed to send invoice.')
+          setContactSending(false)
+          return
+        }
       } else if (currentTemplate === 'appt') {
         if (currentChannel === 'email') {
           await fetch('/api/admin/confirm-appointment', {

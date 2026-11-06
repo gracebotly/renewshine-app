@@ -4,6 +4,7 @@ import { ownerNewJobTemplate } from './templates/owner-new-job'
 import { customerSubmittedTemplate } from './templates/customer-submitted'
 import { customerBookedTemplate } from './templates/customer-booked'
 import { ownerBookedTemplate } from './templates/owner-booked'
+import { ownerBalancePaidTemplate } from './templates/owner-balance-paid'
 import { customerQuoteReminderTemplate } from './templates/customer-quote-reminder'
 import { customerDeclinedTemplate } from './templates/customer-declined'
 import { customerAbandonedTemplate } from './templates/customer-abandoned'
@@ -36,6 +37,15 @@ export async function sendCustomerBooked(job: Job): Promise<void> {
 /** Template 5 — fires after deposit paid (Stripe webhook OR cash path). To: owner. */
 export async function sendOwnerBooked(job: Job): Promise<void> {
   const { subject, html } = ownerBookedTemplate(job)
+  await resend.emails.send({ from: FROM, to: OWNER_EMAIL, replyTo: REPLY_TO, subject, html })
+}
+
+/**
+ * Owner balance-paid alert — fires from stripe-webhook when an invoice
+ * (remaining balance) checkout completes. To: owner.
+ */
+export async function sendOwnerBalancePaid(job: Job, amountPaid: number): Promise<void> {
+  const { subject, html } = ownerBalancePaidTemplate(job, amountPaid)
   await resend.emails.send({ from: FROM, to: OWNER_EMAIL, replyTo: REPLY_TO, subject, html })
 }
 
